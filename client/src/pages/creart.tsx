@@ -53,6 +53,7 @@ const CreArt: React.FC = () => {
   // Fetch user submissions
   const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery({
     queryKey: [`/api/submissions?userId=${userId}`],
+    enabled: !!userId,
   });
   
   // Fetch class submissions for an open event at class stage
@@ -202,6 +203,62 @@ const CreArt: React.FC = () => {
                   ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+      </div>
+      
+      {/* My Submissions Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold font-heading mb-4">My Submissions</h2>
+        
+        {isLoadingSubmissions ? (
+          <p>Loading your submissions...</p>
+        ) : submissions.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">You haven't submitted any art or poetry yet.</p>
+            <p className="text-gray-500 text-sm mt-1">
+              Register for an event and click "Submit" to create your first submission!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {submissions.map((submission: any) => (
+              <div key={submission.id} className="border rounded-lg overflow-hidden">
+                <div className="p-4 bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-gray-900">{submission.title}</h3>
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                      {submission.contentType === "text" ? "Poetry" : "Artwork"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                {submission.contentType === "text" ? (
+                  <div className="p-4 font-artistic text-gray-800">
+                    <p className="whitespace-pre-line">{submission.content}</p>
+                  </div>
+                ) : (
+                  <div className="h-48 bg-gray-200">
+                    <img 
+                      src={submission.content} 
+                      alt={submission.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                )}
+                
+                <div className="p-4 flex justify-between items-center border-t">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {submission.voteCount || 0} votes
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Submitted to event #{submission.eventId}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

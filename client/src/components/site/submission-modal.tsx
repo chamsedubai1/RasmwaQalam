@@ -123,7 +123,10 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
         title: "Success",
         description: "Your submission has been received",
       });
+      // Invalidate all submissions queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/submissions'] });
+      // Also specifically invalidate user submissions
+      queryClient.invalidateQueries({ queryKey: [`/api/submissions?userId=1`] });
       handleClose();
     },
     onError: (error: any) => {
