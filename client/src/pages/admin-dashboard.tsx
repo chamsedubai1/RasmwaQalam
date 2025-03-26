@@ -93,23 +93,35 @@ const AdminDashboard: React.FC = () => {
   // Always include hooks before any early returns to avoid React errors
   
   // Fetch all users
-  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: allUsers = [], isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
     queryKey: ['/api/users'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
   
   // Fetch all schools
   const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
     queryKey: ['/api/schools'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
   
   // Fetch all events for event management
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ['/api/events'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
   
   // Fetch all classes for class management
   const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
     queryKey: ['/api/classes'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
   
   // Admin role check - moved after all hooks to avoid React errors
@@ -590,9 +602,24 @@ const AdminDashboard: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Manage Users</CardTitle>
-              <Button onClick={() => setShowCreateUserDialog(true)}>
-                Create New User
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    refetchUsers();
+                    toast({
+                      title: "Refreshed",
+                      description: "User list has been refreshed",
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                </Button>
+                <Button onClick={() => setShowCreateUserDialog(true)}>
+                  Create New User
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
