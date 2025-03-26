@@ -342,14 +342,20 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} className="border-blue-300 text-blue-700 hover:bg-blue-50">
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit}
             disabled={submitMutation.isPending}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
           >
-            {submitMutation.isPending ? "Submitting..." : "Submit"}
+            {submitMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : "Submit"}
           </Button>
         </DialogFooter>
       </DialogContent>

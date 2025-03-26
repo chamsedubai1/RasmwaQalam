@@ -128,19 +128,19 @@ const CreArt: React.FC = () => {
   
   return (
     <div>
-      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">CreArt Studio</h1>
+      <h1 className="text-3xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-6">CreArt Studio</h1>
       
       {/* Student's Events */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold font-heading mb-4">My Events</h2>
+      <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
+        <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">My Events</h2>
         {isLoadingRegistrations || isLoadingEvents || isLoadingSubmissions ? (
           <p>Loading your events...</p>
         ) : !Array.isArray(registrations) || registrations.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500 mb-2">You haven't registered for any events yet.</p>
+          <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-blue-700 mb-2">You haven't registered for any events yet.</p>
             <Button 
               variant="link" 
-              className="text-primary"
+              className="text-blue-600 hover:text-blue-800 font-medium"
               onClick={() => window.location.href = '/events'}
             >
               Browse Events
@@ -219,52 +219,52 @@ const CreArt: React.FC = () => {
       </div>
       
       {/* My Submissions Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold font-heading mb-4">My Submissions</h2>
+      <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
+        <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">My Submissions</h2>
         
         {isLoadingSubmissions ? (
-          <p>Loading your submissions...</p>
+          <p className="text-blue-600">Loading your submissions...</p>
         ) : !Array.isArray(submissions) || submissions.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">You haven't submitted any art or poetry yet.</p>
-            <p className="text-gray-500 text-sm mt-1">
+          <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-blue-700">You haven't submitted any art or poetry yet.</p>
+            <p className="text-blue-600 text-sm mt-1">
               Register for an event and click "Submit" to create your first submission!
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {submissions.map((submission: any) => (
-              <div key={submission.id} className="border rounded-lg overflow-hidden">
-                <div className="p-4 bg-gray-50">
+              <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-4 bg-blue-50">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-medium text-gray-900">{submission.title}</h3>
-                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                    <h3 className="font-medium text-blue-900">{submission.title}</h3>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
                       {submission.contentType === "text" ? "Poetry" : "Artwork"}
                     </Badge>
                   </div>
                 </div>
                 
                 {submission.contentType === "text" ? (
-                  <div className="p-4 font-artistic text-gray-800">
+                  <div className="p-4 font-artistic text-blue-800 bg-white">
                     <p className="whitespace-pre-line">{submission.content}</p>
                   </div>
                 ) : (
-                  <div className="h-48 bg-gray-200">
+                  <div className="h-48 bg-blue-50 border-y border-blue-100">
                     <img 
                       src={submission.content} 
                       alt={submission.title} 
-                      className="w-full h-full object-cover" 
+                      className="w-full h-full object-cover shadow-inner" 
                     />
                   </div>
                 )}
                 
-                <div className="p-4 flex justify-between items-center border-t">
+                <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
                   <div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-blue-700">
                       {submission.voteCount || 0} votes
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-blue-500">
                     Submitted to event #{submission.eventId}
                   </div>
                 </div>
@@ -276,52 +276,52 @@ const CreArt: React.FC = () => {
       
       {/* Class Voting Section */}
       {activeClassEvent && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold font-heading mb-4">
+        <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
+          <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">
             Class Voting - {activeClassEvent.name}
           </h2>
           
           {isLoadingClassSubmissions ? (
-            <p>Loading submissions...</p>
+            <p className="text-blue-600">Loading submissions...</p>
           ) : !Array.isArray(classSubmissions) || classSubmissions.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No submissions available for voting yet.</p>
+            <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-blue-700">No submissions available for voting yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {classSubmissions.map((submission: any) => (
-                <div key={submission.id} className="border rounded-lg overflow-hidden">
-                  <div className="p-4 bg-gray-50">
+                <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="p-4 bg-blue-50">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-medium text-gray-900">{submission.title}</h3>
-                      <span className="text-xs text-gray-500">{submission.userFullName || "Anonymous"}</span>
+                      <h3 className="font-medium text-blue-900">{submission.title}</h3>
+                      <span className="text-xs text-blue-600">{submission.userFullName || "Anonymous"}</span>
                     </div>
                   </div>
                   
                   {submission.contentType === "text" ? (
-                    <div className="p-4 font-artistic text-gray-800">
+                    <div className="p-4 font-artistic text-blue-800 bg-white">
                       <p className="whitespace-pre-line">{submission.content}</p>
                     </div>
                   ) : (
-                    <div className="h-48 bg-gray-200">
+                    <div className="h-48 bg-blue-50 border-y border-blue-100">
                       <img 
                         src={submission.content} 
                         alt={submission.title} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-cover shadow-inner" 
                       />
                     </div>
                   )}
                   
-                  <div className="p-4 flex justify-between items-center border-t">
+                  <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
                     <div>
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-blue-700">
                         {submission.voteCount || 0} votes
                       </span>
                     </div>
                     <Button
                       variant="default"
                       size="sm"
-                      className="bg-primary hover:bg-indigo-700 text-white rounded-full"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"
                       onClick={() => handleVote(submission.id)}
                       disabled={submission.hasVoted || voteMutation.isPending}
                     >
