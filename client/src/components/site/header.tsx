@@ -37,12 +37,12 @@ const Header: React.FC = () => {
               <span className="text-white font-bold text-xl font-heading tracking-wider">ArtChallenge</span>
             </div>
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8 items-center">
-              <NavLink href="/">Home</NavLink>
-              <NavLink href="/about">About Us</NavLink>
-              <NavLink href="/events">Events</NavLink>
-              <NavLink href="/gallery">Gallery</NavLink>
-              <NavLink href="/schools">Schools</NavLink>
-              <NavLink href="/partners">Partners</NavLink>
+              <NavLink href="/" role="all">Home</NavLink>
+              <NavLink href="/about" role="all">About Us</NavLink>
+              <NavLink href="/events" role="all">Events</NavLink>
+              <NavLink href="/gallery" role="all">Gallery</NavLink>
+              <NavLink href="/schools" role="all">Schools</NavLink>
+              <NavLink href="/partners" role="all">Partners</NavLink>
               {userRole === "student" && (
                 <NavLink href="/creart" role="student">CreArt</NavLink>
               )}
@@ -96,12 +96,12 @@ const Header: React.FC = () => {
       {/* Mobile menu */}
       <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
-          <NavLink href="/" className="block">Home</NavLink>
-          <NavLink href="/about" className="block">About Us</NavLink>
-          <NavLink href="/events" className="block">Events</NavLink>
-          <NavLink href="/gallery" className="block">Gallery</NavLink>
-          <NavLink href="/schools" className="block">Schools</NavLink>
-          <NavLink href="/partners" className="block">Partners</NavLink>
+          <NavLink href="/" className="block" role="all">Home</NavLink>
+          <NavLink href="/about" className="block" role="all">About Us</NavLink>
+          <NavLink href="/events" className="block" role="all">Events</NavLink>
+          <NavLink href="/gallery" className="block" role="all">Gallery</NavLink>
+          <NavLink href="/schools" className="block" role="all">Schools</NavLink>
+          <NavLink href="/partners" className="block" role="all">Partners</NavLink>
           {userRole === "student" && (
             <NavLink href="/creart" className="block" role="student">CreArt</NavLink>
           )}

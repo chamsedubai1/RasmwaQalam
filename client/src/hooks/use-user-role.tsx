@@ -32,15 +32,19 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
       localStorage.removeItem("userRole");
     }
     
-    // Hide all role-specific elements
-    document.querySelectorAll('[data-role]').forEach(el => {
+    // First show all elements marked as "all"
+    document.querySelectorAll('[data-role="all"]').forEach(el => {
+      el.classList.remove('hidden');
+    });
+    
+    // Hide role-specific elements except "all"
+    document.querySelectorAll('[data-role="student"], [data-role="teacher"], [data-role="admin"]').forEach(el => {
       el.classList.add('hidden');
     });
     
-    // Show elements for current role and those marked for all
-    // Only if a role is selected
+    // Show elements for current role if there is one
     if (userRole) {
-      document.querySelectorAll(`[data-role="all"], [data-role="${userRole}"]`).forEach(el => {
+      document.querySelectorAll(`[data-role="${userRole}"]`).forEach(el => {
         el.classList.remove('hidden');
       });
     }
