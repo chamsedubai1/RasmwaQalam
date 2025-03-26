@@ -43,10 +43,7 @@ const AdminDashboard: React.FC = () => {
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
   
-  // Admin role check
-  if (userRole !== "admin") {
-    return <Redirect to="/" />;
-  }
+  // Always include hooks before any early returns to avoid React errors
   
   // Fetch all users
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
@@ -62,6 +59,11 @@ const AdminDashboard: React.FC = () => {
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ['/api/events'],
   });
+  
+  // Admin role check - moved after all hooks to avoid React errors
+  if (userRole !== "admin") {
+    return <Redirect to="/" />;
+  }
   
   // Filter users
   const filteredUsers = allUsers.filter((user: any) => {

@@ -33,10 +33,7 @@ const TeacherDashboard: React.FC = () => {
   const [showAddClassDialog, setShowAddClassDialog] = useState(false);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   
-  // Teacher role check
-  if (userRole !== "teacher") {
-    return <Redirect to="/" />;
-  }
+  // Always include hooks before any early returns to avoid React errors
   
   // Mock teacher ID (in a real app, this would come from authentication)
   const teacherId = 1;
@@ -48,7 +45,7 @@ const TeacherDashboard: React.FC = () => {
   
   // Fetch students for selected class
   const { data: students = [], isLoading: isLoadingStudents } = useQuery({
-    queryKey: selectedClassId ? [`/api/users?classId=${selectedClassId}`] : null,
+    queryKey: selectedClassId ? [`/api/users?classId=${selectedClassId}`] : [`/api/users`],
     enabled: !!selectedClassId,
   });
   
@@ -56,6 +53,11 @@ const TeacherDashboard: React.FC = () => {
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ['/api/events?status=open'],
   });
+  
+  // Teacher role check - moved after all hooks to avoid React errors
+  if (userRole !== "teacher") {
+    return <Redirect to="/" />;
+  }
   
   const handleManageClass = (classId: number) => {
     setSelectedClassId(classId);

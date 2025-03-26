@@ -32,10 +32,8 @@ const CreArt: React.FC = () => {
   const queryClient = useQueryClient();
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
   
-  // Student role check
-  if (userRole !== "student") {
-    return <Redirect to="/" />;
-  }
+  // Always include all hooks before any early returns to avoid the
+  // "Rendered fewer hooks than expected" error
   
   // Mock user ID (in a real app, this would come from authentication)
   const userId = 1;
@@ -53,7 +51,6 @@ const CreArt: React.FC = () => {
   // Fetch user submissions
   const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery({
     queryKey: [`/api/submissions?userId=${userId}`],
-    enabled: !!userId,
   });
   
   // Fetch class submissions for an open event at class stage
@@ -61,26 +58,14 @@ const CreArt: React.FC = () => {
     queryKey: ['/api/events?status=open&stage=class'],
   });
   
-  const activeClassEvent = classEvents[0] || null;
-  const eventId = activeClassEvent?.id;
+  // Using optional chaining to safely access properties
+  const activeClassEvent = Array.isArray(classEvents) && classEvents.length > 0 ? classEvents[0] : null;
+  const eventId = activeClassEvent && 'id' in activeClassEvent ? activeClassEvent.id : null;
   
   // Fetch submissions for class voting if there's an active class event
   const { data: classSubmissions = [], isLoading: isLoadingClassSubmissions } = useQuery({
-    queryKey: eventId ? [`/api/submissions?eventId=${eventId}`] : null,
+    queryKey: eventId ? [`/api/submissions?eventId=${eventId}`] : [`/api/submissions`],
     enabled: !!eventId,
-  });
-  
-  // Combine events with registrations and submissions
-  const eventsWithDetails = events.map((event: any) => {
-    const isRegistered = registrations.some((r: any) => r.eventId === event.id);
-    const userSubmissionsForEvent = submissions.filter((s: any) => s.eventId === event.id);
-    
-    return {
-      ...event,
-      isRegistered,
-      submissionCount: userSubmissionsForEvent.length,
-      maxSubmissionsReached: userSubmissionsForEvent.length >= 3
-    };
   });
   
   // Vote mutation
@@ -97,9 +82,11 @@ const CreArt: React.FC = () => {
         description: "Your vote has been recorded",
       });
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/submissions?eventId=${eventId}`] });
+      if (eventId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/submissions?eventId=${eventId}`] });
+      }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: `Failed to cast vote: ${error.message}`,
@@ -107,6 +94,25 @@ const CreArt: React.FC = () => {
       });
     }
   });
+  
+  // Student role check - we moved this after all hooks to avoid React errors
+  if (userRole !== "student") {
+    return <Redirect to="/" />;
+  }
+  
+  // Combine events with registrations and submissions
+  const eventsWithDetails = Array.isArray(events) ? events.map((event: any) => {
+    const isRegistered = Array.isArray(registrations) && registrations.some((r: any) => r.eventId === event.id);
+    const userSubmissionsForEvent = Array.isArray(submissions) ? 
+      submissions.filter((s: any) => s.eventId === event.id) : [];
+    
+    return {
+      ...event,
+      isRegistered,
+      submissionCount: userSubmissionsForEvent.length,
+      maxSubmissionsReached: userSubmissionsForEvent.length >= 3
+    };
+  }) : [];
   
   const handleSubmit = (eventId: number) => {
     setSubmitEventId(eventId);
@@ -129,7 +135,7 @@ const CreArt: React.FC = () => {
         <h2 className="text-xl font-semibold font-heading mb-4">My Events</h2>
         {isLoadingRegistrations || isLoadingEvents || isLoadingSubmissions ? (
           <p>Loading your events...</p>
-        ) : registrations.length === 0 ? (
+        ) : !Array.isArray(registrations) || registrations.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <p className="text-gray-500 mb-2">You haven't registered for any events yet.</p>
             <Button 
@@ -161,14 +167,19 @@ const CreArt: React.FC = () => {
                       <TableCell className="font-medium">{event.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`${event.type === 'poetry' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                          {event.type && typeof event.type === 'string' ? 
+                            event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Unknown'}
                         </Badge>
                       </TableCell>
                       <TableCell className="capitalize">{event.stage}</TableCell>
                       <TableCell>{event.submissionCount}/3</TableCell>
                       <TableCell>
-                        <Badge variant={event.status === 'open' ? 'default' : 'secondary'} className={event.status === 'open' ? 'bg-warning text-white' : ''}>
-                          {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                        <Badge 
+                          variant={event.status === 'open' ? 'default' : 'secondary'} 
+                          className={event.status === 'open' ? 'bg-warning text-white' : ''}
+                        >
+                          {event.status && typeof event.status === 'string' ? 
+                            event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'Unknown'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -213,7 +224,7 @@ const CreArt: React.FC = () => {
         
         {isLoadingSubmissions ? (
           <p>Loading your submissions...</p>
-        ) : submissions.length === 0 ? (
+        ) : !Array.isArray(submissions) || submissions.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <p className="text-gray-500">You haven't submitted any art or poetry yet.</p>
             <p className="text-gray-500 text-sm mt-1">
@@ -272,13 +283,13 @@ const CreArt: React.FC = () => {
           
           {isLoadingClassSubmissions ? (
             <p>Loading submissions...</p>
-          ) : classSubmissions.length === 0 ? (
+          ) : !Array.isArray(classSubmissions) || classSubmissions.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <p className="text-gray-500">No submissions available for voting yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {classSubmissions.map((submission: SubmissionWithVotes) => (
+              {classSubmissions.map((submission: any) => (
                 <div key={submission.id} className="border rounded-lg overflow-hidden">
                   <div className="p-4 bg-gray-50">
                     <div className="flex justify-between items-start">
