@@ -43,15 +43,23 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  interface PoemResponse {
+    content: string;
+  }
+
+  interface ImageResponse {
+    imageUrl: string;
+  }
+
   // Generate poem using AI
   const generatePoemMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/ai/generate-poem', {
+      return apiRequest<PoemResponse>('POST', '/api/ai/generate-poem', {
         prompt: aiPrompt,
         style: poetryStyle
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: PoemResponse) => {
       setContent(data.content);
       toast({
         title: "Poetry Generated",
@@ -59,7 +67,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       });
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Generation Failed",
         description: `Failed to generate poem: ${error.message}`,
@@ -72,11 +80,11 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   // Generate image using AI
   const generateImageMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/ai/generate-image', {
+      return apiRequest<ImageResponse>('POST', '/api/ai/generate-image', {
         prompt: aiPrompt
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: ImageResponse) => {
       setContent(data.imageUrl);
       toast({
         title: "Artwork Generated",
@@ -84,7 +92,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       });
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Generation Failed",
         description: `Failed to generate artwork: ${error.message}`,
@@ -94,10 +102,14 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     }
   });
 
+  interface SubmissionResponse {
+    id: number;
+  }
+
   // Submission
   const submitMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/submissions', {
+      return apiRequest<SubmissionResponse>('POST', '/api/submissions', {
         title,
         description,
         contentType,
@@ -114,7 +126,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['/api/submissions'] });
       handleClose();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: `Failed to submit: ${error.message}`,
@@ -147,11 +159,32 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     submitMutation.mutate();
   };
 
+  const handleGenerateContent = () => {
+    if (!aiPrompt) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt for AI generation",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    if (contentType === "text") {
+      generatePoemMutation.mutate();
+    } else {
+      generateImageMutation.mutate();
+    }
+  };
+
   const handleClose = () => {
     setTitle("");
     setContentType("text");
     setContent("");
     setDescription("");
+    setAiPrompt("");
+    setPoetryStyle("free");
     onClose();
   };
 
@@ -188,6 +221,68 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* AI Generation Section */}
+          <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="text-primary h-5 w-5" />
+              <h3 className="text-md font-medium">AI Creator</h3>
+            </div>
+            
+            <div className="grid gap-3">
+              <div>
+                <Label htmlFor="ai-prompt">Your Prompt</Label>
+                <Textarea
+                  id="ai-prompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder={contentType === "text" 
+                    ? "Describe the poem you want AI to create..." 
+                    : "Describe the image you want AI to create..."}
+                  className="min-h-[60px] mt-1"
+                />
+              </div>
+              
+              {contentType === "text" && (
+                <div>
+                  <Label htmlFor="poetry-style">Poetry Style</Label>
+                  <Select
+                    value={poetryStyle}
+                    onValueChange={setPoetryStyle}
+                  >
+                    <SelectTrigger id="poetry-style">
+                      <SelectValue placeholder="Select style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Free Verse</SelectItem>
+                      <SelectItem value="haiku">Haiku</SelectItem>
+                      <SelectItem value="sonnet">Sonnet</SelectItem>
+                      <SelectItem value="limerick">Limerick</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <Button 
+                type="button" 
+                className="mt-1 w-full bg-gradient-to-r from-primary to-indigo-600"
+                onClick={handleGenerateContent}
+                disabled={isGenerating || !aiPrompt}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
           
           {contentType === "text" ? (
             <div className="grid gap-2">
@@ -196,7 +291,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                 id="submission-text"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter your poem or text here"
+                placeholder="Enter your poem or text here, or use AI to generate it"
                 className="min-h-[150px]"
               />
             </div>
@@ -204,11 +299,21 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
             <div className="grid gap-2">
               <Label htmlFor="submission-image">Your Artwork</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-                <div className="mb-4">
-                  <CloudUpload className="h-10 w-10 text-gray-400 mx-auto" />
-                </div>
+                {content ? (
+                  <div className="mb-4">
+                    <img 
+                      src={content} 
+                      alt="Generated artwork" 
+                      className="max-h-[200px] mx-auto object-contain rounded"
+                    />
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <CloudUpload className="h-10 w-10 text-gray-400 mx-auto" />
+                  </div>
+                )}
                 <p className="text-sm text-gray-500 mb-2">
-                  Drag and drop your image here, or enter an image URL below
+                  {content ? "AI-generated image is shown above" : "Use AI to generate artwork or enter an image URL below"}
                 </p>
                 <Input
                   type="text"
