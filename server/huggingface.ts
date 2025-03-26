@@ -70,9 +70,8 @@ export async function generateImage(prompt: string): Promise<string> {
       }
     });
 
-    // Convert the blob to base64
-    const blob = await response.blob();
-    const buffer = await blob.arrayBuffer();
+    // The response is already a blob
+    const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     return `data:image/jpeg;base64,${base64}`;
   } catch (error) {
