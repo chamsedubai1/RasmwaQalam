@@ -16,11 +16,13 @@ import { apiRequest } from "@/lib/queryClient";
 interface UserTableProps {
   users: any[];
   isLoading: boolean;
+  onEdit?: (user: any) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
   users = [],
-  isLoading
+  isLoading,
+  onEdit
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -161,13 +163,15 @@ const UserTable: React.FC<UserTableProps> = ({
                           isActive: user.isActive
                         };
                         
-                        // In the actual implementation, this would open an edit dialog
-                        console.log("Editing user:", userData);
-                        
-                        // For now, show a toast until we implement the dialog
-                        toast({
-                          description: "Edit user functionality is being implemented"
-                        });
+                        if (onEdit) {
+                          onEdit(userData);
+                        } else {
+                          // Fallback if onEdit is not provided
+                          console.log("Editing user:", userData);
+                          toast({
+                            description: "Edit user functionality is being implemented"
+                          });
+                        }
                       }}
                     >
                       Edit
