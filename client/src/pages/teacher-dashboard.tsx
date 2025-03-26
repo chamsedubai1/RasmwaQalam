@@ -91,8 +91,7 @@ const TeacherDashboard: React.FC = () => {
   // Add class mutation
   const createClassMutation = useMutation({
     mutationFn: async (classData: any) => {
-      const response = await apiRequest('POST', '/api/classes', classData);
-      return await response.json();
+      return apiRequest('POST', '/api/classes', classData);
     },
     onSuccess: () => {
       setShowAddClassDialog(false);
@@ -119,8 +118,7 @@ const TeacherDashboard: React.FC = () => {
   // Update class mutation
   const updateClassMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await apiRequest('PATCH', `/api/classes/${id}`, data);
-      return await response.json();
+      return apiRequest('PATCH', `/api/classes/${id}`, data);
     },
     onSuccess: () => {
       setShowEditClassDialog(false);
@@ -167,8 +165,7 @@ const TeacherDashboard: React.FC = () => {
   // Add student mutation
   const addStudentMutation = useMutation({
     mutationFn: async (userData: any) => {
-      const response = await apiRequest('POST', '/api/users', userData);
-      return await response.json();
+      return apiRequest('POST', '/api/users', userData);
     },
     onSuccess: () => {
       setShowAddStudentDialog(false);
