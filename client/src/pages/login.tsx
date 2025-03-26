@@ -59,10 +59,10 @@ export default function LoginPage() {
             setLocation("/teacher");
             break;
           case "student":
-            setLocation("/home");
+            setLocation("/");
             break;
           default:
-            setLocation("/home");
+            setLocation("/");
         }
       }
       
