@@ -717,7 +717,7 @@ const AdminDashboard: React.FC = () => {
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {schools.map((school: any) => (
                       <SelectItem key={school.id} value={school.id.toString()}>
                         {school.name}
@@ -735,7 +735,7 @@ const AdminDashboard: React.FC = () => {
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {classes
                       .filter((c: any) => !userSchoolId || c.schoolId.toString() === userSchoolId)
                       .map((classItem: any) => (
