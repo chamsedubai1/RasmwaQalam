@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
+import StudentTable from "@/components/dashboard/student-table";
 import {
   Dialog,
   DialogContent,
@@ -116,8 +117,19 @@ const AdminDashboard: React.FC = () => {
     return <Redirect to="/" />;
   }
   
+  // Get school names for each user
+  const usersWithSchoolNames = allUsers.map((user: any) => {
+    const school = schools.find((s: any) => s.id === user.schoolId);
+    const userClass = classes.find((c: any) => c.id === user.classId);
+    return {
+      ...user,
+      schoolName: school ? school.name : "N/A",
+      className: userClass ? userClass.name : "N/A"
+    };
+  });
+  
   // Filter users
-  const filteredUsers = allUsers.filter((user: any) => {
+  const filteredUsers = usersWithSchoolNames.filter((user: any) => {
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesSchool = schoolFilter === "all" || user.schoolId?.toString() === schoolFilter;
     const matchesSearch = searchQuery === "" || 
@@ -128,13 +140,108 @@ const AdminDashboard: React.FC = () => {
     return matchesRole && matchesSchool && matchesSearch;
   });
   
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      return apiRequest("POST", "/api/users", userData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      
+      // Reset form fields
+      setUserFullName("");
+      setUserEmail("");
+      setUserUsername("");
+      setUserPassword("");
+      setUserRoleValue("student");
+      setUserSchoolId("");
+      setUserClassId("");
+      setUserIsActive(true);
+      
+      // Close dialog
+      setShowCreateUserDialog(false);
+      
+      // Success message
+      toast({
+        title: "User Created",
+        description: "User has been successfully created",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, userData }: { id: number, userData: any }) => {
+      return apiRequest("PATCH", `/api/users/${id}`, userData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      
+      // Reset form fields
+      setUserFullName("");
+      setUserEmail("");
+      setUserUsername("");
+      setUserPassword("");
+      setUserRoleValue("student");
+      setUserSchoolId("");
+      setUserClassId("");
+      setUserIsActive(true);
+      setSelectedUserId(null);
+      
+      // Close dialog
+      setShowEditUserDialog(false);
+      
+      // Success message
+      toast({
+        title: "User Updated",
+        description: "User has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleCreateUser = () => {
-    setShowCreateUserDialog(false);
-    // In a real app, this would call the API to create a user
-    toast({
-      title: "Feature coming soon",
-      description: "User creation will be available in the next update",
-    });
+    // Validate form fields
+    if (!userFullName || !userEmail || !userUsername || !userPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build user data and submit using mutation
+    const userData = {
+      fullName: userFullName,
+      email: userEmail,
+      username: userUsername,
+      password: userPassword,
+      role: userRoleValue,
+      schoolId: userSchoolId ? parseInt(userSchoolId) : null,
+      classId: userClassId ? parseInt(userClassId) : null,
+      isActive: userIsActive
+    };
+    
+    // Call the mutation with user data
+    createUserMutation.mutate(userData);
   };
   
   // Form state for event
@@ -1582,6 +1689,43 @@ const AdminDashboard: React.FC = () => {
             </DialogClose>
             <Button onClick={handleCreateClass}>Create Class</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Students dialog */}
+      <Dialog open={showStudentsDialog} onOpenChange={setShowStudentsDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Manage Students</DialogTitle>
+          </DialogHeader>
+          
+          {selectedClassId && (
+            <>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">
+                  {classes.find((c: any) => c.id === selectedClassId)?.name || "Class"} Students
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Manage students enrolled in this class
+                </p>
+              </div>
+              
+              {/* Students table */}
+              <StudentTable
+                students={allUsers.filter((user: any) => 
+                  user.role === "student" && user.classId === selectedClassId
+                )}
+                isLoading={isLoadingUsers}
+                classId={selectedClassId}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button variant="outline" onClick={() => setShowStudentsDialog(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
