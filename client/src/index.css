@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +9,51 @@
     @apply border-border;
   }
 
+  :root {
+    --text-primary: #1a1a2e;
+    --text-secondary: #333366;
+    --background-light: #f8f9ff;
+    --accent-color: #ff6b6b;
+    --border-color: #d0d2e0;
+  }
+
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-background text-foreground font-[Poppins];
+    background-color: var(--background-light);
+    color: var(--text-primary);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-[Inter] font-bold;
+  }
+  
+  button {
+    @apply font-medium rounded-lg transition-all duration-200;
+  }
+  
+  /* Replace light grey with deeper colors */
+  .bg-gray-50 {
+    @apply bg-blue-50;
+  }
+  
+  .text-gray-500 {
+    @apply text-blue-700;
+  }
+  
+  .text-gray-600 {
+    @apply text-slate-700;
+  }
+  
+  .text-gray-700 {
+    @apply text-slate-800;
+  }
+  
+  .text-gray-800 {
+    @apply text-slate-900;
+  }
+  
+  /* Card and box shadows */
+  .card-shadow {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
   }
 }
