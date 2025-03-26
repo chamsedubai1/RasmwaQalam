@@ -103,6 +103,11 @@ const StudentTable: React.FC<StudentTableProps> = ({
                   <Button 
                     variant="link" 
                     className="text-primary px-0 h-auto"
+                    onClick={() => {
+                      toast({
+                        description: "Student details view coming soon!"
+                      });
+                    }}
                   >
                     View Details
                   </Button>

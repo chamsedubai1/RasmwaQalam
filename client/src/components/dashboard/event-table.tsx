@@ -167,6 +167,13 @@ const EventTable: React.FC<EventTableProps> = ({
                     <Button 
                       variant="link" 
                       className="text-primary px-0 h-auto"
+                      onClick={() => {
+                        toast({
+                          description: isAdmin 
+                            ? "Edit event functionality coming soon!"
+                            : "View event details coming soon!"
+                        });
+                      }}
                     >
                       {isAdmin ? "Edit" : "View"}
                     </Button>

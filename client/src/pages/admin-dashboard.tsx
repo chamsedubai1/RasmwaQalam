@@ -119,6 +119,14 @@ const AdminDashboard: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
+  
+  // Action states
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditClassDialog, setShowEditClassDialog] = useState(false);
+  const [showEditSchoolDialog, setShowEditSchoolDialog] = useState(false);
+  const [showStudentsDialog, setShowStudentsDialog] = useState(false);
 
   const handleCreateClass = () => {
     // Validate form fields
@@ -316,6 +324,13 @@ const AdminDashboard: React.FC = () => {
                                 variant="outline" 
                                 size="sm"
                                 className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => {
+                                  setSelectedSchoolId(school.id);
+                                  setShowEditSchoolDialog(true);
+                                  toast({
+                                    description: "Edit School functionality coming soon!"
+                                  });
+                                }}
                               >
                                 Edit
                               </Button>
@@ -323,6 +338,13 @@ const AdminDashboard: React.FC = () => {
                                 variant="outline" 
                                 size="sm"
                                 className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  setSelectedSchoolId(school.id);
+                                  toast({
+                                    description: "Delete School functionality coming soon!",
+                                    variant: "destructive"
+                                  });
+                                }}
                               >
                                 Delete
                               </Button>
@@ -393,6 +415,19 @@ const AdminDashboard: React.FC = () => {
                                   variant="outline" 
                                   size="sm"
                                   className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => {
+                                    setSelectedClassId(classItem.id);
+                                    setShowEditClassDialog(true);
+                                    // Pre-populate form
+                                    setClassName(classItem.name);
+                                    setSelectedSchool(classItem.schoolId.toString());
+                                    setSelectedGrade(classItem.gradeLevel.replace("Grade ", ""));
+                                    setSelectedTeacher(classItem.teacherId.toString());
+                                    setIsClassActive(!classItem.isLocked);
+                                    toast({
+                                      description: "Edit Class functionality coming soon!"
+                                    });
+                                  }}
                                 >
                                   Edit
                                 </Button>
@@ -400,6 +435,13 @@ const AdminDashboard: React.FC = () => {
                                   variant="outline" 
                                   size="sm"
                                   className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => {
+                                    setSelectedClassId(classItem.id);
+                                    setShowStudentsDialog(true);
+                                    toast({
+                                      description: "Student management coming soon!"
+                                    });
+                                  }}
                                 >
                                   Students
                                 </Button>
@@ -407,6 +449,13 @@ const AdminDashboard: React.FC = () => {
                                   variant="outline" 
                                   size="sm"
                                   className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => {
+                                    setSelectedClassId(classItem.id);
+                                    setShowDeleteDialog(true);
+                                    toast({
+                                      description: "Delete confirmation coming soon!"
+                                    });
+                                  }}
                                 >
                                   Delete
                                 </Button>
