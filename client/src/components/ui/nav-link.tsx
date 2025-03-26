@@ -14,12 +14,12 @@ const NavLink: React.FC<NavLinkProps> = ({
   href,
   children,
   className,
-  activeClassName = "bg-indigo-700",
+  activeClassName = "bg-blue-600 text-white font-bold",
   role
 }) => {
   const [location] = useLocation();
   const isActive = location === href;
-  const baseClass = "text-white hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium";
+  const baseClass = "text-white hover:bg-blue-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors";
 
   return (
     <Link 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,11 +10,11 @@
   }
 
   :root {
-    --text-primary: #1a1a2e;
-    --text-secondary: #333366;
-    --background-light: #f8f9ff;
-    --accent-color: #ff6b6b;
-    --border-color: #d0d2e0;
+    --text-primary: #0a2540;
+    --text-secondary: #2d5b96;
+    --background-light: #f8faff;
+    --accent-color: #3b82f6;
+    --border-color: #c7d2fe;
   }
 
   body {
