@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, Sparkles, PenLine, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -37,9 +37,64 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [contentType, setContentType] = useState<"text" | "image">("text");
   const [content, setContent] = useState("");
   const [description, setDescription] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [poetryStyle, setPoetryStyle] = useState<string>("free");
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Generate poem using AI
+  const generatePoemMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/ai/generate-poem', {
+        prompt: aiPrompt,
+        style: poetryStyle
+      });
+    },
+    onSuccess: (data) => {
+      setContent(data.content);
+      toast({
+        title: "Poetry Generated",
+        description: "Your AI-generated poem is ready for review",
+      });
+      setIsGenerating(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Generation Failed",
+        description: `Failed to generate poem: ${error.message}`,
+        variant: "destructive"
+      });
+      setIsGenerating(false);
+    }
+  });
+
+  // Generate image using AI
+  const generateImageMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/ai/generate-image', {
+        prompt: aiPrompt
+      });
+    },
+    onSuccess: (data) => {
+      setContent(data.imageUrl);
+      toast({
+        title: "Artwork Generated",
+        description: "Your AI-generated artwork is ready for review",
+      });
+      setIsGenerating(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Generation Failed",
+        description: `Failed to generate artwork: ${error.message}`,
+        variant: "destructive"
+      });
+      setIsGenerating(false);
+    }
+  });
+
+  // Submission
   const submitMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', '/api/submissions', {

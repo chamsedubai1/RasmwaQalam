@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from "express";
 import { z } from "zod";
+import { generatePoem, generateImage } from "./openai";
 import { 
   insertUserSchema,
   insertSchoolSchema,
@@ -650,6 +651,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ hasVoted });
     } catch (error) {
       res.status(500).json({ message: 'Failed to check vote status' });
+    }
+  });
+
+  // AI Content Generation routes
+  apiRouter.post('/ai/generate-poem', async (req, res) => {
+    try {
+      const { prompt, style } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+      
+      const poem = await generatePoem(prompt, style);
+      res.json({ content: poem });
+    } catch (error) {
+      console.error('Error generating poem:', error);
+      res.status(500).json({ message: 'Failed to generate poem' });
+    }
+  });
+
+  apiRouter.post('/ai/generate-image', async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+      
+      const imageUrl = await generateImage(prompt);
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      res.status(500).json({ message: 'Failed to generate image' });
     }
   });
 
