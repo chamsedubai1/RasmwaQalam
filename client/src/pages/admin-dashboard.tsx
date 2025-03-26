@@ -1101,38 +1101,34 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={() => {
-              // Handle update logic
-              setShowEditUserDialog(false);
+              // Validate form fields
+              if (!userFullName || !userEmail || !userUsername) {
+                toast({
+                  title: "Missing Information",
+                  description: "Please fill out all required fields",
+                  variant: "destructive",
+                });
+                return;
+              }
               
-              // In a real app, this would call the API to update the user
-              console.log({
-                id: selectedUserId,
+              // Build user data
+              const userData = {
                 fullName: userFullName,
                 email: userEmail,
                 username: userUsername,
-                password: userPassword, // Only include if not empty
                 role: userRoleValue,
                 schoolId: userSchoolId ? parseInt(userSchoolId) : null,
-                classId: userClassId ? parseInt(userClassId) : null,
+                classId: userClassId && userClassId !== "none" ? parseInt(userClassId) : null,
                 isActive: userIsActive
-              });
+              };
               
-              // Reset form
-              setUserFullName("");
-              setUserEmail("");
-              setUserUsername("");
-              setUserPassword("");
-              setUserRoleValue("student");
-              setUserSchoolId("");
-              setUserClassId("");
-              setUserIsActive(true);
-              setSelectedUserId(null);
+              // Add password only if provided
+              if (userPassword) {
+                userData.password = userPassword;
+              }
               
-              // Show success message
-              toast({
-                title: "User Updated",
-                description: "User has been successfully updated",
-              });
+              // Call the user update mutation
+              updateUserMutation.mutate({ id: selectedUserId, userData });
             }}>
               Update User
             </Button>
