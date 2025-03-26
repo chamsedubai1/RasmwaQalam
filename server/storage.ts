@@ -1,0 +1,550 @@
+import { 
+  users, User, InsertUser, 
+  schools, School, InsertSchool,
+  classes, Class, InsertClass,
+  partners, Partner, InsertPartner,
+  events, Event, InsertEvent,
+  registrations, Registration, InsertRegistration,
+  submissions, Submission, InsertSubmission,
+  votes, Vote, InsertVote
+} from "@shared/schema";
+
+export interface IStorage {
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUsersBySchool(schoolId: number): Promise<User[]>;
+  getUsersByClass(classId: number): Promise<User[]>;
+  getUsersByRole(role: string): Promise<User[]>;
+  getAllUsers(): Promise<User[]>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+
+  // School methods
+  getSchool(id: number): Promise<School | undefined>;
+  getAllSchools(): Promise<School[]>;
+  createSchool(school: InsertSchool): Promise<School>;
+  updateSchool(id: number, schoolData: Partial<School>): Promise<School | undefined>;
+  deleteSchool(id: number): Promise<boolean>;
+
+  // Class methods
+  getClass(id: number): Promise<Class | undefined>;
+  getClassesBySchool(schoolId: number): Promise<Class[]>;
+  getClassesByTeacher(teacherId: number): Promise<Class[]>;
+  getAllClasses(): Promise<Class[]>;
+  createClass(classData: InsertClass): Promise<Class>;
+  updateClass(id: number, classData: Partial<Class>): Promise<Class | undefined>;
+  deleteClass(id: number): Promise<boolean>;
+
+  // Partner methods
+  getPartner(id: number): Promise<Partner | undefined>;
+  getAllPartners(): Promise<Partner[]>;
+  createPartner(partner: InsertPartner): Promise<Partner>;
+  updatePartner(id: number, partnerData: Partial<Partner>): Promise<Partner | undefined>;
+  deletePartner(id: number): Promise<boolean>;
+
+  // Event methods
+  getEvent(id: number): Promise<Event | undefined>;
+  getAllEvents(): Promise<Event[]>;
+  getEventsByStatus(status: string): Promise<Event[]>;
+  getEventsByType(type: string): Promise<Event[]>;
+  getEventsByStage(stage: string): Promise<Event[]>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: number, eventData: Partial<Event>): Promise<Event | undefined>;
+  deleteEvent(id: number): Promise<boolean>;
+
+  // Registration methods
+  getRegistration(id: number): Promise<Registration | undefined>;
+  getRegistrationsByUser(userId: number): Promise<Registration[]>;
+  getRegistrationsByEvent(eventId: number): Promise<Registration[]>;
+  createRegistration(registration: InsertRegistration): Promise<Registration>;
+  deleteRegistration(id: number): Promise<boolean>;
+
+  // Submission methods
+  getSubmission(id: number): Promise<Submission | undefined>;
+  getSubmissionsByUser(userId: number): Promise<Submission[]>;
+  getSubmissionsByEvent(eventId: number): Promise<Submission[]>;
+  getSubmissionsByUserAndEvent(userId: number, eventId: number): Promise<Submission[]>;
+  getWinningSubmissions(winnerCategory: string): Promise<Submission[]>;
+  createSubmission(submission: InsertSubmission): Promise<Submission>;
+  updateSubmission(id: number, submissionData: Partial<Submission>): Promise<Submission | undefined>;
+  deleteSubmission(id: number): Promise<boolean>;
+
+  // Vote methods
+  getVote(id: number): Promise<Vote | undefined>;
+  getVotesBySubmission(submissionId: number): Promise<Vote[]>;
+  getVotesByVoter(voterId: number): Promise<Vote[]>;
+  hasUserVotedForSubmission(voterId: number, submissionId: number): Promise<boolean>;
+  createVote(vote: InsertVote): Promise<Vote>;
+  deleteVote(id: number): Promise<boolean>;
+  getVoteCountForSubmission(submissionId: number): Promise<number>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private schools: Map<number, School>;
+  private classes: Map<number, Class>;
+  private partners: Map<number, Partner>;
+  private events: Map<number, Event>;
+  private registrations: Map<number, Registration>;
+  private submissions: Map<number, Submission>;
+  private votes: Map<number, Vote>;
+  
+  private userCounter: number;
+  private schoolCounter: number;
+  private classCounter: number;
+  private partnerCounter: number;
+  private eventCounter: number;
+  private registrationCounter: number;
+  private submissionCounter: number;
+  private voteCounter: number;
+
+  constructor() {
+    this.users = new Map();
+    this.schools = new Map();
+    this.classes = new Map();
+    this.partners = new Map();
+    this.events = new Map();
+    this.registrations = new Map();
+    this.submissions = new Map();
+    this.votes = new Map();
+    
+    this.userCounter = 1;
+    this.schoolCounter = 1;
+    this.classCounter = 1;
+    this.partnerCounter = 1;
+    this.eventCounter = 1;
+    this.registrationCounter = 1;
+    this.submissionCounter = 1;
+    this.voteCounter = 1;
+    
+    // Initialize with sample data
+    this.initializeSampleData();
+  }
+
+  private initializeSampleData() {
+    // Add sample schools
+    const school1 = this.createSchool({
+      name: "Westside High School",
+      description: "A progressive high school with a strong emphasis on arts and technology integration in education.",
+      websiteUrl: "https://example.com/school",
+      imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1",
+      isActive: true
+    });
+    
+    const school2 = this.createSchool({
+      name: "Eastwood Academy",
+      description: "A STEM-focused academy that embraces creative arts as a way to enhance technical education.",
+      websiteUrl: "https://example.com/school",
+      imageUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b",
+      isActive: true
+    });
+    
+    // Add sample partners
+    this.createPartner({
+      name: "CreativeTech Solutions",
+      description: "Providing AI tools and technical support for creative student projects.",
+      websiteUrl: "https://example.com/partner",
+      imageUrl: "https://images.unsplash.com/photo-1560179707-f14e90ef3623",
+      partnerType: "Technical Partner"
+    });
+    
+    this.createPartner({
+      name: "ArtsForward Foundation",
+      description: "Sponsoring events and providing resources to encourage arts in education.",
+      websiteUrl: "https://example.com/partner",
+      imageUrl: "https://images.unsplash.com/photo-1622675363311-3e1904dc1885",
+      partnerType: "Funding Partner"
+    });
+    
+    // Add sample users
+    const admin = this.createUser({
+      username: "admin",
+      password: "admin123",
+      fullName: "Admin User",
+      email: "admin@artchallenge.com",
+      role: "admin",
+      isActive: true
+    });
+    
+    const teacher1 = this.createUser({
+      username: "teacher1",
+      password: "teacher123",
+      fullName: "Michael Brown",
+      email: "m.brown@school.edu",
+      role: "teacher",
+      schoolId: school1.id,
+      isActive: true
+    });
+    
+    const student1 = this.createUser({
+      username: "student1",
+      password: "student123",
+      fullName: "Emma Smith",
+      email: "emma.s@school.edu",
+      role: "student",
+      schoolId: school1.id,
+      gradeLevel: "9th Grade",
+      isActive: true
+    });
+    
+    // Add sample classes
+    const class1 = this.createClass({
+      name: "Creative Writing 101",
+      gradeLevel: "9th Grade",
+      schoolId: school1.id,
+      teacherId: teacher1.id,
+      isLocked: false
+    });
+    
+    // Update students with class
+    this.updateUser(student1.id, { classId: class1.id });
+    
+    // Add sample events
+    const poetryEvent = this.createEvent({
+      name: "Spring Poetry Challenge",
+      description: "Create poems inspired by spring using AI assistance. Express the renewal, growth, and beauty of the season in your own words.",
+      type: "poetry",
+      status: "open",
+      stage: "class",
+      imageUrl: "https://images.unsplash.com/photo-1579762593175-20226054cad0",
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
+    });
+    
+    const paintingEvent = this.createEvent({
+      name: "Future Cities Art Challenge",
+      description: "Imagine and create the cities of tomorrow with AI tools. How will technology, sustainability, and human needs shape our urban environments?",
+      type: "painting",
+      status: "open",
+      stage: "school",
+      imageUrl: "https://images.unsplash.com/photo-1560421683-6856ea585c78",
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
+    });
+    
+    // Add sample registrations
+    this.createRegistration({
+      userId: student1.id,
+      eventId: poetryEvent.id
+    });
+    
+    this.createRegistration({
+      userId: student1.id,
+      eventId: paintingEvent.id
+    });
+    
+    // Add sample submissions
+    this.createSubmission({
+      title: "Morning Bloom",
+      description: "A poem about the awakening of nature in spring.",
+      contentType: "text",
+      content: "Dewdrops glisten on petals wide,\nSunbeams dance as shadows hide.\nSpring awakens with gentle might,\nNature's canvas bathed in light.",
+      userId: student1.id,
+      eventId: poetryEvent.id
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.username === username) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async getUsersBySchool(schoolId: number): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.schoolId === schoolId);
+  }
+
+  async getUsersByClass(classId: number): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.classId === classId);
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.role === role);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const id = this.userCounter++;
+    const user: User = { ...userData, id };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
+  }
+
+  // School methods
+  async getSchool(id: number): Promise<School | undefined> {
+    return this.schools.get(id);
+  }
+
+  async getAllSchools(): Promise<School[]> {
+    return Array.from(this.schools.values());
+  }
+
+  async createSchool(schoolData: InsertSchool): Promise<School> {
+    const id = this.schoolCounter++;
+    const school: School = { ...schoolData, id };
+    this.schools.set(id, school);
+    return school;
+  }
+
+  async updateSchool(id: number, schoolData: Partial<School>): Promise<School | undefined> {
+    const school = this.schools.get(id);
+    if (!school) return undefined;
+    
+    const updatedSchool = { ...school, ...schoolData };
+    this.schools.set(id, updatedSchool);
+    return updatedSchool;
+  }
+
+  async deleteSchool(id: number): Promise<boolean> {
+    return this.schools.delete(id);
+  }
+
+  // Class methods
+  async getClass(id: number): Promise<Class | undefined> {
+    return this.classes.get(id);
+  }
+
+  async getClassesBySchool(schoolId: number): Promise<Class[]> {
+    return Array.from(this.classes.values()).filter(cls => cls.schoolId === schoolId);
+  }
+
+  async getClassesByTeacher(teacherId: number): Promise<Class[]> {
+    return Array.from(this.classes.values()).filter(cls => cls.teacherId === teacherId);
+  }
+
+  async getAllClasses(): Promise<Class[]> {
+    return Array.from(this.classes.values());
+  }
+
+  async createClass(classData: InsertClass): Promise<Class> {
+    const id = this.classCounter++;
+    const newClass: Class = { ...classData, id };
+    this.classes.set(id, newClass);
+    return newClass;
+  }
+
+  async updateClass(id: number, classData: Partial<Class>): Promise<Class | undefined> {
+    const cls = this.classes.get(id);
+    if (!cls) return undefined;
+    
+    const updatedClass = { ...cls, ...classData };
+    this.classes.set(id, updatedClass);
+    return updatedClass;
+  }
+
+  async deleteClass(id: number): Promise<boolean> {
+    return this.classes.delete(id);
+  }
+
+  // Partner methods
+  async getPartner(id: number): Promise<Partner | undefined> {
+    return this.partners.get(id);
+  }
+
+  async getAllPartners(): Promise<Partner[]> {
+    return Array.from(this.partners.values());
+  }
+
+  async createPartner(partnerData: InsertPartner): Promise<Partner> {
+    const id = this.partnerCounter++;
+    const partner: Partner = { ...partnerData, id };
+    this.partners.set(id, partner);
+    return partner;
+  }
+
+  async updatePartner(id: number, partnerData: Partial<Partner>): Promise<Partner | undefined> {
+    const partner = this.partners.get(id);
+    if (!partner) return undefined;
+    
+    const updatedPartner = { ...partner, ...partnerData };
+    this.partners.set(id, updatedPartner);
+    return updatedPartner;
+  }
+
+  async deletePartner(id: number): Promise<boolean> {
+    return this.partners.delete(id);
+  }
+
+  // Event methods
+  async getEvent(id: number): Promise<Event | undefined> {
+    return this.events.get(id);
+  }
+
+  async getAllEvents(): Promise<Event[]> {
+    return Array.from(this.events.values());
+  }
+
+  async getEventsByStatus(status: string): Promise<Event[]> {
+    return Array.from(this.events.values()).filter(event => event.status === status);
+  }
+
+  async getEventsByType(type: string): Promise<Event[]> {
+    return Array.from(this.events.values()).filter(event => event.type === type);
+  }
+
+  async getEventsByStage(stage: string): Promise<Event[]> {
+    return Array.from(this.events.values()).filter(event => event.stage === stage);
+  }
+
+  async createEvent(eventData: InsertEvent): Promise<Event> {
+    const id = this.eventCounter++;
+    const event: Event = { ...eventData, id };
+    this.events.set(id, event);
+    return event;
+  }
+
+  async updateEvent(id: number, eventData: Partial<Event>): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+    
+    const updatedEvent = { ...event, ...eventData };
+    this.events.set(id, updatedEvent);
+    return updatedEvent;
+  }
+
+  async deleteEvent(id: number): Promise<boolean> {
+    return this.events.delete(id);
+  }
+
+  // Registration methods
+  async getRegistration(id: number): Promise<Registration | undefined> {
+    return this.registrations.get(id);
+  }
+
+  async getRegistrationsByUser(userId: number): Promise<Registration[]> {
+    return Array.from(this.registrations.values()).filter(reg => reg.userId === userId);
+  }
+
+  async getRegistrationsByEvent(eventId: number): Promise<Registration[]> {
+    return Array.from(this.registrations.values()).filter(reg => reg.eventId === eventId);
+  }
+
+  async createRegistration(registrationData: InsertRegistration): Promise<Registration> {
+    const id = this.registrationCounter++;
+    const registration: Registration = { ...registrationData, id };
+    this.registrations.set(id, registration);
+    return registration;
+  }
+
+  async deleteRegistration(id: number): Promise<boolean> {
+    return this.registrations.delete(id);
+  }
+
+  // Submission methods
+  async getSubmission(id: number): Promise<Submission | undefined> {
+    return this.submissions.get(id);
+  }
+
+  async getSubmissionsByUser(userId: number): Promise<Submission[]> {
+    return Array.from(this.submissions.values()).filter(sub => sub.userId === userId);
+  }
+
+  async getSubmissionsByEvent(eventId: number): Promise<Submission[]> {
+    return Array.from(this.submissions.values()).filter(sub => sub.eventId === eventId);
+  }
+
+  async getSubmissionsByUserAndEvent(userId: number, eventId: number): Promise<Submission[]> {
+    return Array.from(this.submissions.values()).filter(
+      sub => sub.userId === userId && sub.eventId === eventId
+    );
+  }
+
+  async getWinningSubmissions(winnerCategory: string): Promise<Submission[]> {
+    return Array.from(this.submissions.values()).filter(sub => {
+      if (winnerCategory === 'class') return sub.classWinner;
+      if (winnerCategory === 'school') return sub.schoolWinner;
+      if (winnerCategory === 'country') return sub.countryWinner;
+      if (winnerCategory === 'global') return sub.globalWinner;
+      return false;
+    });
+  }
+
+  async createSubmission(submissionData: InsertSubmission): Promise<Submission> {
+    const id = this.submissionCounter++;
+    const submission: Submission = { 
+      ...submissionData, 
+      id, 
+      classWinner: submissionData.classWinner || false,
+      schoolWinner: submissionData.schoolWinner || false,
+      countryWinner: submissionData.countryWinner || false,
+      globalWinner: submissionData.globalWinner || false
+    };
+    this.submissions.set(id, submission);
+    return submission;
+  }
+
+  async updateSubmission(id: number, submissionData: Partial<Submission>): Promise<Submission | undefined> {
+    const submission = this.submissions.get(id);
+    if (!submission) return undefined;
+    
+    const updatedSubmission = { ...submission, ...submissionData };
+    this.submissions.set(id, updatedSubmission);
+    return updatedSubmission;
+  }
+
+  async deleteSubmission(id: number): Promise<boolean> {
+    return this.submissions.delete(id);
+  }
+
+  // Vote methods
+  async getVote(id: number): Promise<Vote | undefined> {
+    return this.votes.get(id);
+  }
+
+  async getVotesBySubmission(submissionId: number): Promise<Vote[]> {
+    return Array.from(this.votes.values()).filter(vote => vote.submissionId === submissionId);
+  }
+
+  async getVotesByVoter(voterId: number): Promise<Vote[]> {
+    return Array.from(this.votes.values()).filter(vote => vote.voterId === voterId);
+  }
+
+  async hasUserVotedForSubmission(voterId: number, submissionId: number): Promise<boolean> {
+    return Array.from(this.votes.values()).some(
+      vote => vote.voterId === voterId && vote.submissionId === submissionId
+    );
+  }
+
+  async createVote(voteData: InsertVote): Promise<Vote> {
+    const id = this.voteCounter++;
+    const vote: Vote = { ...voteData, id };
+    this.votes.set(id, vote);
+    return vote;
+  }
+
+  async deleteVote(id: number): Promise<boolean> {
+    return this.votes.delete(id);
+  }
+
+  async getVoteCountForSubmission(submissionId: number): Promise<number> {
+    return (await this.getVotesBySubmission(submissionId)).length;
+  }
+}
+
+export const storage = new MemStorage();

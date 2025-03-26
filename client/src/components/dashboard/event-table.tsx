@@ -1,0 +1,205 @@
+import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+interface EventTableProps {
+  events: any[];
+  isLoading: boolean;
+  isAdmin?: boolean;
+}
+
+const EventTable: React.FC<EventTableProps> = ({ 
+  events = [],
+  isLoading,
+  isAdmin = false
+}) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const promoteEventStageMutation = useMutation({
+    mutationFn: async (eventData: { id: number, stage: string }) => {
+      const stageMap: Record<string, string> = {
+        'class': 'school',
+        'school': 'country',
+        'country': 'global',
+        'global': 'global'
+      };
+      
+      const nextStage = stageMap[eventData.stage] || eventData.stage;
+      
+      return apiRequest('PATCH', `/api/events/${eventData.id}`, { 
+        stage: nextStage 
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Event stage promoted",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to promote event stage: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const closeEventMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('PATCH', `/api/events/${id}`, { status: 'closed' });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Event closed",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to close event: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handlePromoteStage = (id: number, currentStage: string) => {
+    if (currentStage === 'global') {
+      toast({
+        description: "Event is already at the global stage",
+      });
+      return;
+    }
+    
+    promoteEventStageMutation.mutate({ id, stage: currentStage });
+  };
+
+  const handleCloseEvent = (id: number) => {
+    if (window.confirm("Are you sure you want to close this event?")) {
+      closeEventMutation.mutate(id);
+    }
+  };
+
+  const getTypeDisplay = (type: string) => {
+    const typeColors: Record<string, string> = {
+      'poetry': 'bg-primary bg-opacity-10 text-primary',
+      'painting': 'bg-secondary bg-opacity-10 text-secondary'
+    };
+    
+    return {
+      color: typeColors[type] || 'bg-gray-100 text-gray-800',
+      label: type.charAt(0).toUpperCase() + type.slice(1)
+    };
+  };
+
+  const getStatusDisplay = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'open': 'bg-warning bg-opacity-10 text-warning',
+      'upcoming': 'bg-indigo-300 bg-opacity-10 text-indigo-500',
+      'closed': 'bg-gray-300 bg-opacity-10 text-gray-500'
+    };
+    
+    return {
+      color: statusColors[status] || 'bg-gray-100 text-gray-800',
+      label: status.charAt(0).toUpperCase() + status.slice(1)
+    };
+  };
+
+  if (isLoading) {
+    return <p>Loading events...</p>;
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Event Name</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Current Stage</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Participants</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {events.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center py-6">
+              No events found
+            </TableCell>
+          </TableRow>
+        ) : (
+          events.map((event) => {
+            const typeDisplay = getTypeDisplay(event.type);
+            const statusDisplay = getStatusDisplay(event.status);
+            
+            return (
+              <TableRow key={event.id}>
+                <TableCell className="font-medium">{event.name}</TableCell>
+                <TableCell>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeDisplay.color}`}>
+                    {typeDisplay.label}
+                  </span>
+                </TableCell>
+                <TableCell className="capitalize">{event.stage}</TableCell>
+                <TableCell>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusDisplay.color}`}>
+                    {statusDisplay.label}
+                  </span>
+                </TableCell>
+                <TableCell>{event.participantCount || 0}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="link" 
+                      className="text-primary px-0 h-auto"
+                    >
+                      {isAdmin ? "Edit" : "View"}
+                    </Button>
+                    
+                    {isAdmin && event.status === 'open' && (
+                      <>
+                        <Button 
+                          variant="link" 
+                          className="text-secondary px-0 h-auto"
+                          onClick={() => handlePromoteStage(event.id, event.stage)}
+                          disabled={promoteEventStageMutation.isPending}
+                        >
+                          Promote Stage
+                        </Button>
+                        <Button 
+                          variant="link" 
+                          className="text-danger px-0 h-auto"
+                          onClick={() => handleCloseEvent(event.id)}
+                          disabled={closeEventMutation.isPending}
+                        >
+                          Close
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </TableBody>
+    </Table>
+  );
+};
+
+export default EventTable;
