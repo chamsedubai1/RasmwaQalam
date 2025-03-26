@@ -109,7 +109,7 @@ const AdminDashboard: React.FC = () => {
   });
   
   // Fetch all events for event management
-  const { data: events = [], isLoading: isLoadingEvents } = useQuery({
+  const { data: events = [], isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery({
     queryKey: ['/api/events'],
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -266,6 +266,44 @@ const AdminDashboard: React.FC = () => {
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventImageUrl, setEventImageUrl] = useState("");
 
+  // Create event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      return apiRequest("POST", "/api/events", eventData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      
+      // Reset form fields
+      setEventName("");
+      setEventDescription("");
+      setEventType("poetry");
+      setEventStatus("upcoming");
+      setEventStage("class");
+      setEventStartDate("");
+      setEventEndDate("");
+      setEventImageUrl("");
+      
+      // Close dialog
+      setShowCreateEventDialog(false);
+      
+      // Success message
+      toast({
+        title: "Event Created",
+        description: "Event has been successfully created",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleCreateEvent = () => {
     // Validate form fields
     if (!eventName || !eventDescription || !eventType || !eventStatus || !eventStartDate || !eventEndDate) {
@@ -277,8 +315,8 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call the API to create an event with the form data
-    console.log({
+    // Build event data and submit using mutation
+    const eventData = {
       name: eventName,
       description: eventDescription,
       type: eventType,
@@ -286,27 +324,14 @@ const AdminDashboard: React.FC = () => {
       stage: eventStage,
       startDate: new Date(eventStartDate),
       endDate: new Date(eventEndDate),
-      imageUrl: eventImageUrl || null
-    });
+      imageUrl: eventImageUrl || null,
+      createdAt: new Date()
+    };
     
-    // Reset form fields
-    setEventName("");
-    setEventDescription("");
-    setEventType("poetry");
-    setEventStatus("upcoming");
-    setEventStage("class");
-    setEventStartDate("");
-    setEventEndDate("");
-    setEventImageUrl("");
+    console.log(eventData); // For debugging
     
-    // Close dialog
-    setShowCreateEventDialog(false);
-    
-    // Success message
-    toast({
-      title: "Event Created",
-      description: "Event has been successfully created",
-    });
+    // Call the mutation with event data
+    createEventMutation.mutate(eventData);
   };
   
   const handleEditEvent = (eventData: any) => {
@@ -337,6 +362,54 @@ const AdminDashboard: React.FC = () => {
     setShowEditEventDialog(true);
   };
   
+  // Update event mutation
+  const updateEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      return apiRequest("PATCH", `/api/events/${eventData.id}`, {
+        name: eventData.name,
+        description: eventData.description,
+        type: eventData.type,
+        status: eventData.status,
+        stage: eventData.stage,
+        startDate: eventData.startDate,
+        endDate: eventData.endDate,
+        imageUrl: eventData.imageUrl
+      });
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      
+      // Reset form fields
+      setEventName("");
+      setEventDescription("");
+      setEventType("poetry");
+      setEventStatus("upcoming");
+      setEventStage("class");
+      setEventStartDate("");
+      setEventEndDate("");
+      setEventImageUrl("");
+      setSelectedEventId(null);
+      
+      // Close dialog
+      setShowEditEventDialog(false);
+      
+      // Success message
+      toast({
+        title: "Event Updated",
+        description: "Event has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleUpdateEvent = () => {
     // Validate form fields
     if (!eventName || !eventDescription || !eventType || !eventStatus || !eventStartDate || !eventEndDate) {
@@ -348,8 +421,18 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call the API to update the event with the form data
-    console.log({
+    // Check if event ID is selected
+    if (!selectedEventId) {
+      toast({
+        title: "Error",
+        description: "No event selected for update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build event data and submit using mutation
+    const eventData = {
       id: selectedEventId,
       name: eventName,
       description: eventDescription,
@@ -359,27 +442,12 @@ const AdminDashboard: React.FC = () => {
       startDate: new Date(eventStartDate),
       endDate: new Date(eventEndDate),
       imageUrl: eventImageUrl || null
-    });
+    };
     
-    // Reset form fields
-    setEventName("");
-    setEventDescription("");
-    setEventType("poetry");
-    setEventStatus("upcoming");
-    setEventStage("class");
-    setEventStartDate("");
-    setEventEndDate("");
-    setEventImageUrl("");
-    setSelectedEventId(null);
+    console.log(eventData); // For debugging
     
-    // Close dialog
-    setShowEditEventDialog(false);
-    
-    // Success message
-    toast({
-      title: "Event Updated",
-      description: "Event has been successfully updated",
-    });
+    // Call the mutation with event data
+    updateEventMutation.mutate(eventData);
   };
   
   const handleCreateSchool = () => {
@@ -705,9 +773,24 @@ const AdminDashboard: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Manage Events</CardTitle>
-              <Button onClick={() => setShowCreateEventDialog(true)}>
-                Create New Event
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    refetchEvents();
+                    toast({
+                      title: "Refreshed",
+                      description: "Event list has been refreshed",
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                </Button>
+                <Button onClick={() => setShowCreateEventDialog(true)}>
+                  Create New Event
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <EventTable 
