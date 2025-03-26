@@ -1,16 +1,31 @@
 import React, { useState } from "react";
+import { useLocation } from "wouter";
 import NavLink from "@/components/ui/nav-link";
-import UserRoleSelector from "@/components/ui/user-role-selector";
 import { useUserRole } from "@/hooks/use-user-role";
-import { Menu } from "lucide-react";
+import { Menu, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Header: React.FC = () => {
-  const { userRole } = useUserRole();
+  const { userRole, setUserRole } = useUserRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+  
+  const handleLogout = () => {
+    // In a real app, you would make an API call to logout
+    setUserRole("");
+    
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully"
+    });
+    
+    setLocation("/");
   };
 
   return (
@@ -28,13 +43,43 @@ const Header: React.FC = () => {
               <NavLink href="/gallery">Gallery</NavLink>
               <NavLink href="/schools">Schools</NavLink>
               <NavLink href="/partners">Partners</NavLink>
-              <NavLink href="/creart" role="student">CreArt</NavLink>
-              <NavLink href="/teacher" role="teacher">Teacher Dashboard</NavLink>
-              <NavLink href="/admin" role="admin">Admin Dashboard</NavLink>
+              {userRole === "student" && (
+                <NavLink href="/creart" role="student">CreArt</NavLink>
+              )}
+              {userRole === "teacher" && (
+                <NavLink href="/teacher" role="teacher">Teacher Dashboard</NavLink>
+              )}
+              {userRole === "admin" && (
+                <NavLink href="/admin" role="admin">Admin Dashboard</NavLink>
+              )}
             </nav>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <UserRoleSelector />
+          <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-2">
+            {userRole ? (
+              <>
+                <div className="text-white flex items-center mr-2">
+                  <User className="h-4 w-4 mr-1" />
+                  <span className="text-sm">{userRole}</span>
+                </div>
+                <Button 
+                  variant="ghost"
+                  className="text-white hover:bg-blue-700"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-white hover:bg-blue-700"
+                onClick={() => setLocation("/login")}
+              >
+                <LogIn className="h-4 w-4 mr-1" />
+                Login / Register
+              </Button>
+            )}
           </div>
           <div className="flex items-center sm:hidden">
             <Button
@@ -66,9 +111,26 @@ const Header: React.FC = () => {
           {userRole === "admin" && (
             <NavLink href="/admin" className="block" role="admin">Admin Dashboard</NavLink>
           )}
-          <div className="mt-3 px-3">
-            <UserRoleSelector />
-          </div>
+          <div className="border-t border-blue-700 my-3"></div>
+          {userRole ? (
+            <Button 
+              variant="ghost"
+              className="w-full justify-start text-white hover:bg-blue-700"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-white hover:bg-blue-700"
+              onClick={() => setLocation("/login")}
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Login / Register
+            </Button>
+          )}
         </div>
       </div>
     </header>

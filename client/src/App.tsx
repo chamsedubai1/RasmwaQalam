@@ -1,9 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import { UserRoleProvider } from "@/hooks/use-user-role";
+import { UserRoleProvider, useUserRole } from "@/hooks/use-user-role";
 import Header from "@/components/site/header";
 import Footer from "@/components/site/footer";
 import Home from "@/pages/home";
@@ -15,8 +15,20 @@ import Partners from "@/pages/partners";
 import CreArt from "@/pages/creart";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import Login from "@/pages/login";
+import ProtectedRoute from "@/components/auth/protected-route";
+import { useEffect } from "react";
 
 function Router() {
+  const [location] = useLocation();
+  const { userRole } = useUserRole();
+  
+  // Log for debugging navigation and auth state
+  useEffect(() => {
+    console.log("Current path:", location);
+    console.log("User role:", userRole);
+  }, [location, userRole]);
+  
   return (
     <>
       <Header />
@@ -28,9 +40,27 @@ function Router() {
           <Route path="/gallery" component={Gallery} />
           <Route path="/schools" component={Schools} />
           <Route path="/partners" component={Partners} />
-          <Route path="/creart" component={CreArt} />
-          <Route path="/teacher" component={TeacherDashboard} />
-          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/login" component={Login} />
+          
+          {/* Protected routes */}
+          <Route path="/creart">
+            <ProtectedRoute allowedRoles={['student']}>
+              <CreArt />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/teacher">
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/admin">
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
+          
           <Route component={NotFound} />
         </Switch>
       </main>
