@@ -419,11 +419,16 @@ const AdminDashboard: React.FC = () => {
                                     setSelectedClassId(classItem.id);
                                     setShowEditClassDialog(true);
                                     // Pre-populate form
-                                    setClassName(classItem.name);
-                                    setSelectedSchool(classItem.schoolId.toString());
-                                    setSelectedGrade(classItem.gradeLevel.replace("Grade ", ""));
-                                    setSelectedTeacher(classItem.teacherId.toString());
-                                    setIsClassActive(!classItem.isLocked);
+                                    setClassName(classItem.name || '');
+                                    setSelectedSchool(classItem.schoolId ? classItem.schoolId.toString() : '');
+                                    // Handle different grade formats - some might be "Grade 9", others "9th"
+                                    const gradeLevel = classItem.gradeLevel || '';
+                                    const grade = gradeLevel.includes('Grade ') 
+                                      ? gradeLevel.replace('Grade ', '') 
+                                      : gradeLevel.replace(/[^0-9]/g, '');
+                                    setSelectedGrade(grade);
+                                    setSelectedTeacher(classItem.teacherId ? classItem.teacherId.toString() : '');
+                                    setIsClassActive(classItem.isLocked === undefined ? true : !classItem.isLocked);
                                     toast({
                                       description: "Edit Class functionality coming soon!"
                                     });
