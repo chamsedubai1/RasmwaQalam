@@ -855,6 +855,92 @@ const AdminDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit Class Dialog */}
+      <Dialog open={showEditClassDialog} onOpenChange={setShowEditClassDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Class</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-class-name">Class Name</Label>
+              <Input 
+                id="edit-class-name" 
+                placeholder="Enter class name" 
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-class-school">School</Label>
+                <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                  <SelectTrigger id="edit-class-school">
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school: any) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-class-grade">Grade Level</Label>
+                <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                  <SelectTrigger id="edit-class-grade">
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                      <SelectItem key={grade} value={grade.toString()}>
+                        Grade {grade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-class-teacher">Teacher</Label>
+              <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+                <SelectTrigger id="edit-class-teacher">
+                  <SelectValue placeholder="Select teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers
+                    .filter((user: any) => user.role === "teacher")
+                    .map((teacher: any) => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.fullName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="edit-class-active" 
+                checked={isClassActive}
+                onCheckedChange={setIsClassActive}
+              />
+              <Label htmlFor="edit-class-active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateClass}>Update Class</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Create Event Dialog */}
       <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
         <DialogContent className="sm:max-w-[600px]">
