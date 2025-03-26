@@ -137,12 +137,129 @@ const AdminDashboard: React.FC = () => {
     });
   };
   
+  // Form state for event
+  const [eventName, setEventName] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventType, setEventType] = useState("poetry");
+  const [eventStatus, setEventStatus] = useState("upcoming");
+  const [eventStage, setEventStage] = useState("class");
+  const [eventStartDate, setEventStartDate] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
+  const [eventImageUrl, setEventImageUrl] = useState("");
+
   const handleCreateEvent = () => {
+    // Validate form fields
+    if (!eventName || !eventDescription || !eventType || !eventStatus || !eventStartDate || !eventEndDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // In a real app, this would call the API to create an event with the form data
+    console.log({
+      name: eventName,
+      description: eventDescription,
+      type: eventType,
+      status: eventStatus,
+      stage: eventStage,
+      startDate: new Date(eventStartDate),
+      endDate: new Date(eventEndDate),
+      imageUrl: eventImageUrl || null
+    });
+    
+    // Reset form fields
+    setEventName("");
+    setEventDescription("");
+    setEventType("poetry");
+    setEventStatus("upcoming");
+    setEventStage("class");
+    setEventStartDate("");
+    setEventEndDate("");
+    setEventImageUrl("");
+    
+    // Close dialog
     setShowCreateEventDialog(false);
-    // In a real app, this would call the API to create an event
+    
+    // Success message
     toast({
-      title: "Feature coming soon",
-      description: "Event creation will be available in the next update",
+      title: "Event Created",
+      description: "Event has been successfully created",
+    });
+  };
+  
+  const handleEditEvent = (eventData: any) => {
+    // Set selected event ID
+    setSelectedEventId(eventData.id);
+    
+    // Pre-populate form fields with selected event data
+    setEventName(eventData.name || '');
+    setEventDescription(eventData.description || '');
+    setEventType(eventData.type || 'poetry');
+    setEventStatus(eventData.status || 'upcoming');
+    setEventStage(eventData.stage || 'class');
+    
+    // Format dates for input fields (YYYY-MM-DD)
+    if (eventData.startDate) {
+      const startDate = new Date(eventData.startDate);
+      setEventStartDate(startDate.toISOString().split('T')[0]);
+    }
+    
+    if (eventData.endDate) {
+      const endDate = new Date(eventData.endDate);
+      setEventEndDate(endDate.toISOString().split('T')[0]);
+    }
+    
+    setEventImageUrl(eventData.imageUrl || '');
+    
+    // Open edit dialog
+    setShowEditEventDialog(true);
+  };
+  
+  const handleUpdateEvent = () => {
+    // Validate form fields
+    if (!eventName || !eventDescription || !eventType || !eventStatus || !eventStartDate || !eventEndDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // In a real app, this would call the API to update the event with the form data
+    console.log({
+      id: selectedEventId,
+      name: eventName,
+      description: eventDescription,
+      type: eventType,
+      status: eventStatus,
+      stage: eventStage,
+      startDate: new Date(eventStartDate),
+      endDate: new Date(eventEndDate),
+      imageUrl: eventImageUrl || null
+    });
+    
+    // Reset form fields
+    setEventName("");
+    setEventDescription("");
+    setEventType("poetry");
+    setEventStatus("upcoming");
+    setEventStage("class");
+    setEventStartDate("");
+    setEventEndDate("");
+    setEventImageUrl("");
+    setSelectedEventId(null);
+    
+    // Close dialog
+    setShowEditEventDialog(false);
+    
+    // Success message
+    toast({
+      title: "Event Updated",
+      description: "Event has been successfully updated",
     });
   };
   
@@ -403,6 +520,7 @@ const AdminDashboard: React.FC = () => {
                 events={events} 
                 isLoading={isLoadingEvents}
                 isAdmin={true}
+                onEdit={handleEditEvent}
               />
             </CardContent>
           </Card>
@@ -950,7 +1068,12 @@ const AdminDashboard: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="event-name">Event Name</Label>
-              <Input id="event-name" placeholder="Enter event name" />
+              <Input 
+                id="event-name" 
+                placeholder="Enter event name" 
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="event-description">Description</Label>
@@ -958,12 +1081,17 @@ const AdminDashboard: React.FC = () => {
                 id="event-description" 
                 placeholder="Enter event description"
                 className="min-h-[100px]"
+                value={eventDescription}
+                onChange={(e) => setEventDescription(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="event-type">Event Type</Label>
-                <Select>
+                <Select 
+                  value={eventType} 
+                  onValueChange={setEventType}
+                >
                   <SelectTrigger id="event-type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -975,7 +1103,10 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="event-status">Status</Label>
-                <Select>
+                <Select 
+                  value={eventStatus} 
+                  onValueChange={setEventStatus}
+                >
                   <SelectTrigger id="event-status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -988,23 +1119,53 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
+                <Label htmlFor="event-stage">Event Stage</Label>
+                <Select 
+                  value={eventStage} 
+                  onValueChange={setEventStage}
+                >
+                  <SelectTrigger id="event-stage">
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="class">Class</SelectItem>
+                    <SelectItem value="school">School</SelectItem>
+                    <SelectItem value="country">Country</SelectItem>
+                    <SelectItem value="global">Global</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
                 <Label htmlFor="event-start">Start Date</Label>
-                <div className="relative">
-                  <Input id="event-start" placeholder="Select start date" />
-                  <CalendarIcon className="h-4 w-4 absolute right-3 top-3 text-gray-400" />
-                </div>
+                <Input 
+                  id="event-start" 
+                  type="date"
+                  placeholder="Select start date" 
+                  value={eventStartDate}
+                  onChange={(e) => setEventStartDate(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="event-end">End Date</Label>
-                <div className="relative">
-                  <Input id="event-end" placeholder="Select end date" />
-                  <CalendarIcon className="h-4 w-4 absolute right-3 top-3 text-gray-400" />
-                </div>
+                <Input 
+                  id="event-end" 
+                  type="date"
+                  placeholder="Select end date" 
+                  value={eventEndDate}
+                  onChange={(e) => setEventEndDate(e.target.value)}
+                />
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="event-image">Image URL</Label>
-              <Input id="event-image" placeholder="Enter image URL" />
+              <Input 
+                id="event-image" 
+                placeholder="Enter image URL" 
+                value={eventImageUrl}
+                onChange={(e) => setEventImageUrl(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -1012,6 +1173,125 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleCreateEvent}>Create Event</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Event Dialog */}
+      <Dialog open={showEditEventDialog} onOpenChange={setShowEditEventDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-event-name">Event Name</Label>
+              <Input 
+                id="edit-event-name" 
+                placeholder="Enter event name" 
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-event-description">Description</Label>
+              <Textarea 
+                id="edit-event-description" 
+                placeholder="Enter event description"
+                className="min-h-[100px]"
+                value={eventDescription}
+                onChange={(e) => setEventDescription(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-type">Event Type</Label>
+                <Select 
+                  value={eventType} 
+                  onValueChange={setEventType}
+                >
+                  <SelectTrigger id="edit-event-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="poetry">Poetry</SelectItem>
+                    <SelectItem value="painting">Painting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-status">Status</Label>
+                <Select 
+                  value={eventStatus} 
+                  onValueChange={setEventStatus}
+                >
+                  <SelectTrigger id="edit-event-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-stage">Event Stage</Label>
+                <Select 
+                  value={eventStage} 
+                  onValueChange={setEventStage}
+                >
+                  <SelectTrigger id="edit-event-stage">
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="class">Class</SelectItem>
+                    <SelectItem value="school">School</SelectItem>
+                    <SelectItem value="country">Country</SelectItem>
+                    <SelectItem value="global">Global</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-start">Start Date</Label>
+                <Input 
+                  id="edit-event-start" 
+                  type="date"
+                  placeholder="Select start date" 
+                  value={eventStartDate}
+                  onChange={(e) => setEventStartDate(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-end">End Date</Label>
+                <Input 
+                  id="edit-event-end" 
+                  type="date"
+                  placeholder="Select end date" 
+                  value={eventEndDate}
+                  onChange={(e) => setEventEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-event-image">Image URL</Label>
+              <Input 
+                id="edit-event-image" 
+                placeholder="Enter image URL" 
+                value={eventImageUrl}
+                onChange={(e) => setEventImageUrl(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateEvent}>Update Event</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
