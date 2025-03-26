@@ -64,6 +64,16 @@ const AdminDashboard: React.FC = () => {
   const [schoolImageUrl, setSchoolImageUrl] = useState("");
   const [showEditClassDialog, setShowEditClassDialog] = useState(false);
   
+  // Form state for users
+  const [userFullName, setUserFullName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userUsername, setUserUsername] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [userRoleValue, setUserRoleValue] = useState("student");
+  const [userSchoolId, setUserSchoolId] = useState("");
+  const [userClassId, setUserClassId] = useState("");
+  const [userIsActive, setUserIsActive] = useState(true);
+  
   // Selected item IDs for edit operations
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -279,7 +289,27 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               
-              <UserTable users={filteredUsers} isLoading={isLoadingUsers} />
+              <UserTable 
+                users={filteredUsers} 
+                isLoading={isLoadingUsers} 
+                onEdit={(userData) => {
+                  // Set selected user ID
+                  setSelectedUserId(userData.id);
+                  
+                  // Pre-populate form fields with selected user data
+                  setUserFullName(userData.fullName || '');
+                  setUserEmail(userData.email || '');
+                  setUserUsername(userData.username || '');
+                  setUserPassword(''); // Don't populate password for security reasons
+                  setUserRoleValue(userData.role || 'student');
+                  setUserSchoolId(userData.schoolId ? userData.schoolId.toString() : '');
+                  setUserClassId(userData.classId ? userData.classId.toString() : '');
+                  setUserIsActive(userData.isActive);
+                  
+                  // Open edit dialog
+                  setShowEditUserDialog(true);
+                }}
+              />
               
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-sm text-gray-700">
@@ -612,6 +642,167 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleCreateUser}>Create User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit User Dialog */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-fullName">Full Name</Label>
+                <Input 
+                  id="edit-user-fullName" 
+                  placeholder="Enter full name"
+                  value={userFullName}
+                  onChange={(e) => setUserFullName(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-email">Email</Label>
+                <Input 
+                  id="edit-user-email" 
+                  type="email" 
+                  placeholder="Enter email"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-username">Username</Label>
+                <Input 
+                  id="edit-user-username" 
+                  placeholder="Enter username"
+                  value={userUsername}
+                  onChange={(e) => setUserUsername(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-password">Password (leave blank to keep current)</Label>
+                <Input 
+                  id="edit-user-password" 
+                  type="password" 
+                  placeholder="Enter new password"
+                  value={userPassword}
+                  onChange={(e) => setUserPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-role">Role</Label>
+                <Select value={userRoleValue} onValueChange={setUserRoleValue}>
+                  <SelectTrigger id="edit-user-role">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-school">School</Label>
+                <Select value={userSchoolId} onValueChange={setUserSchoolId}>
+                  <SelectTrigger id="edit-user-school">
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {schools.map((school: any) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-class">Class</Label>
+                <Select value={userClassId} onValueChange={setUserClassId}>
+                  <SelectTrigger id="edit-user-class">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {classes
+                      .filter((c: any) => !userSchoolId || c.schoolId.toString() === userSchoolId)
+                      .map((classItem: any) => (
+                        <SelectItem key={classItem.id} value={classItem.id.toString()}>
+                          {classItem.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-status">Status</Label>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="edit-user-status" 
+                    checked={userIsActive}
+                    onCheckedChange={(checked) => setUserIsActive(checked === true)}
+                  />
+                  <label
+                    htmlFor="edit-user-status"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Active
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={() => {
+              // Handle update logic
+              setShowEditUserDialog(false);
+              
+              // In a real app, this would call the API to update the user
+              console.log({
+                id: selectedUserId,
+                fullName: userFullName,
+                email: userEmail,
+                username: userUsername,
+                password: userPassword, // Only include if not empty
+                role: userRoleValue,
+                schoolId: userSchoolId ? parseInt(userSchoolId) : null,
+                classId: userClassId ? parseInt(userClassId) : null,
+                isActive: userIsActive
+              });
+              
+              // Reset form
+              setUserFullName("");
+              setUserEmail("");
+              setUserUsername("");
+              setUserPassword("");
+              setUserRoleValue("student");
+              setUserSchoolId("");
+              setUserClassId("");
+              setUserIsActive(true);
+              setSelectedUserId(null);
+              
+              // Show success message
+              toast({
+                title: "User Updated",
+                description: "User has been successfully updated",
+              });
+            }}>
+              Update User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
