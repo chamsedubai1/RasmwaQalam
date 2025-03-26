@@ -44,6 +44,7 @@ const AdminDashboard: React.FC = () => {
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
   const [showCreateSchoolDialog, setShowCreateSchoolDialog] = useState(false);
+  const [showCreateClassDialog, setShowCreateClassDialog] = useState(false);
   
   // Always include hooks before any early returns to avoid React errors
   
@@ -60,6 +61,11 @@ const AdminDashboard: React.FC = () => {
   // Fetch all events for event management
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ['/api/events'],
+  });
+  
+  // Fetch all classes for class management
+  const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
+    queryKey: ['/api/classes'],
   });
   
   // Admin role check - moved after all hooks to avoid React errors
@@ -106,6 +112,15 @@ const AdminDashboard: React.FC = () => {
     });
   };
   
+  const handleCreateClass = () => {
+    setShowCreateClassDialog(false);
+    // In a real app, this would call the API to create a class
+    toast({
+      title: "Class Created",
+      description: "Class has been successfully created",
+    });
+  };
+  
   return (
     <div>
       <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">Admin Dashboard</h1>
@@ -114,6 +129,7 @@ const AdminDashboard: React.FC = () => {
         <TabsList className="mb-8 w-full border-b border-gray-200">
           <TabsTrigger value="users" className="flex-1">Users</TabsTrigger>
           <TabsTrigger value="schools" className="flex-1">Schools</TabsTrigger>
+          <TabsTrigger value="classes" className="flex-1">Classes</TabsTrigger>
           <TabsTrigger value="events" className="flex-1">Events</TabsTrigger>
           <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
         </TabsList>
@@ -278,6 +294,91 @@ const AdminDashboard: React.FC = () => {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="classes">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Manage Classes</CardTitle>
+              <Button onClick={() => setShowCreateClassDialog(true)}>
+                Create New Class
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingClasses ? (
+                <div className="text-center py-8">
+                  <p className="text-blue-600">Loading classes...</p>
+                </div>
+              ) : classes.length === 0 ? (
+                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-blue-700">No classes found. Create your first class!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-blue-200 rounded-md">
+                  <table className="w-full">
+                    <thead className="bg-blue-50">
+                      <tr className="border-b border-blue-200">
+                        <th className="text-left p-3 text-blue-800">Class Name</th>
+                        <th className="text-left p-3 text-blue-800">School</th>
+                        <th className="text-left p-3 text-blue-800">Grade</th>
+                        <th className="text-left p-3 text-blue-800">Teacher</th>
+                        <th className="text-left p-3 text-blue-800">Status</th>
+                        <th className="text-left p-3 text-blue-800">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classes.map((classItem: any) => {
+                        const school = schools.find((s: any) => s.id === classItem.schoolId);
+                        const teacher = allUsers.find((u: any) => u.id === classItem.teacherId);
+                        
+                        return (
+                          <tr key={classItem.id} className="border-b border-blue-100 hover:bg-blue-50">
+                            <td className="p-3 text-blue-800 font-medium">{classItem.name}</td>
+                            <td className="p-3">{school?.name || <span className="text-gray-400">-</span>}</td>
+                            <td className="p-3">{classItem.gradeLevel || <span className="text-gray-400">-</span>}</td>
+                            <td className="p-3">{teacher?.fullName || <span className="text-gray-400">-</span>}</td>
+                            <td className="p-3">
+                              <Badge
+                                variant={classItem.isLocked ? "secondary" : "default"}
+                                className={classItem.isLocked ? "bg-gray-100 text-gray-800" : "bg-green-100 text-green-800 border-green-200"}
+                              >
+                                {classItem.isLocked ? "Locked" : "Active"}
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  Edit
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  Students
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -489,6 +590,84 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleCreateSchool}>Create School</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create Class Dialog */}
+      <Dialog open={showCreateClassDialog} onOpenChange={setShowCreateClassDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Class</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="class-name">Class Name</Label>
+              <Input id="class-name" placeholder="Enter class name" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="class-school">School</Label>
+                <Select>
+                  <SelectTrigger id="class-school">
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school: any) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="class-grade">Grade Level</Label>
+                <Select>
+                  <SelectTrigger id="class-grade">
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                      <SelectItem key={grade} value={grade.toString()}>
+                        Grade {grade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="class-teacher">Teacher</Label>
+              <Select>
+                <SelectTrigger id="class-teacher">
+                  <SelectValue placeholder="Select teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers
+                    .filter((user: any) => user.role === "teacher")
+                    .map((teacher: any) => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.fullName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch id="class-active" />
+              <Label htmlFor="class-active">Class is Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleCreateClass}>Create Class</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
