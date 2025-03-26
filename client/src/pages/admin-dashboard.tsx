@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
+import ClassTable from "@/components/dashboard/class-table";
 import {
   Dialog,
   DialogContent,
