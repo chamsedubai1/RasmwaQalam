@@ -1069,7 +1069,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {classes
-                      .filter((c: any) => !userSchoolId || c.schoolId.toString() === userSchoolId)
+                      .filter((c: any) => !userSchoolId || (c.schoolId && c.schoolId.toString() === userSchoolId))
                       .map((classItem: any) => (
                         <SelectItem key={classItem.id} value={classItem.id.toString()}>
                           {classItem.name}
