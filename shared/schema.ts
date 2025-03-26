@@ -109,7 +109,10 @@ export const insertUserSchema = createInsertSchema(users, {
 export const insertSchoolSchema = createInsertSchema(schools);
 export const insertClassSchema = createInsertSchema(classes);
 export const insertPartnerSchema = createInsertSchema(partners);
-export const insertEventSchema = createInsertSchema(events);
+export const insertEventSchema = createInsertSchema(events, {
+  startDate: z.string().transform((str) => new Date(str)),
+  endDate: z.string().transform((str) => new Date(str))
+});
 export const insertRegistrationSchema = createInsertSchema(registrations);
 export const insertSubmissionSchema = createInsertSchema(submissions);
 export const insertVoteSchema = createInsertSchema(votes);
