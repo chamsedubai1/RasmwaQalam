@@ -165,14 +165,38 @@ const EventTable: React.FC<EventTableProps> = ({
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button 
-                      variant="link" 
-                      className="text-primary px-0 h-auto"
+                      variant="outline" 
+                      size="sm"
+                      className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       onClick={() => {
-                        toast({
-                          description: isAdmin 
-                            ? "Edit event functionality coming soon!"
-                            : "View event details coming soon!"
-                        });
+                        // This would either view details or open edit dialog
+                        // For now implementing a simple approach
+                        const eventData = {
+                          id: event.id,
+                          name: event.name,
+                          description: event.description,
+                          type: event.type,
+                          status: event.status,
+                          stage: event.stage,
+                          startDate: event.startDate,
+                          endDate: event.endDate,
+                          imageUrl: event.imageUrl
+                        };
+                        
+                        console.log("Event data:", eventData);
+                        
+                        // Open a dialog or navigate to event page
+                        if (isAdmin) {
+                          // Would open edit dialog
+                          toast({
+                            description: "Event edit dialog will be implemented here"
+                          });
+                        } else {
+                          // Would navigate to event page
+                          toast({
+                            description: "Event detail view will be implemented here"
+                          });
+                        }
                       }}
                     >
                       {isAdmin ? "Edit" : "View"}
@@ -181,16 +205,18 @@ const EventTable: React.FC<EventTableProps> = ({
                     {isAdmin && event.status === 'open' && (
                       <>
                         <Button 
-                          variant="link" 
-                          className="text-secondary px-0 h-auto"
+                          variant="outline" 
+                          size="sm"
+                          className="border-purple-300 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                           onClick={() => handlePromoteStage(event.id, event.stage)}
                           disabled={promoteEventStageMutation.isPending}
                         >
                           Promote Stage
                         </Button>
                         <Button 
-                          variant="link" 
-                          className="text-danger px-0 h-auto"
+                          variant="outline" 
+                          size="sm"
+                          className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => handleCloseEvent(event.id)}
                           disabled={closeEventMutation.isPending}
                         >

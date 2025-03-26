@@ -101,11 +101,14 @@ const StudentTable: React.FC<StudentTableProps> = ({
               <TableCell>
                 <div className="flex space-x-2">
                   <Button 
-                    variant="link" 
-                    className="text-primary px-0 h-auto"
+                    variant="outline" 
+                    size="sm"
+                    className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     onClick={() => {
+                      console.log("Viewing student details:", student.id);
+                      // In a real implementation this would show a detailed view
                       toast({
-                        description: "Student details view coming soon!"
+                        description: "Student details view is being implemented"
                       });
                     }}
                   >
@@ -113,8 +116,9 @@ const StudentTable: React.FC<StudentTableProps> = ({
                   </Button>
                   {classId && (
                     <Button 
-                      variant="link" 
-                      className="text-danger px-0 h-auto"
+                      variant="outline" 
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
                       onClick={() => handleRemoveStudent(student.id)}
                       disabled={removeStudentMutation.isPending}
                     >

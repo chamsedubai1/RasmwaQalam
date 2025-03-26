@@ -112,23 +112,28 @@ const ClassTable: React.FC<ClassTableProps> = ({
               <TableCell>
                 <div className="flex space-x-2">
                   <Button 
-                    variant="link" 
-                    className="text-primary px-0 h-auto"
+                    variant="outline" 
+                    size="sm"
+                    className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     onClick={() => onManage(cls.id)}
                   >
                     Manage
                   </Button>
                   <Button 
-                    variant="link" 
-                    className={cls.isLocked ? "text-success px-0 h-auto" : "text-warning px-0 h-auto"}
+                    variant="outline" 
+                    size="sm"
+                    className={cls.isLocked 
+                      ? "border-green-300 text-green-600 hover:text-green-700 hover:bg-green-50" 
+                      : "border-yellow-300 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"}
                     onClick={() => handleToggleLock(cls.id, cls.isLocked)}
                     disabled={lockMutation.isPending}
                   >
                     {cls.isLocked ? 'Unlock' : 'Lock'}
                   </Button>
                   <Button 
-                    variant="link" 
-                    className="text-danger px-0 h-auto"
+                    variant="outline" 
+                    size="sm"
+                    className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={() => handleDelete(cls.id)}
                     disabled={deleteMutation.isPending}
                   >

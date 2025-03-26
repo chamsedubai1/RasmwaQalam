@@ -146,22 +146,47 @@ const UserTable: React.FC<UserTableProps> = ({
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button 
-                      variant="link" 
-                      className="text-primary px-0 h-auto"
+                      variant="outline" 
+                      size="sm"
+                      className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      onClick={() => {
+                        const userData = {
+                          id: user.id,
+                          username: user.username,
+                          fullName: user.fullName,
+                          email: user.email,
+                          role: user.role,
+                          schoolId: user.schoolId,
+                          classId: user.classId,
+                          isActive: user.isActive
+                        };
+                        
+                        // In the actual implementation, this would open an edit dialog
+                        console.log("Editing user:", userData);
+                        
+                        // For now, show a toast until we implement the dialog
+                        toast({
+                          description: "Edit user functionality is being implemented"
+                        });
+                      }}
                     >
                       Edit
                     </Button>
                     <Button 
-                      variant="link" 
-                      className={user.isActive ? "text-warning px-0 h-auto" : "text-success px-0 h-auto"}
+                      variant="outline" 
+                      size="sm"
+                      className={user.isActive 
+                        ? "border-yellow-300 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50" 
+                        : "border-green-300 text-green-600 hover:text-green-700 hover:bg-green-50"}
                       onClick={() => handleToggleActive(user.id, user.isActive)}
                       disabled={toggleUserActiveMutation.isPending}
                     >
                       {user.isActive ? 'Lock' : 'Unlock'}
                     </Button>
                     <Button 
-                      variant="link" 
-                      className="text-danger px-0 h-auto"
+                      variant="outline" 
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
                       onClick={() => handleDelete(user.id)}
                       disabled={deleteUserMutation.isPending}
                     >
