@@ -311,8 +311,7 @@ const AdminDashboard: React.FC = () => {
   // Create class mutation
   const createClassMutation = useMutation({
     mutationFn: async (classData: any) => {
-      const response = await apiRequest("POST", "/api/classes", classData);
-      return response.json();
+      return apiRequest("POST", "/api/classes", classData);
     },
     onSuccess: () => {
       // Invalidate query to refresh data
@@ -393,14 +392,13 @@ const AdminDashboard: React.FC = () => {
   // Update class mutation
   const updateClassMutation = useMutation({
     mutationFn: async (classData: any) => {
-      const response = await apiRequest("PATCH", `/api/classes/${classData.id}`, {
+      return apiRequest("PATCH", `/api/classes/${classData.id}`, {
         name: classData.name,
         schoolId: classData.schoolId,
         gradeLevel: classData.gradeLevel,
         teacherId: classData.teacherId,
         isLocked: classData.isLocked
       });
-      return response.json();
     },
     onSuccess: () => {
       // Invalidate query to refresh data
