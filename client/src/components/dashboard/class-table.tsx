@@ -16,12 +16,14 @@ interface ClassTableProps {
   classes: any[];
   isLoading: boolean;
   onManage: (classId: number) => void;
+  onEdit?: (classData: any) => void;
 }
 
 const ClassTable: React.FC<ClassTableProps> = ({ 
   classes = [],
   isLoading,
-  onManage
+  onManage,
+  onEdit
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -119,6 +121,16 @@ const ClassTable: React.FC<ClassTableProps> = ({
                   >
                     Manage
                   </Button>
+                  {onEdit && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-purple-300 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={() => onEdit(cls)}
+                    >
+                      Edit
+                    </Button>
+                  )}
                   <Button 
                     variant="outline" 
                     size="sm"

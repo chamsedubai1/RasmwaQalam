@@ -16,12 +16,14 @@ interface EventTableProps {
   events: any[];
   isLoading: boolean;
   isAdmin?: boolean;
+  onEdit?: (eventData: any) => void;
 }
 
 const EventTable: React.FC<EventTableProps> = ({ 
   events = [],
   isLoading,
-  isAdmin = false
+  isAdmin = false,
+  onEdit
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -169,8 +171,6 @@ const EventTable: React.FC<EventTableProps> = ({
                       size="sm"
                       className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       onClick={() => {
-                        // This would either view details or open edit dialog
-                        // For now implementing a simple approach
                         const eventData = {
                           id: event.id,
                           name: event.name,
@@ -183,14 +183,8 @@ const EventTable: React.FC<EventTableProps> = ({
                           imageUrl: event.imageUrl
                         };
                         
-                        console.log("Event data:", eventData);
-                        
-                        // Open a dialog or navigate to event page
-                        if (isAdmin) {
-                          // Would open edit dialog
-                          toast({
-                            description: "Event edit dialog will be implemented here"
-                          });
+                        if (isAdmin && onEdit) {
+                          onEdit(eventData);
                         } else {
                           // Would navigate to event page
                           toast({
