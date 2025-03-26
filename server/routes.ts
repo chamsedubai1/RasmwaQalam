@@ -267,11 +267,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post('/classes', async (req, res) => {
     try {
+      console.log('Received class creation request:', req.body);
       const classData = insertClassSchema.parse(req.body);
+      console.log('Validated class data:', classData);
       const newClass = await storage.createClass(classData);
+      console.log('Class created successfully:', newClass);
       res.status(201).json(newClass);
     } catch (error) {
+      console.error('Error creating class:', error);
       if (error instanceof z.ZodError) {
+        console.error('Validation errors:', error.errors);
         return res.status(400).json({ message: 'Invalid class data', errors: error.errors });
       }
       res.status(500).json({ message: 'Failed to create class' });
