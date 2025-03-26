@@ -64,10 +64,11 @@ const Home: React.FC = () => {
       <div className="mt-16">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold font-heading text-gray-800">Featured Events</h2>
-          <Link href="/events">
-            <a className="text-primary hover:text-indigo-700 flex items-center gap-1">
-              View all <ChevronRight size={16} />
-            </a>
+          <Link 
+            href="/events" 
+            className="text-primary hover:text-indigo-700 flex items-center gap-1"
+          >
+            View all <ChevronRight size={16} />
           </Link>
         </div>
 
