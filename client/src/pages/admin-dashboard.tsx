@@ -324,8 +324,7 @@ const AdminDashboard: React.FC = () => {
       stage: eventStage,
       startDate: new Date(eventStartDate),
       endDate: new Date(eventEndDate),
-      imageUrl: eventImageUrl || null,
-      createdAt: new Date()
+      imageUrl: eventImageUrl || null
     };
     
     console.log(eventData); // For debugging
