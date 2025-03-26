@@ -124,22 +124,134 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
-    // Add sample schools
-    const school1 = this.createSchool({
-      name: "Westside High School",
-      description: "A progressive high school with a strong emphasis on arts and technology integration in education.",
-      websiteUrl: "https://example.com/school",
-      imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1",
-      isActive: true
-    });
+    // Add Dubai schools
+    const schoolsList = [
+      "Al Khaleej National School",
+      "Al Mawakeb School",
+      "Al Sadiq Islamic English School",
+      "Alba School",
+      "Ambassador School",
+      "American International School Dubai",
+      "American School of Creative Science",
+      "American School of Dubai",
+      "Amity School Dubai",
+      "Arbor School (Eco-focused)",
+      "Arcadia School",
+      "Australian International School Dubai",
+      "Bloom World Academy",
+      "Brighton College Dubai",
+      "Cedar School",
+      "Citizens School",
+      "Collegiate International School",
+      "Credence High School",
+      "Curriculum Institute School",
+      "Deira International School",
+      "Delhi Private School Dubai",
+      "Dovecote Green Primary School",
+      "Dubai American Academy",
+      "Dubai British School",
+      "Dubai Center for Special Needs",
+      "Dubai College",
+      "Dubai English Speaking College (DESC)",
+      "Dubai Heights Academy",
+      "Dubai International School",
+      "Dubai Modern High School",
+      "Dunecrest American School",
+      "Durham School Dubai",
+      "Dwight School Dubai",
+      "Emirates International School Jumeirah",
+      "Emirates International School Meadows",
+      "Fairgreen International School (Sustainability-focused)",
+      "Far Eastern Private School",
+      "FirstPoint School The Villa",
+      "Foremarke School Dubai",
+      "French International School of Dubai",
+      "GEMS Dubai American Academy",
+      "GEMS FirstPoint School",
+      "GEMS Founders School",
+      "GEMS German School Dubai",
+      "GEMS International School Al Khail",
+      "GEMS Jumeirah Primary School",
+      "GEMS Legacy School",
+      "GEMS Modern Academy",
+      "GEMS Nations Academy",
+      "GEMS New Millennium School",
+      "GEMS Our Own English High School",
+      "GEMS Royal Dubai School Al Mizhar",
+      "GEMS Wellington International School",
+      "GEMS World Academy",
+      "German International School Dubai (Deutsche Internationale Schule Dubai)",
+      "Global Indian International School",
+      "Greenfield Community School",
+      "Greenwood International School",
+      "Gulf Indian High School",
+      "Hartland International School",
+      "Horizon International School",
+      "Innoventures Education (Dubai International Academy)",
+      "Inspire Children's Learning Center",
+      "International School of Arts and Sciences",
+      "Japanese School Dubai",
+      "JSS International School",
+      "JSS Private School",
+      "Jumeirah College",
+      "Jumeirah English Speaking School (JESS)",
+      "Kent College Dubai",
+      "Kings' School Dubai",
+      "Lycée Français International Georges Pompidou",
+      "Lycée Français Jean Mermoz",
+      "Nord Anglia International School Dubai",
+      "North American International School",
+      "Our Own High School Al Warqa'a",
+      "Pakistan Education Academy",
+      "Pearl Wisdom School",
+      "Raffles International School",
+      "Ranches Primary School",
+      "Rashid Centre for People of Determination",
+      "Regent International School",
+      "Repton School Dubai",
+      "RIS Meydan",
+      "Royal Grammar School Guildford Dubai",
+      "Russian International School",
+      "Safa British School",
+      "Safa Community School",
+      "School of Modern Skills",
+      "Sharjah Indian School Dubai Branch",
+      "Sheikh Rashid Al Maktoum Pakistani School Dubai",
+      "SNF Development Center",
+      "South View School",
+      "Springdales School Dubai",
+      "Stepping Stones Center",
+      "Sunmarke School",
+      "The Developing Child Centre",
+      "The English College Dubai",
+      "The Indian Academy Dubai",
+      "The Indian High School",
+      "The Millennium School",
+      "The New Filipino Private School",
+      "The Philippine School Dubai",
+      "The Winchester School Jebel Ali",
+      "United International Private School",
+      "Universal American School",
+      "Uptown School",
+      "Victory Heights Primary School",
+      "Woodlem Park School Dubai"
+    ];
     
-    const school2 = this.createSchool({
-      name: "Eastwood Academy",
-      description: "A STEM-focused academy that embraces creative arts as a way to enhance technical education.",
-      websiteUrl: "https://example.com/school",
-      imageUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b",
-      isActive: true
-    });
+    // Create all schools with basic information
+    const createdSchools: School[] = [];
+    for (const schoolName of schoolsList) {
+      const school = this.createSchool({
+        name: schoolName,
+        description: `${schoolName} is a respected educational institution in Dubai offering quality education.`,
+        websiteUrl: `https://example.com/${schoolName.toLowerCase().replace(/\s+/g, '-')}`,
+        imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1",
+        isActive: true
+      });
+      createdSchools.push(school);
+    }
+    
+    // Keep reference to first school for sample data
+    const school1 = createdSchools[0];
     
     // Add sample partners
     this.createPartner({
