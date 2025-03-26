@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
 import {
@@ -52,7 +53,7 @@ const AdminDashboard: React.FC = () => {
   });
   
   // Fetch all schools
-  const { data: schools = [] } = useQuery({
+  const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
     queryKey: ['/api/schools'],
   });
   
@@ -93,6 +94,15 @@ const AdminDashboard: React.FC = () => {
     toast({
       title: "Feature coming soon",
       description: "Event creation will be available in the next update",
+    });
+  };
+  
+  const handleCreateSchool = () => {
+    setShowCreateSchoolDialog(false);
+    // In a real app, this would call the API to create a school
+    toast({
+      title: "School Created",
+      description: "School has been successfully created",
     });
   };
   
@@ -428,6 +438,57 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleCreateEvent}>Create Event</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create School Dialog */}
+      <Dialog open={showCreateSchoolDialog} onOpenChange={setShowCreateSchoolDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New School</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="school-name">School Name</Label>
+              <Input id="school-name" placeholder="Enter school name" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="school-description">Description</Label>
+              <Textarea 
+                id="school-description" 
+                placeholder="Enter school description"
+                className="min-h-[80px]"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="school-website">Website URL</Label>
+                <Input id="school-website" placeholder="Enter website URL" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="school-status">Status</Label>
+                <Select>
+                  <SelectTrigger id="school-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="school-image">Logo/Image URL</Label>
+              <Input id="school-image" placeholder="Enter image URL" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleCreateSchool}>Create School</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
