@@ -308,6 +308,42 @@ const AdminDashboard: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
 
+  // Create class mutation
+  const createClassMutation = useMutation({
+    mutationFn: async (classData: any) => {
+      const response = await apiRequest("POST", "/api/classes", classData);
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      
+      // Reset form fields
+      setClassName("");
+      setSelectedSchool("");
+      setSelectedGrade("");
+      setSelectedTeacher("");
+      setIsClassActive(true);
+      
+      // Close dialog
+      setShowCreateClassDialog(false);
+      
+      // Success message
+      toast({
+        title: "Class Created",
+        description: "Class has been successfully created",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating class:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create class. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleCreateClass = () => {
     // Validate form fields
     if (!className || !selectedSchool || !selectedGrade || !selectedTeacher) {
@@ -319,30 +355,17 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call the API to create a class with the form data
-    console.log({
+    // Build class data and submit using mutation
+    const classData = {
       name: className,
       schoolId: parseInt(selectedSchool),
       gradeLevel: `Grade ${selectedGrade}`,
       teacherId: parseInt(selectedTeacher),
       isLocked: !isClassActive
-    });
+    };
     
-    // Reset form fields
-    setClassName("");
-    setSelectedSchool("");
-    setSelectedGrade("");
-    setSelectedTeacher("");
-    setIsClassActive(true);
-    
-    // Close dialog
-    setShowCreateClassDialog(false);
-    
-    // Success message
-    toast({
-      title: "Class Created",
-      description: "Class has been successfully created",
-    });
+    // Call the mutation with class data
+    createClassMutation.mutate(classData);
   };
 
   const handleEditClass = (classData: any) => {
@@ -367,6 +390,49 @@ const AdminDashboard: React.FC = () => {
     setShowEditClassDialog(true);
   };
   
+  // Update class mutation
+  const updateClassMutation = useMutation({
+    mutationFn: async (classData: any) => {
+      const response = await apiRequest("PATCH", `/api/classes/${classData.id}`, {
+        name: classData.name,
+        schoolId: classData.schoolId,
+        gradeLevel: classData.gradeLevel,
+        teacherId: classData.teacherId,
+        isLocked: classData.isLocked
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      
+      // Reset form fields
+      setClassName("");
+      setSelectedSchool("");
+      setSelectedGrade("");
+      setSelectedTeacher("");
+      setIsClassActive(true);
+      setSelectedClassId(null);
+      
+      // Close dialog
+      setShowEditClassDialog(false);
+      
+      // Success message
+      toast({
+        title: "Class Updated",
+        description: "Class has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating class:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update class. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleUpdateClass = () => {
     // Validate form fields
     if (!className || !selectedSchool || !selectedGrade || !selectedTeacher) {
@@ -378,32 +444,28 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call the API to update the class with the form data
-    console.log({
+    // Check if class ID is selected
+    if (!selectedClassId) {
+      toast({
+        title: "Error",
+        description: "No class selected for update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build class data and submit using mutation
+    const classData = {
       id: selectedClassId,
       name: className,
       schoolId: parseInt(selectedSchool),
       gradeLevel: `Grade ${selectedGrade}`,
       teacherId: parseInt(selectedTeacher),
       isLocked: !isClassActive
-    });
+    };
     
-    // Reset form fields
-    setClassName("");
-    setSelectedSchool("");
-    setSelectedGrade("");
-    setSelectedTeacher("");
-    setIsClassActive(true);
-    setSelectedClassId(null);
-    
-    // Close dialog
-    setShowEditClassDialog(false);
-    
-    // Success message
-    toast({
-      title: "Class Updated",
-      description: "Class has been successfully updated",
-    });
+    // Call the mutation with class data
+    updateClassMutation.mutate(classData);
   };
   
   return (
