@@ -83,9 +83,9 @@ const UserTable: React.FC<UserTableProps> = ({
 
   const getRoleDisplay = (role: string) => {
     const roleColors: Record<string, string> = {
-      'student': 'bg-primary bg-opacity-10 text-primary',
-      'teacher': 'bg-secondary bg-opacity-10 text-secondary',
-      'admin': 'bg-accent bg-opacity-10 text-accent'
+      'student': 'bg-blue-100 text-blue-800 border border-blue-200',
+      'teacher': 'bg-purple-100 text-purple-800 border border-purple-200',
+      'admin': 'bg-red-100 text-red-800 border border-red-200'
     };
     
     return {
@@ -141,7 +141,7 @@ const UserTable: React.FC<UserTableProps> = ({
                 </TableCell>
                 <TableCell>{user.schoolName || "N/A"}</TableCell>
                 <TableCell>
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-success bg-opacity-10 text-success' : 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
                     {user.isActive ? 'Active' : 'Locked'}
                   </span>
                 </TableCell>
