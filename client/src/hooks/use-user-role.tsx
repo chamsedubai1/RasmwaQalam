@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type UserRole = "student" | "teacher" | "admin";
+type UserRole = "student" | "teacher" | "admin" | "";
 
 interface UserRoleContextType {
   userRole: UserRole;
@@ -14,7 +14,7 @@ interface UserRoleProviderProps {
 }
 
 export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) => {
-  const [userRole, setUserRole] = useState<UserRole>("student");
+  const [userRole, setUserRole] = useState<UserRole>("");
 
   useEffect(() => {
     // Load saved role from localStorage on initialization
@@ -26,7 +26,11 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
 
   useEffect(() => {
     // Save role to localStorage and update visible elements
-    localStorage.setItem("userRole", userRole);
+    if (userRole) {
+      localStorage.setItem("userRole", userRole);
+    } else {
+      localStorage.removeItem("userRole");
+    }
     
     // Hide all role-specific elements
     document.querySelectorAll('[data-role]').forEach(el => {
@@ -34,9 +38,12 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     });
     
     // Show elements for current role and those marked for all
-    document.querySelectorAll(`[data-role="all"], [data-role="${userRole}"]`).forEach(el => {
-      el.classList.remove('hidden');
-    });
+    // Only if a role is selected
+    if (userRole) {
+      document.querySelectorAll(`[data-role="all"], [data-role="${userRole}"]`).forEach(el => {
+        el.classList.remove('hidden');
+      });
+    }
   }, [userRole]);
 
   return (

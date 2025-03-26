@@ -50,6 +50,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Registration endpoint
+  apiRouter.post('/auth/register', async (req, res) => {
+    try {
+      // Validate the user data
+      const userData = insertUserSchema.parse({
+        ...req.body,
+        isActive: true // Set to active by default
+      });
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(409).json({ 
+          message: 'Username already exists. Please choose a different username.' 
+        });
+      }
+      
+      // Create the user
+      const user = await storage.createUser(userData);
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Invalid registration data', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Failed to register user' });
+    }
+  });
+  
   // User management routes
   apiRouter.get('/users', async (req, res) => {
     try {
