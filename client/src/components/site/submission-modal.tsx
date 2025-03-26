@@ -226,10 +226,10 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
           </div>
 
           {/* AI Generation Section */}
-          <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+          <div className="border border-blue-200 rounded-md p-4 bg-blue-50">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="text-primary h-5 w-5" />
-              <h3 className="text-md font-medium">AI Creator</h3>
+              <Sparkles className="text-blue-600 h-5 w-5" />
+              <h3 className="text-md font-medium text-blue-800">AI Creator</h3>
             </div>
             
             <div className="grid gap-3">
@@ -301,21 +301,21 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
           ) : (
             <div className="grid gap-2">
               <Label htmlFor="submission-image">Your Artwork</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
+              <div className="border-2 border-dashed border-blue-300 rounded-md p-6 text-center bg-blue-50/50">
                 {content ? (
                   <div className="mb-4">
                     <img 
                       src={content} 
                       alt="Generated artwork" 
-                      className="max-h-[200px] mx-auto object-contain rounded"
+                      className="max-h-[200px] mx-auto object-contain rounded shadow-sm"
                     />
                   </div>
                 ) : (
                   <div className="mb-4">
-                    <CloudUpload className="h-10 w-10 text-gray-400 mx-auto" />
+                    <CloudUpload className="h-10 w-10 text-blue-400 mx-auto" />
                   </div>
                 )}
-                <p className="text-sm text-gray-500 mb-2">
+                <p className="text-sm text-blue-700 mb-2">
                   {content ? "AI-generated image is shown above" : "Use AI to generate artwork or enter an image URL below"}
                 </p>
                 <Input
