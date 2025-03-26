@@ -147,36 +147,36 @@ const CreArt: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border border-blue-200 rounded-md">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Submissions</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+              <TableHeader className="bg-blue-50">
+                <TableRow className="border-b border-blue-200">
+                  <TableHead className="text-blue-800">Event</TableHead>
+                  <TableHead className="text-blue-800">Type</TableHead>
+                  <TableHead className="text-blue-800">Stage</TableHead>
+                  <TableHead className="text-blue-800">Submissions</TableHead>
+                  <TableHead className="text-blue-800">Status</TableHead>
+                  <TableHead className="text-blue-800">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {eventsWithDetails
                   .filter((event: any) => event.isRegistered)
                   .map((event: any) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.name}</TableCell>
+                    <TableRow key={event.id} className="hover:bg-blue-50 transition-colors">
+                      <TableCell className="font-medium text-blue-800">{event.name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`${event.type === 'poetry' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
+                        <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
                           {event.type && typeof event.type === 'string' ? 
                             event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Unknown'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="capitalize">{event.stage}</TableCell>
-                      <TableCell>{event.submissionCount}/3</TableCell>
+                      <TableCell className="capitalize text-blue-700">{event.stage}</TableCell>
+                      <TableCell className="text-blue-700">{event.submissionCount}/3</TableCell>
                       <TableCell>
                         <Badge 
                           variant={event.status === 'open' ? 'default' : 'secondary'} 
-                          className={event.status === 'open' ? 'bg-warning text-white' : ''}
+                          className={event.status === 'open' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border-blue-200'}
                         >
                           {event.status && typeof event.status === 'string' ? 
                             event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'Unknown'}
@@ -188,7 +188,7 @@ const CreArt: React.FC = () => {
                             <Button 
                               variant="default" 
                               size="sm"
-                              className="bg-secondary hover:bg-green-600 text-white"
+                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
                               onClick={() => handleSubmit(event.id)}
                             >
                               Submit
@@ -197,7 +197,7 @@ const CreArt: React.FC = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="text-danger hover:text-red-700 border-red-500"
+                            className="border-red-400 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-500"
                             onClick={() => {
                               // This would call the unregister API in a real app
                               toast({
