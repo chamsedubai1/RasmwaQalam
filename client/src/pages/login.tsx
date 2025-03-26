@@ -56,7 +56,7 @@ export default function LoginPage() {
             setLocation("/admin");
             break;
           case "teacher":
-            setLocation("/teacher");
+            setLocation("/");
             break;
           case "student":
             setLocation("/");

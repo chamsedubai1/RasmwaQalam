@@ -24,9 +24,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       case 'teacher':
         return <Redirect to="/teacher" />;
       case 'student':
-        return <Redirect to="/home" />;
+        return <Redirect to="/" />;
       default:
-        return <Redirect to="/home" />;
+        return <Redirect to="/" />;
     }
   }
   
