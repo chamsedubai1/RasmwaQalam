@@ -269,7 +269,22 @@ const AdminDashboard: React.FC = () => {
   // Create event mutation
   const createEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
-      return apiRequest("POST", "/api/events", eventData);
+      try {
+        const response = await apiRequest("POST", "/api/events", eventData);
+        return response;
+      } catch (error) {
+        console.error("Event creation error details:", error);
+        // If it's a response with error details
+        if (error && typeof error === 'object' && 'json' in error) {
+          try {
+            const errorDetails = await error.json();
+            console.error("Validation errors:", errorDetails);
+          } catch (e) {
+            console.error("Could not parse error response");
+          }
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate query to refresh data
@@ -296,9 +311,14 @@ const AdminDashboard: React.FC = () => {
     },
     onError: (error: any) => {
       console.error("Error creating event:", error);
+      // Try to extract validation errors for better feedback
+      let errorMessage = "Failed to create event. Please try again.";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
       toast({
         title: "Error",
-        description: "Failed to create event. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -322,8 +342,8 @@ const AdminDashboard: React.FC = () => {
       type: eventType,
       status: eventStatus,
       stage: eventStage,
-      startDate: new Date(eventStartDate),
-      endDate: new Date(eventEndDate),
+      startDate: new Date(eventStartDate).toISOString(),
+      endDate: new Date(eventEndDate).toISOString(),
       imageUrl: eventImageUrl || null
     };
     
@@ -438,8 +458,8 @@ const AdminDashboard: React.FC = () => {
       type: eventType,
       status: eventStatus,
       stage: eventStage,
-      startDate: new Date(eventStartDate),
-      endDate: new Date(eventEndDate),
+      startDate: new Date(eventStartDate).toISOString(),
+      endDate: new Date(eventEndDate).toISOString(),
       imageUrl: eventImageUrl || null
     };
     
