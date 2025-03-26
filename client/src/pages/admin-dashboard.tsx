@@ -31,6 +31,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, SearchIcon } from "lucide-react";
 
@@ -112,9 +113,44 @@ const AdminDashboard: React.FC = () => {
     });
   };
   
+  // Form state for class creation
+  const [className, setClassName] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [isClassActive, setIsClassActive] = useState(true);
+
   const handleCreateClass = () => {
+    // Validate form fields
+    if (!className || !selectedSchool || !selectedGrade || !selectedTeacher) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // In a real app, this would call the API to create a class with the form data
+    console.log({
+      name: className,
+      schoolId: parseInt(selectedSchool),
+      gradeLevel: `Grade ${selectedGrade}`,
+      teacherId: parseInt(selectedTeacher),
+      isLocked: !isClassActive
+    });
+    
+    // Reset form fields
+    setClassName("");
+    setSelectedSchool("");
+    setSelectedGrade("");
+    setSelectedTeacher("");
+    setIsClassActive(true);
+    
+    // Close dialog
     setShowCreateClassDialog(false);
-    // In a real app, this would call the API to create a class
+    
+    // Success message
     toast({
       title: "Class Created",
       description: "Class has been successfully created",
@@ -603,13 +639,18 @@ const AdminDashboard: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="class-name">Class Name</Label>
-              <Input id="class-name" placeholder="Enter class name" />
+              <Input 
+                id="class-name" 
+                placeholder="Enter class name" 
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="class-school">School</Label>
-                <Select>
+                <Select value={selectedSchool} onValueChange={setSelectedSchool}>
                   <SelectTrigger id="class-school">
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
@@ -625,7 +666,7 @@ const AdminDashboard: React.FC = () => {
               
               <div className="grid gap-2">
                 <Label htmlFor="class-grade">Grade Level</Label>
-                <Select>
+                <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                   <SelectTrigger id="class-grade">
                     <SelectValue placeholder="Select grade" />
                   </SelectTrigger>
@@ -642,7 +683,7 @@ const AdminDashboard: React.FC = () => {
             
             <div className="grid gap-2">
               <Label htmlFor="class-teacher">Teacher</Label>
-              <Select>
+              <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
                 <SelectTrigger id="class-teacher">
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
@@ -659,7 +700,11 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <Switch id="class-active" />
+              <Switch 
+                id="class-active" 
+                checked={isClassActive}
+                onCheckedChange={setIsClassActive}
+              />
               <Label htmlFor="class-active">Class is Active</Label>
             </div>
           </div>
