@@ -24,6 +24,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TeacherDashboard: React.FC = () => {
   const { userRole } = useUserRole();
@@ -52,6 +59,11 @@ const TeacherDashboard: React.FC = () => {
   // Fetch open events
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ['/api/events?status=open'],
+  });
+  
+  // Fetch schools for dropdown
+  const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
+    queryKey: ['/api/schools'],
   });
   
   // Teacher role check - moved after all hooks to avoid React errors
@@ -169,8 +181,34 @@ const TeacherDashboard: React.FC = () => {
               <Input id="class-name" placeholder="Enter class name" />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="school-select">School</Label>
+              <Select>
+                <SelectTrigger id="school-select">
+                  <SelectValue placeholder="Select school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school: any) => (
+                    <SelectItem key={school.id} value={school.id.toString()}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="grade-level">Grade Level</Label>
-              <Input id="grade-level" placeholder="Enter grade level" />
+              <Select>
+                <SelectTrigger id="grade-level">
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                    <SelectItem key={grade} value={grade.toString()}>
+                      Grade {grade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

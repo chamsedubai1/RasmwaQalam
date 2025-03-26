@@ -42,6 +42,7 @@ const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
+  const [showCreateSchoolDialog, setShowCreateSchoolDialog] = useState(false);
   
   // Always include hooks before any early returns to avoid React errors
   
@@ -197,14 +198,80 @@ const AdminDashboard: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Manage Schools</CardTitle>
-              <Button>
+              <Button onClick={() => setShowCreateSchoolDialog(true)}>
                 Add New School
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">School management coming soon.</p>
-              </div>
+              {isLoadingSchools ? (
+                <div className="text-center py-8">
+                  <p className="text-blue-600">Loading schools...</p>
+                </div>
+              ) : schools.length === 0 ? (
+                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-blue-700">No schools found. Add your first school!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-blue-200 rounded-md">
+                  <table className="w-full">
+                    <thead className="bg-blue-50">
+                      <tr className="border-b border-blue-200">
+                        <th className="text-left p-3 text-blue-800">Name</th>
+                        <th className="text-left p-3 text-blue-800">Website</th>
+                        <th className="text-left p-3 text-blue-800">Status</th>
+                        <th className="text-left p-3 text-blue-800">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {schools.map((school: any) => (
+                        <tr key={school.id} className="border-b border-blue-100 hover:bg-blue-50">
+                          <td className="p-3 text-blue-800 font-medium">{school.name}</td>
+                          <td className="p-3">
+                            {school.websiteUrl ? (
+                              <a 
+                                href={school.websiteUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {school.websiteUrl}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <Badge
+                              variant={school.isActive ? "default" : "secondary"}
+                              className={school.isActive ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800"}
+                            >
+                              {school.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
