@@ -143,6 +143,35 @@ const AdminDashboard: React.FC = () => {
     });
   };
   
+  const handleUpdateSchool = () => {
+    // Close the dialog
+    setShowEditSchoolDialog(false);
+    
+    // In a real app, this would call the API to update the school
+    console.log({
+      id: selectedSchoolId,
+      name: schoolName,
+      description: schoolDescription,
+      websiteUrl: schoolWebsite,
+      isActive: schoolStatus === "true",
+      imageUrl: schoolImageUrl
+    });
+    
+    // Reset form state
+    setSchoolName("");
+    setSchoolDescription("");
+    setSchoolWebsite("");
+    setSchoolStatus("true");
+    setSchoolImageUrl("");
+    setSelectedSchoolId(null);
+    
+    // Show success message
+    toast({
+      title: "School Updated",
+      description: "School has been successfully updated",
+    });
+  };
+  
   // Form state for class creation
   const [className, setClassName] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
@@ -671,7 +700,12 @@ const AdminDashboard: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="school-name">School Name</Label>
-              <Input id="school-name" placeholder="Enter school name" />
+              <Input 
+                id="school-name" 
+                placeholder="Enter school name" 
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="school-description">Description</Label>
@@ -679,16 +713,26 @@ const AdminDashboard: React.FC = () => {
                 id="school-description" 
                 placeholder="Enter school description"
                 className="min-h-[80px]"
+                value={schoolDescription}
+                onChange={(e) => setSchoolDescription(e.target.value)}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="school-website">Website URL</Label>
-                <Input id="school-website" placeholder="Enter website URL" />
+                <Input 
+                  id="school-website" 
+                  placeholder="Enter website URL" 
+                  value={schoolWebsite}
+                  onChange={(e) => setSchoolWebsite(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="school-status">Status</Label>
-                <Select>
+                <Select 
+                  value={schoolStatus}
+                  onValueChange={setSchoolStatus}
+                >
                   <SelectTrigger id="school-status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -701,7 +745,12 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="school-image">Logo/Image URL</Label>
-              <Input id="school-image" placeholder="Enter image URL" />
+              <Input 
+                id="school-image" 
+                placeholder="Enter image URL" 
+                value={schoolImageUrl}
+                onChange={(e) => setSchoolImageUrl(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -709,6 +758,77 @@ const AdminDashboard: React.FC = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleCreateSchool}>Create School</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit School Dialog */}
+      <Dialog open={showEditSchoolDialog} onOpenChange={setShowEditSchoolDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit School</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-school-name">School Name</Label>
+              <Input 
+                id="edit-school-name" 
+                placeholder="Enter school name" 
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-school-description">Description</Label>
+              <Textarea 
+                id="edit-school-description" 
+                placeholder="Enter school description"
+                className="min-h-[80px]"
+                value={schoolDescription}
+                onChange={(e) => setSchoolDescription(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-school-website">Website URL</Label>
+                <Input 
+                  id="edit-school-website" 
+                  placeholder="Enter website URL" 
+                  value={schoolWebsite}
+                  onChange={(e) => setSchoolWebsite(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-school-status">Status</Label>
+                <Select 
+                  value={schoolStatus}
+                  onValueChange={setSchoolStatus}
+                >
+                  <SelectTrigger id="edit-school-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-school-image">Logo/Image URL</Label>
+              <Input 
+                id="edit-school-image" 
+                placeholder="Enter image URL" 
+                value={schoolImageUrl}
+                onChange={(e) => setSchoolImageUrl(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateSchool}>Update School</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
