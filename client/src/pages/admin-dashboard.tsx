@@ -227,6 +227,67 @@ const AdminDashboard: React.FC = () => {
       description: "Class has been successfully created",
     });
   };
+
+  const handleEditClass = (classData: any) => {
+    // Set selected class ID
+    setSelectedClassId(classData.id);
+    
+    // Pre-populate form fields with selected class data
+    setClassName(classData.name || '');
+    setSelectedSchool(classData.schoolId ? classData.schoolId.toString() : '');
+    
+    // Handle different grade formats - some might be "Grade 9", others "9th"
+    const gradeLevel = classData.gradeLevel || '';
+    const grade = gradeLevel.includes('Grade ') 
+      ? gradeLevel.replace('Grade ', '') 
+      : gradeLevel.replace(/[^0-9]/g, '');
+    setSelectedGrade(grade);
+    
+    setSelectedTeacher(classData.teacherId ? classData.teacherId.toString() : '');
+    setIsClassActive(classData.isLocked === undefined ? true : !classData.isLocked);
+    
+    // Open edit dialog
+    setShowEditClassDialog(true);
+  };
+  
+  const handleUpdateClass = () => {
+    // Validate form fields
+    if (!className || !selectedSchool || !selectedGrade || !selectedTeacher) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // In a real app, this would call the API to update the class with the form data
+    console.log({
+      id: selectedClassId,
+      name: className,
+      schoolId: parseInt(selectedSchool),
+      gradeLevel: `Grade ${selectedGrade}`,
+      teacherId: parseInt(selectedTeacher),
+      isLocked: !isClassActive
+    });
+    
+    // Reset form fields
+    setClassName("");
+    setSelectedSchool("");
+    setSelectedGrade("");
+    setSelectedTeacher("");
+    setIsClassActive(true);
+    setSelectedClassId(null);
+    
+    // Close dialog
+    setShowEditClassDialog(false);
+    
+    // Success message
+    toast({
+      title: "Class Updated",
+      description: "Class has been successfully updated",
+    });
+  };
   
   return (
     <div>
