@@ -22,17 +22,16 @@ const NavLink: React.FC<NavLinkProps> = ({
   const baseClass = "text-white hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium";
 
   return (
-    <Link href={href}>
-      <a
-        data-role={role || "all"}
-        className={cn(
-          baseClass,
-          isActive ? activeClassName : "",
-          className
-        )}
-      >
-        {children}
-      </a>
+    <Link 
+      href={href}
+      data-role={role || "all"}
+      className={cn(
+        baseClass,
+        isActive ? activeClassName : "",
+        className
+      )}
+    >
+      {children}
     </Link>
   );
 };
