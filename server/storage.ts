@@ -272,8 +272,8 @@ export class MemStorage implements IStorage {
     
     // Add sample users
     const admin = this.createUser({
-      username: "admin",
-      password: "admin123",
+      username: "Nedjma",
+      password: "Aboudi@2802!",
       fullName: "Admin User",
       email: "admin@artchallenge.com",
       role: "admin",
