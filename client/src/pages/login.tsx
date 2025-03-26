@@ -53,10 +53,10 @@ export default function LoginPage() {
         // Redirect based on role
         switch (response.role) {
           case "admin":
-            setLocation("/admin-dashboard");
+            setLocation("/admin");
             break;
           case "teacher":
-            setLocation("/teacher-dashboard");
+            setLocation("/teacher");
             break;
           case "student":
             setLocation("/home");

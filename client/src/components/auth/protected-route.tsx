@@ -20,9 +20,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     // Redirect based on role
     switch (userRole) {
       case 'admin':
-        return <Redirect to="/admin-dashboard" />;
+        return <Redirect to="/admin" />;
       case 'teacher':
-        return <Redirect to="/teacher-dashboard" />;
+        return <Redirect to="/teacher" />;
       case 'student':
         return <Redirect to="/home" />;
       default:
