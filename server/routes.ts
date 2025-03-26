@@ -3,7 +3,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from "express";
 import { z } from "zod";
-import { generatePoem, generateImage } from "./openai";
+import { generatePoem as generateOpenAIPoem, generateImage as generateOpenAIImage } from "./openai";
+import { generateText as generateHuggingFaceText, generateImage as generateHuggingFaceImage } from "./huggingface";
+
+// Set this to true to use Hugging Face (free open-source AI) instead of OpenAI
+const USE_HUGGING_FACE = true;
 import { 
   insertUserSchema,
   insertSchoolSchema,
@@ -663,7 +667,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Prompt is required' });
       }
       
-      const poem = await generatePoem(prompt, style);
+      let poem;
+      if (USE_HUGGING_FACE) {
+        // Use Hugging Face (free open-source AI)
+        poem = await generateHuggingFaceText(prompt, style);
+      } else {
+        // Use OpenAI
+        poem = await generateOpenAIPoem(prompt, style);
+      }
+      
       res.json({ content: poem });
     } catch (error) {
       console.error('Error generating poem:', error);
@@ -679,7 +691,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Prompt is required' });
       }
       
-      const imageUrl = await generateImage(prompt);
+      let imageUrl;
+      if (USE_HUGGING_FACE) {
+        // Use Hugging Face (free open-source AI)
+        imageUrl = await generateHuggingFaceImage(prompt);
+      } else {
+        // Use OpenAI
+        imageUrl = await generateOpenAIImage(prompt);
+      }
+      
       res.json({ imageUrl });
     } catch (error) {
       console.error('Error generating image:', error);
