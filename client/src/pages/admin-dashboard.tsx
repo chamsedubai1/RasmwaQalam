@@ -55,6 +55,13 @@ const AdminDashboard: React.FC = () => {
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [showEditEventDialog, setShowEditEventDialog] = useState(false);
   const [showEditSchoolDialog, setShowEditSchoolDialog] = useState(false);
+  
+  // Form state for school
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolDescription, setSchoolDescription] = useState("");
+  const [schoolWebsite, setSchoolWebsite] = useState("");
+  const [schoolStatus, setSchoolStatus] = useState("true"); // active by default
+  const [schoolImageUrl, setSchoolImageUrl] = useState("");
   const [showEditClassDialog, setShowEditClassDialog] = useState(false);
   
   // Selected item IDs for edit operations
@@ -340,11 +347,18 @@ const AdminDashboard: React.FC = () => {
                                 size="sm"
                                 className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                 onClick={() => {
+                                  // Set selected school ID
                                   setSelectedSchoolId(school.id);
+                                  
+                                  // Pre-populate form fields with selected school data
+                                  setSchoolName(school.name || '');
+                                  setSchoolDescription(school.description || '');
+                                  setSchoolWebsite(school.websiteUrl || '');
+                                  setSchoolStatus(school.isActive ? 'true' : 'false');
+                                  setSchoolImageUrl(school.imageUrl || '');
+                                  
+                                  // Open edit dialog
                                   setShowEditSchoolDialog(true);
-                                  toast({
-                                    description: "Edit School functionality coming soon!"
-                                  });
                                 }}
                               >
                                 Edit
