@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -34,18 +34,41 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, SearchIcon } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 const AdminDashboard: React.FC = () => {
   const { userRole } = useUserRole();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("users");
   const [roleFilter, setRoleFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Create dialogs
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
   const [showCreateSchoolDialog, setShowCreateSchoolDialog] = useState(false);
   const [showCreateClassDialog, setShowCreateClassDialog] = useState(false);
+  
+  // Edit dialogs
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false);
+  const [showEditEventDialog, setShowEditEventDialog] = useState(false);
+  const [showEditSchoolDialog, setShowEditSchoolDialog] = useState(false);
+  const [showEditClassDialog, setShowEditClassDialog] = useState(false);
+  
+  // Selected item IDs for edit operations
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  
+  // Delete dialogs
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedItemToDelete, setSelectedItemToDelete] = useState<{ type: string; id: number } | null>(null);
+  
+  // Student management dialog
+  const [showStudentsDialog, setShowStudentsDialog] = useState(false);
   
   // Always include hooks before any early returns to avoid React errors
   
@@ -119,14 +142,6 @@ const AdminDashboard: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
-  
-  // Action states
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
-  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditClassDialog, setShowEditClassDialog] = useState(false);
-  const [showEditSchoolDialog, setShowEditSchoolDialog] = useState(false);
-  const [showStudentsDialog, setShowStudentsDialog] = useState(false);
 
   const handleCreateClass = () => {
     // Validate form fields
