@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import NavLink from "@/components/ui/nav-link";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
-import { Menu, LogIn, LogOut, User } from "lucide-react";
+import { Menu, LogIn, LogOut, User, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +37,13 @@ const Header: React.FC = () => {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <span className="text-white font-bold text-xl font-heading tracking-wider">ArtChallenge</span>
+              <div className="flex items-center">
+                <Palette className="h-7 w-7 text-yellow-300 mr-2" />
+                <span className="text-white font-bold text-xl font-heading tracking-wider">
+                  <span className="bg-gradient-to-r from-yellow-300 to-blue-200 bg-clip-text text-transparent">FAZAA</span>
+                  <span> - Art</span>
+                </span>
+              </div>
             </div>
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8 items-center">
               <NavLink href="/" role="all">Home</NavLink>
