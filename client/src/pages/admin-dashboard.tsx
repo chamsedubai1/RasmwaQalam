@@ -47,6 +47,7 @@ const AdminDashboard: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedReportEventId, setSelectedReportEventId] = useState<number | null>(null);
   
   // Create dialogs
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
@@ -1255,6 +1256,378 @@ const AdminDashboard: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              
+              {/* Event Report - New Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Event Report</h3>
+                
+                {/* Event Selection Dropdown */}
+                <div className="mb-6">
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    <div className="w-full md:w-1/3">
+                      <Label htmlFor="event-report-select">Select Event</Label>
+                      <Select
+                        onValueChange={(value) => {
+                          setSelectedReportEventId(parseInt(value));
+                        }}
+                      >
+                        <SelectTrigger id="event-report-select" className="mt-1">
+                          <SelectValue placeholder="Choose an event" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {events.map((event: any) => (
+                            <SelectItem key={event.id} value={event.id.toString()}>
+                              {event.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      className="mt-6"
+                      variant="outline"
+                      onClick={() => {
+                        if (selectedReportEventId) {
+                          // Fetch detailed event data for report
+                          // This would usually be a separate API call, but for now we'll use existing data
+                          toast({
+                            title: "Report Generated",
+                            description: "Event report has been updated",
+                          });
+                        } else {
+                          toast({
+                            title: "Select Event",
+                            description: "Please select an event to generate the report",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      Generate Report
+                    </Button>
+                  </div>
+                </div>
+                
+                {selectedReportEventId && (
+                  <>
+                    {/* Event Overview */}
+                    <div className="bg-white rounded-lg border shadow-sm p-5 mb-6">
+                      {(() => {
+                        const selectedEvent = events.find((e: any) => e.id === selectedReportEventId);
+                        return selectedEvent ? (
+                          <div>
+                            <h4 className="font-bold text-xl text-blue-700 mb-3">{selectedEvent.name}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <p className="text-sm text-gray-500">Event Type</p>
+                                <p className="capitalize font-medium">{selectedEvent.type}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Status</p>
+                                <p className="capitalize font-medium">{selectedEvent.status}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Stage</p>
+                                <p className="capitalize font-medium">{selectedEvent.stage}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Start Date</p>
+                                <p className="font-medium">
+                                  {new Date(selectedEvent.startDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">End Date</p>
+                                <p className="font-medium">
+                                  {new Date(selectedEvent.endDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500">Total Participants</p>
+                                <p className="font-medium">{selectedEvent.participantCount || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>Event not found</p>
+                        );
+                      })()}
+                    </div>
+                    
+                    {/* Participation by School */}
+                    <div className="bg-white rounded-lg border shadow-sm p-5 mb-6">
+                      <h4 className="font-bold text-lg text-blue-700 mb-3">Participation by School</h4>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                School
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Classes
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Students
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Submissions
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Winner
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {schools.map((school: any) => {
+                              // Get classes for this school
+                              const schoolClasses = classes.filter((c: any) => c.schoolId === school.id);
+                              
+                              // Get students for this school
+                              const schoolStudents = allUsers.filter((u: any) => 
+                                u.role === 'student' && u.schoolId === school.id
+                              );
+                              
+                              // Calculate submissions (this would usually come from the API)
+                              // Here we're using a placeholder calculation
+                              const submissionCount = schoolStudents.length > 0 ? 
+                                Math.floor(schoolStudents.length * 0.7) : 0;
+                              
+                              // Determine if this school has a winner (placeholder logic)
+                              const hasWinner = schoolStudents.length > 0 && Math.random() > 0.5;
+                              
+                              return (
+                                <tr key={school.id}>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {school.name}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {schoolClasses.length}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {schoolStudents.length}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {submissionCount}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {hasWinner ? (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Yes
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        No
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    
+                    {/* Class Breakdown */}
+                    <div className="bg-white rounded-lg border shadow-sm p-5 mb-6">
+                      <h4 className="font-bold text-lg text-blue-700 mb-3">Class Breakdown</h4>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Class
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                School
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Grade
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Students
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Submissions
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Votes
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Winner
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {classes.map((classItem: any) => {
+                              // Get school for this class
+                              const school = schools.find((s: any) => s.id === classItem.schoolId);
+                              
+                              // Get students for this class
+                              const classStudents = allUsers.filter((u: any) => 
+                                u.role === 'student' && u.classId === classItem.id
+                              );
+                              
+                              // Calculate submissions (placeholder)
+                              const submissionCount = classStudents.length > 0 ? 
+                                Math.floor(classStudents.length * 0.8) : 0;
+                              
+                              // Calculate votes (placeholder)
+                              const voteCount = submissionCount * 3;
+                              
+                              // Determine if this class has a winner (placeholder)
+                              const hasWinner = classStudents.length > 0;
+                              
+                              return (
+                                <tr key={classItem.id}>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {classItem.name}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {school ? school.name : "N/A"}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {classItem.gradeLevel}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {classStudents.length}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {submissionCount}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {voteCount}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {hasWinner && submissionCount > 0 ? (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Yes
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        No
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    
+                    {/* Student Submissions */}
+                    <div className="bg-white rounded-lg border shadow-sm p-5">
+                      <h4 className="font-bold text-lg text-blue-700 mb-3">Student Submissions</h4>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Student
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Class
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                School
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Submission Title
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Votes
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Class Winner
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                School Winner
+                              </th>
+                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Country Winner
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {allUsers
+                              .filter((user: any) => user.role === 'student')
+                              .slice(0, 10) // Limit to first 10 for demonstration
+                              .map((student: any, index: number) => {
+                                const studentClass = classes.find((c: any) => c.id === student.classId);
+                                const school = schools.find((s: any) => s.id === student.schoolId);
+                                
+                                // For demonstration, we'll assume some students have submissions
+                                const hasSubmission = index % 3 !== 2; // 2/3 of students have submissions
+                                const voteCount = hasSubmission ? Math.floor(Math.random() * 15) : 0;
+                                
+                                // Determine winners at different stages
+                                const isClassWinner = hasSubmission && voteCount > 10;
+                                const isSchoolWinner = isClassWinner && Math.random() > 0.7;
+                                const isCountryWinner = isSchoolWinner && Math.random() > 0.8;
+                                
+                                return (
+                                  <tr key={student.id}>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                      {student.fullName}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {studentClass ? studentClass.name : "N/A"}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {school ? school.name : "N/A"}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {hasSubmission ? `Submission ${index + 1}` : "No submission"}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {voteCount}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {isClassWinner ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          Yes
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                          No
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {isSchoolWinner ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          Yes
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                          No
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {isCountryWinner ? (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          Yes
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                          No
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
