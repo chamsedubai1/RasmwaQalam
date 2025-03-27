@@ -40,7 +40,17 @@ import {
   Trash, 
   Lock, 
   Unlock,
-  Plus
+  Plus,
+  GraduationCap,
+  School,
+  Users,
+  BookOpen,
+  CalendarDays,
+  ClipboardList,
+  BarChart,
+  Award,
+  FileText,
+  ClipboardCheck
 } from "lucide-react";
 
 const TeacherDashboard: React.FC = () => {
@@ -68,23 +78,23 @@ const TeacherDashboard: React.FC = () => {
   const teacherId = 4; // Using the ID of the teacher we created earlier
   
   // Fetch classes taught by this teacher
-  const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery({
+  const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery<any[]>({
     queryKey: [`/api/classes?teacherId=${teacherId}`],
   });
   
   // Fetch students for selected class
-  const { data: students = [], isLoading: isLoadingStudents, refetch: refetchStudents } = useQuery({
+  const { data: students = [], isLoading: isLoadingStudents, refetch: refetchStudents } = useQuery<any[]>({
     queryKey: selectedClassId ? [`/api/users?classId=${selectedClassId}`] : [`/api/users`],
     enabled: !!selectedClassId,
   });
   
   // Fetch open events
-  const { data: events = [], isLoading: isLoadingEvents } = useQuery({
+  const { data: events = [], isLoading: isLoadingEvents } = useQuery<any[]>({
     queryKey: ['/api/events?status=open'],
   });
   
   // Fetch schools for dropdown
-  const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
+  const { data: schools = [], isLoading: isLoadingSchools } = useQuery<any[]>({
     queryKey: ['/api/schools'],
   });
   
@@ -277,24 +287,105 @@ const TeacherDashboard: React.FC = () => {
       email: studentEmail,
       fullName: studentFullName,
       role: "student",
-      schoolId: Number(classes.find((c: any) => c.id === selectedClassId)?.schoolId),
+      schoolId: Number((classes as any[]).find((c: any) => c.id === selectedClassId)?.schoolId),
       classId: selectedClassId,
-      gradeLevel: classes.find((c: any) => c.id === selectedClassId)?.gradeLevel,
+      gradeLevel: (classes as any[]).find((c: any) => c.id === selectedClassId)?.gradeLevel,
       isActive: true
     };
     
     addStudentMutation.mutate(userData);
   };
   
+  // Calculate summary metrics
+  const totalClasses = (classes as any[]).length;
+  const totalStudents = (students as any[]).length;
+  const activeEvents = (events as any[]).length;
+  const totalSubmissions = 0; // This would be fetched from API in a real app
+  
   return (
     <div>
-      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">Teacher Dashboard</h1>
+      {/* Header Section */}
+      <div className="relative rounded-xl overflow-hidden mb-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-90"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJ3aGl0ZSIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMiIvPjwvZz48L3N2Zz4=')] opacity-10"></div>
+        <div className="relative z-10 py-8 px-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold font-heading mb-2">Teacher Dashboard</h1>
+              <p className="text-blue-100">Manage your classes, students, and review submissions</p>
+            </div>
+            <div className="hidden md:block">
+              <GraduationCap className="h-16 w-16 text-white/30" />
+            </div>
+          </div>
+        </div>
+      </div>
       
-      <Tabs defaultValue="classes" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8 w-full border-b border-gray-200">
-          <TabsTrigger value="classes" className="flex-1">My Classes</TabsTrigger>
-          <TabsTrigger value="students" className="flex-1">Student Submissions</TabsTrigger>
-          <TabsTrigger value="events" className="flex-1">Events</TabsTrigger>
+      {/* Dashboard Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+              <School className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-blue-600 font-medium">Classes</p>
+              <p className="text-2xl font-bold">{totalClasses}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4">
+              <Users className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm text-indigo-600 font-medium">Students</p>
+              <p className="text-2xl font-bold">{totalStudents}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+              <CalendarDays className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-purple-600 font-medium">Events</p>
+              <p className="text-2xl font-bold">{activeEvents}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-green-50 to-white border-green-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
+              <ClipboardCheck className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-green-600 font-medium">Submissions</p>
+              <p className="text-2xl font-bold">{totalSubmissions}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Tabs defaultValue="classes" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="bg-white p-1 border rounded-lg shadow-sm">
+          <TabsTrigger value="classes" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <School className="h-4 w-4" />
+            <span>My Classes</span>
+          </TabsTrigger>
+          <TabsTrigger value="students" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Users className="h-4 w-4" />
+            <span>Students</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <CalendarDays className="h-4 w-4" />
+            <span>Events</span>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="classes">
@@ -307,7 +398,7 @@ const TeacherDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ClassTable 
-                classes={classes} 
+                classes={classes as any[]} 
                 isLoading={isLoadingClasses}
                 onManage={handleManageClass}
                 onEdit={handleEditClass}
@@ -321,7 +412,7 @@ const TeacherDashboard: React.FC = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>
                 {selectedClassId 
-                  ? `Students in ${classes.find((c: any) => c.id === selectedClassId)?.name || 'Class'}`
+                  ? `Students in ${(classes as any[]).find((c: any) => c.id === selectedClassId)?.name || 'Class'}`
                   : "Students"
                 }
               </CardTitle>
@@ -334,7 +425,7 @@ const TeacherDashboard: React.FC = () => {
             <CardContent>
               {selectedClassId ? (
                 <StudentTable 
-                  students={students} 
+                  students={students as any[]} 
                   isLoading={isLoadingStudents}
                   classId={selectedClassId}
                 />
@@ -354,7 +445,7 @@ const TeacherDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <EventTable 
-                events={events} 
+                events={events as any[]} 
                 isLoading={isLoadingEvents}
               />
             </CardContent>
