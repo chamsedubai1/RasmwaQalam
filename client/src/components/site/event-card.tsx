@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,28 +30,39 @@ const EventCard: React.FC<EventCardProps> = ({
   onSubmit
 }) => {
   const { userRole } = useUserRole();
+  const { user } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get the authenticated user's ID
+  const userId = user?.id;
 
   // Check if user is registered for this event (for students only)
-  const { data: registrations, isLoading: isLoadingRegistrations } = useQuery({
-    queryKey: ['/api/registrations', userRole === 'student' ? '?userId=1' : null], // Using userId=1 for demo
-    enabled: userRole === 'student'
+  const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery<any[]>({
+    queryKey: ['/api/registrations', userRole === 'student' && userId ? `?userId=${userId}` : null],
+    enabled: userRole === 'student' && !!userId // Only run the query if we have a valid user ID
   });
 
-  const isRegistered = registrations?.some((reg: any) => reg.eventId === id);
+  // Check if the user is registered for this event
+  const isRegistered = registrations.some((reg: any) => reg.eventId === id);
 
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/registrations', { userId: 1, eventId: id });
+      // Safety check for user ID
+      if (!userId) {
+        throw new Error("You must be logged in to register");
+      }
+      
+      return apiRequest('POST', '/api/registrations', { userId, eventId: id });
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: `Registered for ${name}`,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/registrations'] });
+      // Invalidate the specific query with the user's ID
+      queryClient.invalidateQueries({ queryKey: ['/api/registrations', `?userId=${userId}`] });
     },
     onError: (error) => {
       toast({
@@ -64,14 +76,20 @@ const EventCard: React.FC<EventCardProps> = ({
   // Unregister mutation
   const unregisterMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('DELETE', `/api/registrations?userId=1&eventId=${id}`, undefined);
+      // Safety check for user ID
+      if (!userId) {
+        throw new Error("You must be logged in to unregister");
+      }
+      
+      return apiRequest('DELETE', `/api/registrations?userId=${userId}&eventId=${id}`, undefined);
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: `Unregistered from ${name}`,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/registrations'] });
+      // Invalidate the specific query with the user's ID
+      queryClient.invalidateQueries({ queryKey: ['/api/registrations', `?userId=${userId}`] });
     },
     onError: (error) => {
       toast({

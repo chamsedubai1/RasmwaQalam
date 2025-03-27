@@ -38,11 +38,12 @@ const CreArt: React.FC = () => {
   // "Rendered fewer hooks than expected" error
   
   // Get the authenticated user's ID
-  const userId = user?.id || 0;
+  const userId = user?.id;
   
-  // Fetch user registrations
+  // Fetch user registrations - only run the query if we have a valid userId
   const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery({
     queryKey: [`/api/registrations?userId=${userId}`],
+    enabled: !!userId, // Only run the query if userId exists and is not falsy
   });
   
   // Fetch events
@@ -50,9 +51,10 @@ const CreArt: React.FC = () => {
     queryKey: ['/api/events'],
   });
   
-  // Fetch user submissions
+  // Fetch user submissions - only run the query if we have a valid userId
   const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery({
     queryKey: [`/api/submissions?userId=${userId}`],
+    enabled: !!userId, // Only run the query if userId exists and is not falsy
   });
   
   // Fetch class submissions for an open event at class stage
@@ -73,6 +75,11 @@ const CreArt: React.FC = () => {
   // Vote mutation
   const voteMutation = useMutation({
     mutationFn: (submissionId: number) => {
+      // Safety check to ensure we have a valid user ID
+      if (!userId) {
+        throw new Error("You must be logged in to vote");
+      }
+      
       return apiRequest('POST', '/api/votes', {
         submissionId,
         voterId: userId
