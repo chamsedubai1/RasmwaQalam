@@ -193,155 +193,157 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-heading">Submit Your Artwork</DialogTitle>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="submission-title">Title</Label>
-            <Input
-              id="submission-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter a title for your submission"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="submission-type">Content Type</Label>
-            <Select
-              value={contentType}
-              onValueChange={(value: "text" | "image") => setContentType(value)}
-            >
-              <SelectTrigger id="submission-type">
-                <SelectValue placeholder="Select content type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="text">Text/Poetry</SelectItem>
-                <SelectItem value="image">Image/Artwork</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* AI Generation Section */}
-          <div className="border border-blue-200 rounded-md p-4 bg-blue-50">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="text-blue-600 h-5 w-5" />
-              <h3 className="text-md font-medium text-blue-800">AI Creator</h3>
-            </div>
-            
-            <div className="grid gap-3">
-              <div>
-                <Label htmlFor="ai-prompt">Your Prompt</Label>
-                <Textarea
-                  id="ai-prompt"
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder={contentType === "text" 
-                    ? "Describe the poem you want AI to create..." 
-                    : "Describe the image you want AI to create..."}
-                  className="min-h-[60px] mt-1"
-                />
-              </div>
-              
-              {contentType === "text" && (
-                <div>
-                  <Label htmlFor="poetry-style">Poetry Style</Label>
-                  <Select
-                    value={poetryStyle}
-                    onValueChange={setPoetryStyle}
-                  >
-                    <SelectTrigger id="poetry-style">
-                      <SelectValue placeholder="Select style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free Verse</SelectItem>
-                      <SelectItem value="haiku">Haiku</SelectItem>
-                      <SelectItem value="sonnet">Sonnet</SelectItem>
-                      <SelectItem value="limerick">Limerick</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <Button 
-                type="button" 
-                className="mt-1 w-full bg-gradient-to-r from-primary to-indigo-600"
-                onClick={handleGenerateContent}
-                disabled={isGenerating || !aiPrompt}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate with AI
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-          
-          {contentType === "text" ? (
+        <div className="overflow-y-auto pr-2 flex-grow">
+          <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="submission-text">Your Poetry</Label>
-              <Textarea
-                id="submission-text"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter your poem or text here, or use AI to generate it"
-                className="min-h-[150px]"
+              <Label htmlFor="submission-title">Title</Label>
+              <Input
+                id="submission-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a title for your submission"
               />
             </div>
-          ) : (
+            
             <div className="grid gap-2">
-              <Label htmlFor="submission-image">Your Artwork</Label>
-              <div className="border-2 border-dashed border-blue-300 rounded-md p-6 text-center bg-blue-50/50">
-                {content ? (
-                  <div className="mb-4">
-                    <img 
-                      src={content} 
-                      alt="Generated artwork" 
-                      className="max-h-[200px] mx-auto object-contain rounded shadow-sm"
-                    />
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <CloudUpload className="h-10 w-10 text-blue-400 mx-auto" />
+              <Label htmlFor="submission-type">Content Type</Label>
+              <Select
+                value={contentType}
+                onValueChange={(value: "text" | "image") => setContentType(value)}
+              >
+                <SelectTrigger id="submission-type">
+                  <SelectValue placeholder="Select content type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Text/Poetry</SelectItem>
+                  <SelectItem value="image">Image/Artwork</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* AI Generation Section */}
+            <div className="border border-blue-200 rounded-md p-4 bg-blue-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="text-blue-600 h-5 w-5" />
+                <h3 className="text-md font-medium text-blue-800">AI Creator</h3>
+              </div>
+              
+              <div className="grid gap-3">
+                <div>
+                  <Label htmlFor="ai-prompt">Your Prompt</Label>
+                  <Textarea
+                    id="ai-prompt"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder={contentType === "text" 
+                      ? "Describe the poem you want AI to create..." 
+                      : "Describe the image you want AI to create..."}
+                    className="min-h-[60px] mt-1"
+                  />
+                </div>
+                
+                {contentType === "text" && (
+                  <div>
+                    <Label htmlFor="poetry-style">Poetry Style</Label>
+                    <Select
+                      value={poetryStyle}
+                      onValueChange={setPoetryStyle}
+                    >
+                      <SelectTrigger id="poetry-style">
+                        <SelectValue placeholder="Select style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free Verse</SelectItem>
+                        <SelectItem value="haiku">Haiku</SelectItem>
+                        <SelectItem value="sonnet">Sonnet</SelectItem>
+                        <SelectItem value="limerick">Limerick</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
-                <p className="text-sm text-blue-700 mb-2">
-                  {content ? "AI-generated image is shown above" : "Use AI to generate artwork or enter an image URL below"}
-                </p>
-                <Input
-                  type="text"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Paste an image URL here"
-                  className="mt-2"
-                />
+                
+                <Button 
+                  type="button" 
+                  className="mt-1 w-full bg-gradient-to-r from-primary to-indigo-600"
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating || !aiPrompt}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate with AI
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
-          )}
-          
-          <div className="grid gap-2">
-            <Label htmlFor="submission-description">Description/Artist Statement</Label>
-            <Textarea
-              id="submission-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your submission or provide an artist statement"
-              className="min-h-[80px]"
-            />
+            
+            {contentType === "text" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="submission-text">Your Poetry</Label>
+                <Textarea
+                  id="submission-text"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Enter your poem or text here, or use AI to generate it"
+                  className="min-h-[120px]"
+                />
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Label htmlFor="submission-image">Your Artwork</Label>
+                <div className="border-2 border-dashed border-blue-300 rounded-md p-4 text-center bg-blue-50/50">
+                  {content ? (
+                    <div className="mb-4">
+                      <img 
+                        src={content} 
+                        alt="Generated artwork" 
+                        className="max-h-[150px] mx-auto object-contain rounded shadow-sm"
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <CloudUpload className="h-10 w-10 text-blue-400 mx-auto" />
+                    </div>
+                  )}
+                  <p className="text-sm text-blue-700 mb-2">
+                    {content ? "AI-generated image is shown above" : "Use AI to generate artwork or enter an image URL below"}
+                  </p>
+                  <Input
+                    type="text"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Paste an image URL here"
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="grid gap-2">
+              <Label htmlFor="submission-description">Description/Artist Statement</Label>
+              <Textarea
+                id="submission-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe your submission or provide an artist statement"
+                className="min-h-[60px]"
+              />
+            </div>
           </div>
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 mt-4 border-t pt-4">
           <Button variant="outline" onClick={handleClose} className="border-blue-300 text-blue-700 hover:bg-blue-50">
             Cancel
           </Button>
