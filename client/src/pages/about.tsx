@@ -57,13 +57,6 @@ const About: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our History</h2>
-      <div className="bg-white rounded-lg shadow-md p-8 mb-10">
-        <p className="text-gray-600 mb-4">FAZAA - Art began as a small initiative in 2022 when a group of teachers noticed how engaged their students became when using AI tools for creative projects.</p>
-        <p className="text-gray-600 mb-4">What started as a single classroom experiment quickly grew to a school-wide program, and then expanded to multiple schools as the positive impact on student engagement and learning became clear.</p>
-        <p className="text-gray-600">Today, we're proud to connect students, schools, and creative partners worldwide through our platform, fostering both friendly competition and collaborative learning.</p>
-      </div>
-
       <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our Story</h2>
       <div className="bg-white rounded-xl shadow-md overflow-hidden mb-10">
         <div className="md:flex">
