@@ -16,6 +16,25 @@ import SubmissionModal from "@/components/site/submission-modal";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
 import { Redirect } from "wouter";
+import {
+  Palette,
+  Pen,
+  Award,
+  Vote,
+  LayoutDashboard,
+  PlusCircle,
+  XCircle,
+  FileImage,
+  FileText,
+  Clock,
+  Trophy,
+  Heart,
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  Star
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SubmissionWithVotes {
   id: number;
@@ -33,6 +52,7 @@ const CreArt: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("events");
   
   // Always include all hooks before any early returns to avoid the
   // "Rendered fewer hooks than expected" error
@@ -137,212 +157,309 @@ const CreArt: React.FC = () => {
   
   return (
     <div>
-      <h1 className="text-3xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-6">CreArt Studio</h1>
-      
-      {/* Student's Events */}
-      <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
-        <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">My Events</h2>
-        {isLoadingRegistrations || isLoadingEvents || isLoadingSubmissions ? (
-          <p>Loading your events...</p>
-        ) : !Array.isArray(registrations) || registrations.length === 0 ? (
-          <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-blue-700 mb-2">You haven't registered for any events yet.</p>
-            <Button 
-              variant="link" 
-              className="text-blue-600 hover:text-blue-800 font-medium"
-              onClick={() => window.location.href = '/events'}
-            >
-              Browse Events
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto border border-blue-200 rounded-md">
-            <Table>
-              <TableHeader className="bg-blue-50">
-                <TableRow className="border-b border-blue-200">
-                  <TableHead className="text-blue-800">Event</TableHead>
-                  <TableHead className="text-blue-800">Type</TableHead>
-                  <TableHead className="text-blue-800">Stage</TableHead>
-                  <TableHead className="text-blue-800">Submissions</TableHead>
-                  <TableHead className="text-blue-800">Status</TableHead>
-                  <TableHead className="text-blue-800">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {eventsWithDetails
-                  .filter((event: any) => event.isRegistered)
-                  .map((event: any) => (
-                    <TableRow key={event.id} className="hover:bg-blue-50 transition-colors">
-                      <TableCell className="font-medium text-blue-800">{event.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
-                          {event.type && typeof event.type === 'string' ? 
-                            event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Unknown'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="capitalize text-blue-700">{event.stage}</TableCell>
-                      <TableCell className="text-blue-700">{event.submissionCount}/3</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={event.status === 'open' ? 'default' : 'secondary'} 
-                          className={event.status === 'open' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border-blue-200'}
-                        >
-                          {event.status && typeof event.status === 'string' ? 
-                            event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'Unknown'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-3">
-                          {event.status === 'open' && !event.maxSubmissionsReached && (
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
-                              onClick={() => handleSubmit(event.id)}
-                            >
-                              Submit
-                            </Button>
-                          )}
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="border-red-400 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-500"
-                            onClick={() => {
-                              // This would call the unregister API in a real app
-                              toast({
-                                title: "Feature coming soon",
-                                description: "Unregistration will be available in the next update",
-                              });
-                            }}
-                          >
-                            Unregister
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-      
-      {/* My Submissions Section */}
-      <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
-        <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">My Submissions</h2>
-        
-        {isLoadingSubmissions ? (
-          <p className="text-blue-600">Loading your submissions...</p>
-        ) : !Array.isArray(submissions) || submissions.length === 0 ? (
-          <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-blue-700">You haven't submitted any art or poetry yet.</p>
-            <p className="text-blue-600 text-sm mt-1">
-              Register for an event and click "Submit" to create your first submission!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {submissions.map((submission: any) => (
-              <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-4 bg-blue-50">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-medium text-blue-900">{submission.title}</h3>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
-                      {submission.contentType === "text" ? "Poetry" : "Artwork"}
-                    </Badge>
-                  </div>
-                </div>
-                
-                {submission.contentType === "text" ? (
-                  <div className="p-4 font-artistic text-blue-800 bg-white">
-                    <p className="whitespace-pre-line">{submission.content}</p>
-                  </div>
-                ) : (
-                  <div className="h-48 bg-blue-50 border-y border-blue-100">
-                    <img 
-                      src={submission.content} 
-                      alt={submission.title} 
-                      className="w-full h-full object-cover shadow-inner" 
-                    />
-                  </div>
-                )}
-                
-                <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                  <div>
-                    <span className="text-sm font-medium text-blue-700">
-                      {submission.voteCount || 0} votes
-                    </span>
-                  </div>
-                  <div className="text-xs text-blue-500">
-                    Submitted to event #{submission.eventId}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* Class Voting Section */}
-      {activeClassEvent && (
-        <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6 mb-8">
-          <h2 className="text-xl font-semibold font-heading text-blue-800 mb-4">
-            Class Voting - {activeClassEvent.name}
-          </h2>
-          
-          {isLoadingClassSubmissions ? (
-            <p className="text-blue-600">Loading submissions...</p>
-          ) : !Array.isArray(classSubmissions) || classSubmissions.length === 0 ? (
-            <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-blue-700">No submissions available for voting yet.</p>
+      {/* Hero Section */}
+      <div className="relative rounded-xl overflow-hidden mb-8">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 opacity-90"></div>
+        <div className="absolute inset-0 overflow-hidden opacity-10">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJ3aGl0ZSIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMiIvPjwvZz48L3N2Zz4=')]"></div>
+        </div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 opacity-20">
+          <Palette className="w-full h-full text-white" />
+        </div>
+        <div className="relative z-10 py-12 px-6 sm:px-12 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full">
+              <Sparkles className="h-12 w-12 text-white" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {classSubmissions.map((submission: any) => (
-                <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="p-4 bg-blue-50">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium text-blue-900">{submission.title}</h3>
-                      <span className="text-xs text-blue-600">{submission.userFullName || "Anonymous"}</span>
-                    </div>
-                  </div>
-                  
-                  {submission.contentType === "text" ? (
-                    <div className="p-4 font-artistic text-blue-800 bg-white">
-                      <p className="whitespace-pre-line">{submission.content}</p>
-                    </div>
-                  ) : (
-                    <div className="h-48 bg-blue-50 border-y border-blue-100">
-                      <img 
-                        src={submission.content} 
-                        alt={submission.title} 
-                        className="w-full h-full object-cover shadow-inner" 
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">
-                        {submission.voteCount || 0} votes
-                      </span>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"
-                      onClick={() => handleVote(submission.id)}
-                      disabled={submission.hasVoted || voteMutation.isPending}
-                    >
-                      {submission.hasVoted ? "Voted" : "Vote"}
-                    </Button>
-                  </div>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
+            CreArt Studio
+          </h1>
+          <p className="text-lg text-indigo-100 max-w-2xl mx-auto mb-8">
+            Your creative workspace to participate in challenges, submit artwork, and vote on creative masterpieces
+          </p>
+          
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <FileImage className="h-6 w-6 text-white mb-2" />
+              <span className="text-2xl font-bold text-white">{Array.isArray(submissions) ? submissions.filter((s: any) => s.contentType === 'image').length : 0}</span>
+              <span className="text-xs text-indigo-100">Artworks</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <FileText className="h-6 w-6 text-white mb-2" />
+              <span className="text-2xl font-bold text-white">{Array.isArray(submissions) ? submissions.filter((s: any) => s.contentType === 'text').length : 0}</span>
+              <span className="text-xs text-indigo-100">Poems</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <Award className="h-6 w-6 text-white mb-2" />
+              <span className="text-2xl font-bold text-white">{Array.isArray(registrations) ? registrations.length : 0}</span>
+              <span className="text-xs text-indigo-100">Competitions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="events" value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <TabsList className="grid w-full grid-cols-3 bg-white rounded-xl p-1 shadow-sm border border-blue-100">
+          <TabsTrigger 
+            value="events" 
+            className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <span>My Events</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="submissions" 
+            className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
+          >
+            <Palette className="h-4 w-4" />
+            <span>My Submissions</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="voting" 
+            className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
+            disabled={!activeClassEvent}
+          >
+            <Vote className="h-4 w-4" />
+            <span>Class Voting</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="events" className="mt-4">
+          <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
+            <div className="flex items-center mb-4">
+              <Clock className="h-5 w-5 text-blue-600 mr-2" />
+              <h2 className="text-xl font-semibold font-heading text-blue-800">My Registered Events</h2>
+            </div>
+            {isLoadingRegistrations || isLoadingEvents || isLoadingSubmissions ? (
+              <p>Loading your events...</p>
+            ) : !Array.isArray(registrations) || registrations.length === 0 ? (
+              <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-blue-700 mb-2">You haven't registered for any events yet.</p>
+                <Button 
+                  variant="link" 
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  onClick={() => window.location.href = '/events'}
+                >
+                  Browse Events
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-blue-200 rounded-md">
+                <Table>
+                  <TableHeader className="bg-blue-50">
+                    <TableRow className="border-b border-blue-200">
+                      <TableHead className="text-blue-800">Event</TableHead>
+                      <TableHead className="text-blue-800">Type</TableHead>
+                      <TableHead className="text-blue-800">Stage</TableHead>
+                      <TableHead className="text-blue-800">Submissions</TableHead>
+                      <TableHead className="text-blue-800">Status</TableHead>
+                      <TableHead className="text-blue-800">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eventsWithDetails
+                      .filter((event: any) => event.isRegistered)
+                      .map((event: any) => (
+                        <TableRow key={event.id} className="hover:bg-blue-50 transition-colors">
+                          <TableCell className="font-medium text-blue-800">{event.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
+                              {event.type && typeof event.type === 'string' ? 
+                                event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="capitalize text-blue-700">{event.stage}</TableCell>
+                          <TableCell className="text-blue-700">{event.submissionCount}/3</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={event.status === 'open' ? 'default' : 'secondary'} 
+                              className={event.status === 'open' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 border-blue-200'}
+                            >
+                              {event.status && typeof event.status === 'string' ? 
+                                event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-3">
+                              {event.status === 'open' && !event.maxSubmissionsReached && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
+                                  onClick={() => handleSubmit(event.id)}
+                                >
+                                  Submit
+                                </Button>
+                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-red-400 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-500"
+                                onClick={() => {
+                                  // This would call the unregister API in a real app
+                                  toast({
+                                    title: "Feature coming soon",
+                                    description: "Unregistration will be available in the next update",
+                                  });
+                                }}
+                              >
+                                Unregister
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="submissions" className="mt-4">
+          <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
+            <div className="flex items-center mb-4">
+              <Palette className="h-5 w-5 text-blue-600 mr-2" />
+              <h2 className="text-xl font-semibold font-heading text-blue-800">My Submissions</h2>
+            </div>
+            
+            {isLoadingSubmissions ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : !Array.isArray(submissions) || submissions.length === 0 ? (
+              <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
+                  <Palette className="h-8 w-8 text-blue-400" />
                 </div>
-              ))}
+                <p className="text-blue-700">You haven't submitted any art or poetry yet.</p>
+                <p className="text-blue-600 text-sm mt-1">
+                  Register for an event and click "Submit" to create your first submission!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {submissions.map((submission: any) => (
+                  <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-blue-50">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium text-blue-900">{submission.title}</h3>
+                        <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                          {submission.contentType === "text" ? "Poetry" : "Artwork"}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {submission.contentType === "text" ? (
+                      <div className="p-4 font-artistic text-blue-800 bg-white">
+                        <p className="whitespace-pre-line">{submission.content}</p>
+                      </div>
+                    ) : (
+                      <div className="h-48 bg-blue-50 border-y border-blue-100">
+                        <img 
+                          src={submission.content} 
+                          alt={submission.title} 
+                          className="w-full h-full object-cover shadow-inner" 
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
+                      <div>
+                        <span className="text-sm font-medium text-blue-700">
+                          {submission.voteCount || 0} votes
+                        </span>
+                      </div>
+                      <div className="text-xs text-blue-500">
+                        Submitted to event #{submission.eventId}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="voting" className="mt-4">
+          {activeClassEvent && (
+            <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
+              <div className="flex items-center mb-4">
+                <Vote className="h-5 w-5 text-blue-600 mr-2" />
+                <h2 className="text-xl font-semibold font-heading text-blue-800">
+                  Class Voting - {activeClassEvent.name}
+                </h2>
+              </div>
+              
+              {isLoadingClassSubmissions ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : !Array.isArray(classSubmissions) || classSubmissions.length === 0 ? (
+                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
+                    <Vote className="h-8 w-8 text-blue-400" />
+                  </div>
+                  <p className="text-blue-700">No submissions available for voting yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {classSubmissions.map((submission: any) => (
+                    <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                      <div className="p-4 bg-blue-50">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-medium text-blue-900">{submission.title}</h3>
+                          <span className="text-xs text-blue-600">{submission.userFullName || "Anonymous"}</span>
+                        </div>
+                      </div>
+                      
+                      {submission.contentType === "text" ? (
+                        <div className="p-4 font-artistic text-blue-800 bg-white">
+                          <p className="whitespace-pre-line">{submission.content}</p>
+                        </div>
+                      ) : (
+                        <div className="h-48 bg-blue-50 border-y border-blue-100">
+                          <img 
+                            src={submission.content} 
+                            alt={submission.title} 
+                            className="w-full h-full object-cover shadow-inner" 
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
+                        <div>
+                          <span className="text-sm font-medium text-blue-700">
+                            {submission.voteCount || 0} votes
+                          </span>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className={submission.hasVoted 
+                            ? "bg-green-600 hover:bg-green-700 text-white rounded-full"
+                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"}
+                          onClick={() => handleVote(submission.id)}
+                          disabled={submission.hasVoted || voteMutation.isPending}
+                        >
+                          {submission.hasVoted ? (
+                            <><CheckCircle2 className="h-4 w-4 mr-1" /> Voted</>
+                          ) : (
+                            <><Heart className="h-4 w-4 mr-1" /> Vote</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
       
       {/* Submission Modal */}
       <SubmissionModal
