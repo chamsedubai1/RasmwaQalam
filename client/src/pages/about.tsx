@@ -1,118 +1,205 @@
 import React from "react";
 import aboutStoryImage from "../assets/about-story_1743074317684.jpg";
+import { 
+  Sparkles, 
+  Users, 
+  Rocket, 
+  LucideHeart, 
+  Trophy, 
+  ArrowRight, 
+  Zap, 
+  Medal, 
+  Star, 
+  Palette,
+  Lightbulb
+} from "lucide-react";
 
 const About: React.FC = () => {
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">About FAZAA - Art</h1>
+    <div className="max-w-5xl mx-auto">
+      {/* Hero Section */}
+      <div className="relative rounded-xl overflow-hidden mb-12">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 opacity-90"></div>
+        <div className="absolute inset-0 overflow-hidden opacity-10">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJ3aGl0ZSIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMiIvPjwvZz48L3N2Zz4=')]"></div>
+        </div>
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-20">
+          <Sparkles className="w-full h-full text-white" />
+        </div>
+        <div className="relative z-10 py-16 px-6 sm:px-12 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
+            About <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">FAZAA</span> - Art
+          </h1>
+          <p className="text-lg text-blue-100 max-w-2xl mx-auto">
+            Empowering student creativity through AI-assisted artistic expression and friendly competition
+          </p>
+        </div>
+      </div>
       
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-10">
+      {/* Mission Statement Card */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 transform hover:scale-[1.01] transition-all">
         <div className="md:flex">
-          <div className="md:shrink-0">
-            <img className="h-48 w-full object-cover md:h-full md:w-48" src="https://images.unsplash.com/photo-1522661067900-ab829854a57f?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80" alt="Students creating art" />
+          <div className="md:shrink-0 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20"></div>
+            <img className="h-60 w-full object-cover md:h-full md:w-60" 
+                src="https://images.unsplash.com/photo-1522661067900-ab829854a57f?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80" 
+                alt="Students creating art" />
           </div>
           <div className="p-8">
-            <h2 className="text-2xl font-heading font-semibold mb-4">Our Mission</h2>
-            <p className="text-gray-600 mb-4">FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.</p>
-            <p className="text-gray-600">We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center">
+                <Lightbulb className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-2xl font-heading font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Mission</h2>
+            </div>
+            <p className="text-gray-600 mb-4 leading-relaxed">FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.</p>
+            <p className="text-gray-600 leading-relaxed">We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.</p>
           </div>
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our Values</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="rounded-full bg-primary bg-opacity-10 w-12 h-12 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-              <line x1="9" y1="9" x2="9.01" y2="9"></line>
-              <line x1="15" y1="9" x2="15.01" y2="9"></line>
-            </svg>
-          </div>
-          <h3 className="font-heading font-semibold mb-2">Creativity</h3>
-          <p className="text-gray-600 text-sm">We foster an environment where creative thinking is celebrated and encouraged.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
+          <LucideHeart className="h-5 w-5 text-white" />
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="rounded-full bg-secondary bg-opacity-10 w-12 h-12 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Values</h2>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-blue-50 hover:shadow-lg transition-all group">
+          <div className="h-16 w-16 relative mx-auto mb-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+            <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Palette className="text-amber-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+            </div>
           </div>
-          <h3 className="font-heading font-semibold mb-2">Collaboration</h3>
-          <p className="text-gray-600 text-sm">We believe in the power of shared experiences and learning from each other.</p>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Creativity</h3>
+          <p className="text-gray-600 text-center">We foster an environment where creative thinking is celebrated and encouraged, allowing students to express their unique perspectives.</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="rounded-full bg-accent bg-opacity-10 w-12 h-12 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
+        
+        <div className="bg-white p-6 rounded-xl shadow-md border border-blue-50 hover:shadow-lg transition-all group">
+          <div className="h-16 w-16 relative mx-auto mb-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+            <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Users className="text-blue-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+            </div>
           </div>
-          <h3 className="font-heading font-semibold mb-2">Innovation</h3>
-          <p className="text-gray-600 text-sm">We embrace new technologies as tools for expanding artistic possibilities.</p>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Collaboration</h3>
+          <p className="text-gray-600 text-center">We believe in the power of shared experiences and learning from each other through friendly competition and peer feedback.</p>
+        </div>
+        
+        <div className="bg-white p-6 rounded-xl shadow-md border border-blue-50 hover:shadow-lg transition-all group">
+          <div className="h-16 w-16 relative mx-auto mb-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+            <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Rocket className="text-indigo-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+            </div>
+          </div>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Innovation</h3>
+          <p className="text-gray-600 text-center">We embrace new technologies as tools for expanding artistic possibilities, helping students explore the frontier of AI-assisted creativity.</p>
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our Story</h2>
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-10">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
+          <Star className="h-5 w-5 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Story</h2>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 transform hover:scale-[1.01] transition-all border border-blue-50">
         <div className="md:flex">
-          <div className="md:shrink-0">
+          <div className="md:shrink-0 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 mix-blend-overlay"></div>
             <img 
               className="h-full w-full object-cover md:w-64 lg:w-80" 
               src={aboutStoryImage} 
               alt="Artistic inspiration with neural network connections" 
             />
+            <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-blue-700/70 to-transparent md:hidden"></div>
           </div>
-          <div className="p-8">
-            <p className="text-gray-600 mb-4">Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.</p>
-            <p className="text-gray-600 mb-4">Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
-            <p className="text-gray-600">Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
+          <div className="p-8 relative">
+            <div className="absolute -top-6 -right-6 w-32 h-32 opacity-5 md:opacity-10">
+              <Sparkles className="w-full h-full text-indigo-600" />
+            </div>
+            <div className="relative">
+              <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                IB CAS Project
+              </div>
+              <p className="text-gray-700 mb-4 leading-relaxed">Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.</p>
+              <p className="text-gray-700 mb-4 leading-relaxed">Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
+              <p className="text-gray-700 leading-relaxed">Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Competition Structure</h2>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-10">
-        <div className="p-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-start">
-              <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center mr-4 mt-1">
-                <span className="font-medium">1</span>
-              </div>
-              <div>
-                <h3 className="font-heading font-semibold mb-1">Class Stage</h3>
-                <p className="text-gray-600 text-sm">Students compete against classmates, with the top 3 advancing to the next stage.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center mr-4 mt-1">
-                <span className="font-medium">2</span>
-              </div>
-              <div>
-                <h3 className="font-heading font-semibold mb-1">School Stage</h3>
-                <p className="text-gray-600 text-sm">Class winners compete against other classes in their grade, with the top 3 advancing.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center mr-4 mt-1">
-                <span className="font-medium">3</span>
-              </div>
-              <div>
-                <h3 className="font-heading font-semibold mb-1">Country Stage</h3>
-                <p className="text-gray-600 text-sm">School winners compete nationally, with the top submissions advancing to the global stage.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
+          <Trophy className="h-5 w-5 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Competition Structure</h2>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 border border-blue-50">
+        <div className="p-8 relative">
+          <div className="absolute -bottom-10 -right-10 w-48 h-48 opacity-5">
+            <Trophy className="w-full h-full text-blue-600" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative p-6 flex items-start space-x-4 z-10">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-md">
+                  <span className="font-bold text-white">1</span>
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-blue-800">Class Stage</h3>
+                  <p className="text-gray-600">Students compete against classmates, with peer voting determining the top 3 submissions that advance to the next stage.</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start">
-              <div className="bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center mr-4 mt-1">
-                <span className="font-medium">4</span>
+            
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative p-6 flex items-start space-x-4 z-10">
+                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-md">
+                  <span className="font-bold text-white">2</span>
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-indigo-800">School Stage</h3>
+                  <p className="text-gray-600">Class winners compete against other classes in their grade level, with the top 3 submissions from each school advancing.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-heading font-semibold mb-1">Global Stage</h3>
-                <p className="text-gray-600 text-sm">The best submissions from around the world compete for international recognition.</p>
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative p-6 flex items-start space-x-4 z-10">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-md">
+                  <span className="font-bold text-white">3</span>
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-purple-800">Country Stage</h3>
+                  <p className="text-gray-600">School winners compete nationally, with a panel of educators and artists selecting the top submissions to advance to the global stage.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative p-6 flex items-start space-x-4 z-10">
+                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 shadow-md">
+                  <span className="font-bold text-white">4</span>
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-amber-800">Global Stage</h3>
+                  <p className="text-gray-600">The best submissions from around the world compete for international recognition, with winners receiving special recognition and prizes.</p>
+                </div>
               </div>
             </div>
           </div>
