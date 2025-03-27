@@ -3,7 +3,7 @@ import React from "react";
 const About: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">About ArtChallenge</h1>
+      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">About FAZAA - Art</h1>
       
       <div className="bg-white rounded-xl shadow-md overflow-hidden mb-10">
         <div className="md:flex">
@@ -12,7 +12,7 @@ const About: React.FC = () => {
           </div>
           <div className="p-8">
             <h2 className="text-2xl font-heading font-semibold mb-4">Our Mission</h2>
-            <p className="text-gray-600 mb-4">ArtChallenge was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.</p>
+            <p className="text-gray-600 mb-4">FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.</p>
             <p className="text-gray-600">We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.</p>
           </div>
         </div>
@@ -58,9 +58,27 @@ const About: React.FC = () => {
 
       <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our History</h2>
       <div className="bg-white rounded-lg shadow-md p-8 mb-10">
-        <p className="text-gray-600 mb-4">ArtChallenge began as a small initiative in 2022 when a group of teachers noticed how engaged their students became when using AI tools for creative projects.</p>
+        <p className="text-gray-600 mb-4">FAZAA - Art began as a small initiative in 2022 when a group of teachers noticed how engaged their students became when using AI tools for creative projects.</p>
         <p className="text-gray-600 mb-4">What started as a single classroom experiment quickly grew to a school-wide program, and then expanded to multiple schools as the positive impact on student engagement and learning became clear.</p>
         <p className="text-gray-600">Today, we're proud to connect students, schools, and creative partners worldwide through our platform, fostering both friendly competition and collaborative learning.</p>
+      </div>
+
+      <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Our Story</h2>
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-10">
+        <div className="md:flex">
+          <div className="md:shrink-0">
+            <img 
+              className="h-full w-full object-cover md:w-64 lg:w-80" 
+              src="/assets/about-story_1743074317684.jpg" 
+              alt="Artistic inspiration with neural network connections" 
+            />
+          </div>
+          <div className="p-8">
+            <p className="text-gray-600 mb-4">At FAZAA - Art, we believe in the transformative power of creativity enhanced by technology. Our platform was born from the vision of connecting the timeless beauty of human artistic expression with the boundless possibilities of artificial intelligence.</p>
+            <p className="text-gray-600 mb-4">We've created a space where students can explore new artistic horizons, where teachers can guide learners through innovative creative processes, and where schools can showcase their students' remarkable talents.</p>
+            <p className="text-gray-600">Each artistic journey on our platform represents a unique story of discovery, experimentation, and growth. Through FAZAA - Art competitions, we're writing a collective story of how education and creativity evolve together in the digital age.</p>
+          </div>
+        </div>
       </div>
 
       <h2 className="text-2xl font-bold font-heading text-gray-800 mb-6">Competition Structure</h2>
