@@ -101,7 +101,7 @@ const AdminDashboard: React.FC = () => {
   });
   
   // Fetch all schools
-  const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
+  const { data: schools = [], isLoading: isLoadingSchools, refetch: refetchSchools } = useQuery({
     queryKey: ['/api/schools'],
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -117,7 +117,7 @@ const AdminDashboard: React.FC = () => {
   });
   
   // Fetch all classes for class management
-  const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
+  const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery({
     queryKey: ['/api/classes'],
     refetchOnWindowFocus: true,
     refetchOnMount: true,
