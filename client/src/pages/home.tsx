@@ -204,35 +204,71 @@ const Home: React.FC = () => {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="rounded-xl bg-gradient-to-b from-white to-blue-50 shadow-md hover:shadow-xl transition-all p-6 group hover:-translate-y-1 border border-blue-100">
-            <div className="rounded-full bg-primary bg-opacity-10 w-20 h-20 flex items-center justify-center mx-auto mb-5 group-hover:bg-primary group-hover:bg-opacity-20 transition-all">
-              <UserPlus className="text-primary text-2xl" />
+            <div className="w-24 h-24 mx-auto mb-5 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full opacity-20 group-hover:opacity-30 transition-all"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-all shadow-inner">
+                  <UserPlus className="text-indigo-600 h-8 w-8" />
+                </div>
+              </div>
+              <div className="absolute -top-2 -right-2 bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-lg">
+                1
+              </div>
             </div>
-            <h3 className="font-heading font-semibold text-lg mb-3">1. Register</h3>
-            <p className="text-gray-600">Join your school's creative community and get ready to showcase your talent.</p>
+            <h3 className="font-heading font-semibold text-lg mb-3 text-center">Register</h3>
+            <p className="text-gray-600 text-center">Join your school's creative community and get ready to showcase your talent.</p>
           </div>
           
           <div className="rounded-xl bg-gradient-to-b from-white to-blue-50 shadow-md hover:shadow-xl transition-all p-6 group hover:-translate-y-1 border border-blue-100">
-            <div className="rounded-full bg-primary bg-opacity-10 w-20 h-20 flex items-center justify-center mx-auto mb-5 group-hover:bg-primary group-hover:bg-opacity-20 transition-all">
-              <Laptop className="text-primary text-2xl" />
+            <div className="w-24 h-24 mx-auto mb-5 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full opacity-20 group-hover:opacity-30 transition-all"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-all shadow-inner">
+                  <Sparkles className="text-blue-600 h-8 w-8" />
+                </div>
+              </div>
+              <div className="absolute -top-2 -right-2 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-lg">
+                2
+              </div>
             </div>
-            <h3 className="font-heading font-semibold text-lg mb-3">2. Create</h3>
-            <p className="text-gray-600">Use our powerful AI tools to create stunning artwork or inspiring poetry.</p>
+            <h3 className="font-heading font-semibold text-lg mb-3 text-center">Create</h3>
+            <p className="text-gray-600 text-center">Use our powerful AI tools to create stunning artwork or inspiring poetry.</p>
           </div>
           
           <div className="rounded-xl bg-gradient-to-b from-white to-blue-50 shadow-md hover:shadow-xl transition-all p-6 group hover:-translate-y-1 border border-blue-100">
-            <div className="rounded-full bg-primary bg-opacity-10 w-20 h-20 flex items-center justify-center mx-auto mb-5 group-hover:bg-primary group-hover:bg-opacity-20 transition-all">
-              <Upload className="text-primary text-2xl" />
+            <div className="w-24 h-24 mx-auto mb-5 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full opacity-20 group-hover:opacity-30 transition-all"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-all shadow-inner">
+                  <Palette className="text-purple-600 h-8 w-8" />
+                </div>
+              </div>
+              <div className="absolute -top-2 -right-2 bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-lg">
+                3
+              </div>
             </div>
-            <h3 className="font-heading font-semibold text-lg mb-3">3. Submit</h3>
-            <p className="text-gray-600">Submit your best creations to open challenges and share with your peers.</p>
+            <h3 className="font-heading font-semibold text-lg mb-3 text-center">Submit</h3>
+            <p className="text-gray-600 text-center">Submit your best creations to open challenges and share with your peers.</p>
           </div>
           
           <div className="rounded-xl bg-gradient-to-b from-white to-blue-50 shadow-md hover:shadow-xl transition-all p-6 group hover:-translate-y-1 border border-blue-100">
-            <div className="rounded-full bg-primary bg-opacity-10 w-20 h-20 flex items-center justify-center mx-auto mb-5 group-hover:bg-primary group-hover:bg-opacity-20 transition-all">
-              <Award className="text-primary text-2xl" />
+            <div className="w-24 h-24 mx-auto mb-5 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full opacity-20 group-hover:opacity-30 transition-all"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-full"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-all shadow-inner">
+                  <Award className="text-amber-600 h-8 w-8" />
+                </div>
+              </div>
+              <div className="absolute -top-2 -right-2 bg-amber-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-lg">
+                4
+              </div>
             </div>
-            <h3 className="font-heading font-semibold text-lg mb-3">4. Win</h3>
-            <p className="text-gray-600">Receive votes from your peers and advance through competition stages to win recognition.</p>
+            <h3 className="font-heading font-semibold text-lg mb-3 text-center">Win</h3>
+            <p className="text-gray-600 text-center">Receive votes from your peers and advance through competition stages to win recognition.</p>
           </div>
         </div>
       </div>
@@ -246,25 +282,52 @@ const Home: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center">
-            <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-              <Palette className="text-amber-600 h-8 w-8" />
+          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center group">
+            <div className="h-20 w-20 relative mb-4">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+              <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Palette className="text-amber-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                <svg className="w-16 h-16 text-amber-200" viewBox="0 0 40 40" fill="currentColor">
+                  <path d="M35,10 C33,6 30,4 26.5,4 C23,4 20,6 18,9 C16,6 13,4 9.5,4 C6,4 3,6 1,10 C-1,14 1,19 4,22 C7,25 18,34 18,34 C18,34 29,25 32,22 C35,19 37,14 35,10 Z" />
+                </svg>
+              </div>
             </div>
             <h3 className="font-heading font-semibold text-lg mb-3">AI Art Generation</h3>
             <p className="text-gray-600">Create beautiful artwork using cutting-edge AI models with just a simple text prompt.</p>
           </div>
           
-          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center">
-            <div className="h-16 w-16 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
-              <PenTool className="text-primary h-8 w-8" />
+          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center group">
+            <div className="h-20 w-20 relative mb-4">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+              <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <PenTool className="text-indigo-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                <svg className="w-16 h-16 text-indigo-200" viewBox="0 0 40 40" fill="currentColor">
+                  <path d="M10,10 L30,10 L30,12 L10,12 Z M10,16 L25,16 L25,18 L10,18 Z M10,22 L30,22 L30,24 L10,24 Z M10,28 L20,28 L20,30 L10,30 Z" />
+                </svg>
+              </div>
             </div>
             <h3 className="font-heading font-semibold text-lg mb-3">Poetry Generation</h3>
             <p className="text-gray-600">Express yourself through AI-assisted poetry creation in various styles and formats.</p>
           </div>
           
-          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center">
-            <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
-              <Users className="text-indigo-600 h-8 w-8" />
+          <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all border border-blue-100 flex flex-col items-center text-center group">
+            <div className="h-20 w-20 relative mb-4">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full opacity-10 group-hover:opacity-20 transition-all"></div>
+              <div className="absolute inset-0 bg-white rounded-full shadow-inner"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Users className="text-blue-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                <svg className="w-16 h-16 text-blue-200" viewBox="0 0 40 40" fill="currentColor">
+                  <path d="M20,4 L24,12 L33,13 L26.5,19 L28,28 L20,24 L12,28 L13.5,19 L7,13 L16,12 Z" />
+                </svg>
+              </div>
             </div>
             <h3 className="font-heading font-semibold text-lg mb-3">Peer Voting</h3>
             <p className="text-gray-600">Vote for your favorite submissions and receive feedback from your classmates.</p>
