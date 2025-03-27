@@ -33,11 +33,16 @@ const Home: React.FC = () => {
       <div className="relative">
         <div className="bg-gradient-to-r from-primary to-indigo-800 rounded-xl overflow-hidden">
           <div className="absolute inset-0 opacity-20">
-            <img 
-              src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&h=400&q=80" 
-              alt="Art background" 
-              className="w-full h-full object-cover"
-            />
+            <div className="w-full h-full">
+              <iframe 
+                src="https://www.youtube.com/embed/M4jtGvdMvA4?autoplay=1&mute=1&loop=1&playlist=M4jtGvdMvA4&controls=0&rel=0"
+                title="Art in schools video"
+                className="w-full h-full object-cover"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
           </div>
           <div className="relative px-8 py-16 sm:px-16 sm:py-20 text-white">
             <h1 className="text-4xl sm:text-5xl font-bold font-heading mb-4">Unleash Your Creativity</h1>
