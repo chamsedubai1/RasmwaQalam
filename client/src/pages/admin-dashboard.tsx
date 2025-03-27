@@ -1029,12 +1029,232 @@ const AdminDashboard: React.FC = () => {
         
         <TabsContent value="reports">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>System Reports</CardTitle>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    // Refresh all data
+                    refetchEvents();
+                    refetchUsers();
+                    refetchSchools();
+                    refetchClasses();
+                    toast({
+                      title: "Refreshed",
+                      description: "Report data has been refreshed",
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">Reports and analytics coming soon.</p>
+              {/* Overall Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="bg-blue-50 rounded-lg shadow p-4 border border-blue-100">
+                  <h3 className="text-sm font-medium text-blue-800 mb-1">Total Users</h3>
+                  <p className="text-3xl font-bold text-blue-700">
+                    {isLoadingUsers ? (
+                      <span className="text-lg">Loading...</span>
+                    ) : (
+                      allUsers.length
+                    )}
+                  </p>
+                  <div className="mt-2 text-xs flex items-center text-blue-600">
+                    <div className="flex space-x-2">
+                      <span>{allUsers?.filter((u: any) => u.role === 'student').length || 0} Students</span>
+                      <span>•</span>
+                      <span>{allUsers?.filter((u: any) => u.role === 'teacher').length || 0} Teachers</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-indigo-50 rounded-lg shadow p-4 border border-indigo-100">
+                  <h3 className="text-sm font-medium text-indigo-800 mb-1">Total Schools</h3>
+                  <p className="text-3xl font-bold text-indigo-700">
+                    {isLoadingSchools ? (
+                      <span className="text-lg">Loading...</span>
+                    ) : (
+                      schools.length
+                    )}
+                  </p>
+                  <div className="mt-2 text-xs flex items-center text-indigo-600">
+                    <div className="flex space-x-2">
+                      <span>{classes.length} Classes</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 rounded-lg shadow p-4 border border-purple-100">
+                  <h3 className="text-sm font-medium text-purple-800 mb-1">Total Events</h3>
+                  <p className="text-3xl font-bold text-purple-700">
+                    {isLoadingEvents ? (
+                      <span className="text-lg">Loading...</span>
+                    ) : (
+                      events.length
+                    )}
+                  </p>
+                  <div className="mt-2 text-xs flex items-center text-purple-600">
+                    <div className="flex space-x-2">
+                      <span>{events?.filter((e: any) => e.status === 'open').length || 0} Open</span>
+                      <span>•</span>
+                      <span>{events?.filter((e: any) => e.status === 'upcoming').length || 0} Upcoming</span>
+                      <span>•</span>
+                      <span>{events?.filter((e: any) => e.status === 'closed').length || 0} Closed</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 rounded-lg shadow p-4 border border-green-100">
+                  <h3 className="text-sm font-medium text-green-800 mb-1">Total Participants</h3>
+                  <p className="text-3xl font-bold text-green-700">
+                    {isLoadingEvents ? (
+                      <span className="text-lg">Loading...</span>
+                    ) : (
+                      events.reduce((total: number, event: any) => total + (event.participantCount || 0), 0)
+                    )}
+                  </p>
+                  <div className="mt-2 text-xs flex items-center text-green-600">
+                    <div className="flex space-x-2">
+                      <span>Across all events</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Event Analytics */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Event Analytics</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Event Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Participants
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Submissions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {isLoadingEvents ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                            Loading events...
+                          </td>
+                        </tr>
+                      ) : events.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                            No events found
+                          </td>
+                        </tr>
+                      ) : (
+                        events.map((event: any) => (
+                          <tr key={event.id}>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {event.name}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                              {event.type}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full
+                                ${event.status === 'open' ? 'bg-green-100 text-green-800' : 
+                                  event.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 
+                                    'bg-gray-100 text-gray-800'}
+                              `}>
+                                {event.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {event.participantCount || 0}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {event.submissionCount || 0}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* School Participation */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">School Participation</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          School Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Teachers
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Students
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Classes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {isLoadingSchools || isLoadingUsers || isLoadingClasses ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                            Loading school data...
+                          </td>
+                        </tr>
+                      ) : schools.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                            No schools found
+                          </td>
+                        </tr>
+                      ) : (
+                        schools.map((school: any) => {
+                          const teacherCount = allUsers.filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
+                          const studentCount = allUsers.filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
+                          const classCount = classes.filter((c: any) => c.schoolId === school.id).length;
+                          
+                          return (
+                            <tr key={school.id}>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {school.name}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {teacherCount}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {studentCount}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {classCount}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>

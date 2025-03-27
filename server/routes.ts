@@ -400,22 +400,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         events = await storage.getAllEvents();
       }
       
-      res.json(events);
+      // Enhance events with participant counts
+      const eventsWithCounts = await Promise.all(events.map(async (event) => {
+        // Get registrations for this event
+        const registrations = await storage.getRegistrationsByEvent(event.id);
+        // Get submissions for this event
+        const submissions = await storage.getSubmissionsByEvent(event.id);
+        
+        return {
+          ...event,
+          participantCount: registrations.length,
+          submissionCount: submissions.length
+        };
+      }));
+      
+      res.json(eventsWithCounts);
     } catch (error) {
+      console.error('Error fetching events with counts:', error);
       res.status(500).json({ message: 'Failed to fetch events' });
     }
   });
   
   apiRouter.get('/events/:id', async (req, res) => {
     try {
-      const event = await storage.getEvent(Number(req.params.id));
+      const eventId = Number(req.params.id);
+      const event = await storage.getEvent(eventId);
       
       if (!event) {
         return res.status(404).json({ message: 'Event not found' });
       }
       
-      res.json(event);
+      // Get registrations for this event
+      const registrations = await storage.getRegistrationsByEvent(eventId);
+      // Get submissions for this event
+      const submissions = await storage.getSubmissionsByEvent(eventId);
+      
+      // Include participant and submission counts
+      const eventWithCounts = {
+        ...event,
+        participantCount: registrations.length,
+        submissionCount: submissions.length
+      };
+      
+      res.json(eventWithCounts);
     } catch (error) {
+      console.error('Error fetching event with counts:', error);
       res.status(500).json({ message: 'Failed to fetch event' });
     }
   });
