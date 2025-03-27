@@ -36,7 +36,23 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, SearchIcon } from "lucide-react";
+import { 
+  CalendarIcon, 
+  SearchIcon, 
+  Users, 
+  School, 
+  GraduationCap, 
+  Calendar,
+  ClipboardList,
+  BarChart,
+  Briefcase,
+  UserCog,
+  Building,
+  Library,
+  BookOpen,
+  PieChart,
+  Loader2
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 const AdminDashboard: React.FC = () => {
@@ -130,10 +146,20 @@ const AdminDashboard: React.FC = () => {
     return <Redirect to="/" />;
   }
   
+  // Calculate dashboard statistics
+  const totalUsers = (allUsers as any[]).length;
+  const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
+  const totalTeachers = (allUsers as any[]).filter((user: any) => user.role === 'teacher').length;
+  const totalSchools = (schools as any[]).length;
+  const totalClasses = (classes as any[]).length;
+  const totalEvents = (events as any[]).length;
+  const activeEvents = (events as any[]).filter((event: any) => event.status === 'open').length;
+  const upcomingEvents = (events as any[]).filter((event: any) => event.status === 'upcoming').length;
+  
   // Get school names for each user
-  const usersWithSchoolNames = allUsers.map((user: any) => {
-    const school = schools.find((s: any) => s.id === user.schoolId);
-    const userClass = classes.find((c: any) => c.id === user.classId);
+  const usersWithSchoolNames = (allUsers as any[]).map((user: any) => {
+    const school = (schools as any[]).find((s: any) => s.id === user.schoolId);
+    const userClass = (classes as any[]).find((c: any) => c.id === user.classId);
     return {
       ...user,
       schoolName: school ? school.name : "N/A",
@@ -675,15 +701,114 @@ const AdminDashboard: React.FC = () => {
   
   return (
     <div>
-      <h1 className="text-3xl font-bold font-heading text-gray-800 mb-6">Admin Dashboard</h1>
+      {/* Header Section */}
+      <div className="relative rounded-xl overflow-hidden mb-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-800 opacity-90"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJ3aGl0ZSIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMiIvPjwvZz48L3N2Zz4=')] opacity-10"></div>
+        <div className="relative z-10 py-8 px-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold font-heading mb-2">Admin Dashboard</h1>
+              <p className="text-blue-100">Manage users, schools, classes, events and view reports</p>
+            </div>
+            <div className="hidden md:block">
+              <UserCog className="h-16 w-16 text-white/30" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-blue-600 font-medium">Total Users</p>
+              <p className="text-2xl font-bold">{totalUsers}</p>
+              <div className="flex gap-2 items-center text-xs text-blue-500 mt-1">
+                <span>{totalStudents} Students</span>
+                <span className="h-1 w-1 rounded-full bg-blue-400"></span>
+                <span>{totalTeachers} Teachers</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4">
+              <School className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm text-indigo-600 font-medium">Schools</p>
+              <p className="text-2xl font-bold">{totalSchools}</p>
+              <p className="text-xs text-indigo-500 mt-1">{totalClasses} Classes</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+              <Calendar className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-purple-600 font-medium">Events</p>
+              <p className="text-2xl font-bold">{totalEvents}</p>
+              <div className="flex gap-2 items-center text-xs text-purple-500 mt-1">
+                <span>{activeEvents} Active</span>
+                <span className="h-1 w-1 rounded-full bg-purple-400"></span>
+                <span>{upcomingEvents} Upcoming</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-white border-green-100 hover:shadow-md transition-all">
+          <CardContent className="p-4 flex items-center">
+            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
+              <BarChart className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-green-600 font-medium">Activities</p>
+              <p className="text-2xl font-bold">
+                {isLoadingEvents || isLoadingUsers ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  (activeEvents * 10) + totalUsers
+                )}
+              </p>
+              <p className="text-xs text-green-500 mt-1">System monitoring</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       
-      <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8 w-full border-b border-gray-200">
-          <TabsTrigger value="users" className="flex-1">Users</TabsTrigger>
-          <TabsTrigger value="schools" className="flex-1">Schools</TabsTrigger>
-          <TabsTrigger value="classes" className="flex-1">Classes</TabsTrigger>
-          <TabsTrigger value="events" className="flex-1">Events</TabsTrigger>
-          <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
+      <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="bg-white p-1 border rounded-lg shadow-sm">
+          <TabsTrigger value="users" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Users className="h-4 w-4" />
+            <span>Users</span>
+          </TabsTrigger>
+          <TabsTrigger value="schools" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Building className="h-4 w-4" />
+            <span>Schools</span>
+          </TabsTrigger>
+          <TabsTrigger value="classes" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Library className="h-4 w-4" />
+            <span>Classes</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Calendar className="h-4 w-4" />
+            <span>Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <PieChart className="h-4 w-4" />
+            <span>Reports</span>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
