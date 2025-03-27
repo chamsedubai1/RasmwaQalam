@@ -69,8 +69,8 @@ const About: React.FC = () => {
           </div>
           <div className="p-8">
             <p className="text-gray-600 mb-4">Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.</p>
-            <p className="text-gray-600 mb-4">This unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
-            <p className="text-gray-600">This competition is designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-ai not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
+            <p className="text-gray-600 mb-4">Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
+            <p className="text-gray-600">Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
           </div>
         </div>
       </div>
