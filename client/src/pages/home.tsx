@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import EventCard from "@/components/site/event-card";
 import { useUserRole } from "@/hooks/use-user-role";
 import SubmissionModal from "@/components/site/submission-modal";
+import type { Event } from "@shared/schema";
 
 const Home: React.FC = () => {
   const { userRole } = useUserRole();
   const [submitEventId, setSubmitEventId] = React.useState<number | null>(null);
 
   // Fetch featured events
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ['/api/events?status=open'],
     enabled: true,
   });
@@ -33,16 +34,11 @@ const Home: React.FC = () => {
       <div className="relative">
         <div className="bg-gradient-to-r from-primary to-indigo-800 rounded-xl overflow-hidden">
           <div className="absolute inset-0 opacity-20">
-            <div className="w-full h-full">
-              <iframe 
-                src="https://www.youtube.com/embed/M4jtGvdMvA4?autoplay=1&mute=1&loop=1&playlist=M4jtGvdMvA4&controls=0&rel=0"
-                title="Art in schools video"
-                className="w-full h-full object-cover"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
+            <img 
+              src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&h=400&q=80" 
+              alt="Art background" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="relative px-8 py-16 sm:px-16 sm:py-20 text-white">
             <h1 className="text-4xl sm:text-5xl font-bold font-heading mb-4">Unleash Your Creativity</h1>
@@ -81,17 +77,17 @@ const Home: React.FC = () => {
           {isLoading ? (
             <p>Loading featured events...</p>
           ) : (
-            featuredEvents.map((event) => (
+            featuredEvents.map((event: Event) => (
               <EventCard
                 key={event.id}
                 id={event.id}
                 name={event.name}
                 description={event.description}
-                imageUrl={event.imageUrl}
+                imageUrl={event.imageUrl || ''}
                 type={event.type}
                 status={event.status}
                 stage={event.stage}
-                endDate={event.endDate}
+                endDate={event.endDate ? event.endDate.toString() : ''}
                 onSubmit={handleSubmit}
               />
             ))
