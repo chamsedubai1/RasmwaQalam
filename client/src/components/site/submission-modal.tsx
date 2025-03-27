@@ -193,7 +193,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-heading">Submit Your Artwork</DialogTitle>
         </DialogHeader>
@@ -289,20 +289,20 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
             </div>
             
             {contentType === "text" ? (
-              <div className="grid gap-2">
+              <div className="grid gap-2 w-full">
                 <Label htmlFor="submission-text">Your Poetry</Label>
                 <Textarea
                   id="submission-text"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Enter your poem or text here, or use AI to generate it"
-                  className="min-h-[120px]"
+                  className="min-h-[120px] w-full"
                 />
               </div>
             ) : (
-              <div className="grid gap-2">
+              <div className="grid gap-2 w-full">
                 <Label htmlFor="submission-image">Your Artwork</Label>
-                <div className="border-2 border-dashed border-blue-300 rounded-md p-4 text-center bg-blue-50/50">
+                <div className="border-2 border-dashed border-blue-300 rounded-md p-4 text-center bg-blue-50/50 w-full">
                   {content ? (
                     <div className="mb-4">
                       <img 
@@ -324,20 +324,20 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Paste an image URL here"
-                    className="mt-2"
+                    className="mt-2 w-full"
                   />
                 </div>
               </div>
             )}
             
-            <div className="grid gap-2">
+            <div className="grid gap-2 w-full">
               <Label htmlFor="submission-description">Description/Artist Statement</Label>
               <Textarea
                 id="submission-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe your submission or provide an artist statement"
-                className="min-h-[60px]"
+                className="min-h-[60px] w-full"
               />
             </div>
           </div>
