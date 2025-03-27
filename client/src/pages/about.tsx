@@ -68,9 +68,9 @@ const About: React.FC = () => {
             />
           </div>
           <div className="p-8">
-            <p className="text-gray-600 mb-4">At FAZAA - Art, we believe in the transformative power of creativity enhanced by technology. Our platform was born from the vision of connecting the timeless beauty of human artistic expression with the boundless possibilities of artificial intelligence.</p>
-            <p className="text-gray-600 mb-4">We've created a space where students can explore new artistic horizons, where teachers can guide learners through innovative creative processes, and where schools can showcase their students' remarkable talents.</p>
-            <p className="text-gray-600">Each artistic journey on our platform represents a unique story of discovery, experimentation, and growth. Through FAZAA - Art competitions, we're writing a collective story of how education and creativity evolve together in the digital age.</p>
+            <p className="text-gray-600 mb-4">Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.</p>
+            <p className="text-gray-600 mb-4">This unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
+            <p className="text-gray-600">This competition is designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-ai not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
           </div>
         </div>
       </div>
