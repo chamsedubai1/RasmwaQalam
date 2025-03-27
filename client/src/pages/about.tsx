@@ -69,7 +69,7 @@ const About: React.FC = () => {
           <div className="md:shrink-0">
             <img 
               className="h-full w-full object-cover md:w-64 lg:w-80" 
-              src="/assets/about-story_1743074317684.jpg" 
+              src="https://images.unsplash.com/photo-1575909812264-6902b55846ad?q=80&w=1470&auto=format&fit=crop" 
               alt="Artistic inspiration with neural network connections" 
             />
           </div>
