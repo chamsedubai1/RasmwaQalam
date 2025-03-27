@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import NavLink from "@/components/ui/nav-link";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useUser } from "@/hooks/use-user";
 import { Menu, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 const Header: React.FC = () => {
   const { userRole, setUserRole } = useUserRole();
+  const { user, clearUser } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -19,6 +21,7 @@ const Header: React.FC = () => {
   const handleLogout = () => {
     // In a real app, you would make an API call to logout
     setUserRole("");
+    clearUser();
     
     toast({
       title: "Logged out",
@@ -59,7 +62,9 @@ const Header: React.FC = () => {
               <>
                 <div className="text-white flex items-center mr-2">
                   <User className="h-4 w-4 mr-1" />
-                  <span className="text-sm">{userRole}</span>
+                  <span className="text-sm font-medium">
+                    {user?.fullName || userRole}
+                  </span>
                 </div>
                 <Button 
                   variant="ghost"

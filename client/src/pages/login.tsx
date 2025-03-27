@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useUser } from "@/hooks/use-user";
 import StudentRegistrationForm from "@/components/auth/student-registration-form";
 import TeacherRegistrationForm from "@/components/auth/teacher-registration-form";
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setUserRole } = useUserRole();
+  const { setUser } = useUser();
   const [activeTab, setActiveTab] = useState("login");
   const [registrationRole, setRegistrationRole] = useState("student");
   
@@ -44,11 +46,23 @@ export default function LoginPage() {
         password: loginPassword
       });
       
-      // In a real app, we would store the token and user data
+      // Store user data in context
       console.log("Login successful:", response);
       
       if (response.role) {
+        // Set user role for basic authorization
         setUserRole(response.role);
+        
+        // Set full user data in context for authenticated requests
+        setUser({
+          id: response.id,
+          username: response.username,
+          fullName: response.fullName || response.username,
+          role: response.role,
+          schoolId: response.schoolId,
+          classId: response.classId,
+          gradeLevel: response.gradeLevel
+        });
         
         // Redirect based on role
         switch (response.role) {
@@ -86,23 +100,60 @@ export default function LoginPage() {
     setIsRegistering(true);
     
     try {
-      // This would be a real API call in production
+      // Send registration data to the API
       const response = await apiRequest('POST', '/api/auth/register', registrationData);
       
       console.log("Registration successful:", response);
       
-      toast({
-        title: "Success",
-        description: "Your account has been created. You can now log in."
-      });
-      
-      // Switch to login tab
-      setActiveTab("login");
-      
-      // Pre-fill login form with the username
-      setLoginUsername(registrationData.username);
-      setLoginPassword("");
-      
+      // Auto-login user after successful registration
+      if (response && response.id) {
+        // Set user role for basic authorization
+        setUserRole(response.role);
+        
+        // Set full user data in context
+        setUser({
+          id: response.id,
+          username: response.username,
+          fullName: response.fullName || response.username,
+          role: response.role,
+          schoolId: response.schoolId,
+          classId: response.classId,
+          gradeLevel: response.gradeLevel
+        });
+        
+        // Redirect to appropriate page based on role
+        switch (response.role) {
+          case "admin":
+            setLocation("/admin");
+            break;
+          case "teacher":
+            setLocation("/teacher");
+            break;
+          case "student":
+            setLocation("/creart");
+            break;
+          default:
+            setLocation("/");
+        }
+        
+        toast({
+          title: "Success",
+          description: "Your account has been created and you are now logged in."
+        });
+      } else {
+        // Just switch to login form if auto-login fails
+        toast({
+          title: "Success",
+          description: "Your account has been created. You can now log in."
+        });
+        
+        // Switch to login tab
+        setActiveTab("login");
+        
+        // Pre-fill login form with the username
+        setLoginUsername(registrationData.username);
+        setLoginPassword("");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       toast({

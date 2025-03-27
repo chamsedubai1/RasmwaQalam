@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import SubmissionModal from "@/components/site/submission-modal";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useUser } from "@/hooks/use-user";
 import { Redirect } from "wouter";
 
 interface SubmissionWithVotes {
@@ -28,6 +29,7 @@ interface SubmissionWithVotes {
 
 const CreArt: React.FC = () => {
   const { userRole } = useUserRole();
+  const { user } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
@@ -35,8 +37,8 @@ const CreArt: React.FC = () => {
   // Always include all hooks before any early returns to avoid the
   // "Rendered fewer hooks than expected" error
   
-  // Mock user ID (in a real app, this would come from authentication)
-  const userId = 1;
+  // Get the authenticated user's ID
+  const userId = user?.id || 0;
   
   // Fetch user registrations
   const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery({

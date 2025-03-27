@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { UserRoleProvider, useUserRole } from "@/hooks/use-user-role";
+import { UserProvider } from "@/hooks/use-user";
 import Header from "@/components/site/header";
 import Footer from "@/components/site/footer";
 import Home from "@/pages/home";
@@ -72,10 +73,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <UserRoleProvider>
-        <Router />
-        <Toaster />
-      </UserRoleProvider>
+      <UserProvider>
+        <UserRoleProvider>
+          <Router />
+          <Toaster />
+        </UserRoleProvider>
+      </UserProvider>
     </QueryClientProvider>
   );
 }

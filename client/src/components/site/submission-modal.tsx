@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { CloudUpload, Sparkles, PenLine, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -41,6 +42,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [poetryStyle, setPoetryStyle] = useState<string>("free");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
   const queryClient = useQueryClient();
 
   interface PoemResponse {
@@ -109,12 +111,19 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   // Submission
   const submitMutation = useMutation({
     mutationFn: async () => {
+      // Get the authenticated user's ID
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("You must be logged in to submit");
+      }
+      
       return apiRequest<SubmissionResponse>('POST', '/api/submissions', {
         title,
         description,
         contentType,
         content,
-        userId: 1, // Using userId=1 for demo
+        userId,
         eventId,
       });
     },
@@ -126,7 +135,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       // Invalidate all submissions queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/submissions'] });
       // Also specifically invalidate user submissions
-      queryClient.invalidateQueries({ queryKey: [`/api/submissions?userId=1`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/submissions?userId=${user?.id}`] });
       handleClose();
     },
     onError: (error: any) => {
