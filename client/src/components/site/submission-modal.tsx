@@ -193,30 +193,31 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-heading">Submit Your Artwork</DialogTitle>
         </DialogHeader>
         
         <div className="overflow-y-auto pr-2 flex-grow">
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+            <div className="grid gap-2 w-full">
               <Label htmlFor="submission-title">Title</Label>
               <Input
                 id="submission-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter a title for your submission"
+                className="w-full"
               />
             </div>
             
-            <div className="grid gap-2">
+            <div className="grid gap-2 w-full">
               <Label htmlFor="submission-type">Content Type</Label>
               <Select
                 value={contentType}
                 onValueChange={(value: "text" | "image") => setContentType(value)}
               >
-                <SelectTrigger id="submission-type">
+                <SelectTrigger id="submission-type" className="w-full">
                   <SelectValue placeholder="Select content type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,7 +235,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
               </div>
               
               <div className="grid gap-3">
-                <div>
+                <div className="w-full">
                   <Label htmlFor="ai-prompt">Your Prompt</Label>
                   <Textarea
                     id="ai-prompt"
@@ -243,18 +244,18 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                     placeholder={contentType === "text" 
                       ? "Describe the poem you want AI to create..." 
                       : "Describe the image you want AI to create..."}
-                    className="min-h-[60px] mt-1"
+                    className="min-h-[60px] mt-1 w-full"
                   />
                 </div>
                 
                 {contentType === "text" && (
-                  <div>
+                  <div className="w-full">
                     <Label htmlFor="poetry-style">Poetry Style</Label>
                     <Select
                       value={poetryStyle}
                       onValueChange={setPoetryStyle}
                     >
-                      <SelectTrigger id="poetry-style">
+                      <SelectTrigger id="poetry-style" className="w-full">
                         <SelectValue placeholder="Select style" />
                       </SelectTrigger>
                       <SelectContent>
