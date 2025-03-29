@@ -86,11 +86,13 @@ const CreArt: React.FC = () => {
   const activeClassEvent = Array.isArray(classEvents) && classEvents.length > 0 ? classEvents[0] : null;
   const eventId = activeClassEvent && 'id' in activeClassEvent ? activeClassEvent.id : null;
   
-  // Fetch submissions for class voting if there's an active class event
+  // Get user's classId from the user context
+  const classId = user?.classId;
+
   // Fetch submissions for class voting if there's an active class event
   const { data: classSubmissions = [], isLoading: isLoadingClassSubmissions } = useQuery({
-    queryKey: eventId ? [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}`] : [`/api/submissions`],
-    enabled: !!eventId && !!userId,
+    queryKey: eventId ? [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`] : [`/api/submissions`],
+    enabled: !!eventId && !!userId && !!classId,
   });
   
   // Define interface for voting stats
@@ -128,7 +130,7 @@ const CreArt: React.FC = () => {
       if (eventId && userId) {
         // Invalidate both submissions and voting stats
         queryClient.invalidateQueries({ 
-          queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}`] 
+          queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`] 
         });
         
         // Also invalidate voting stats to update the vote counter
@@ -148,6 +150,12 @@ const CreArt: React.FC = () => {
         
         // Force refresh the voting stats
         if (eventId && userId) {
+          // Refresh submissions to update UI
+          queryClient.invalidateQueries({
+            queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`]
+          });
+          
+          // Refresh voting stats
           queryClient.invalidateQueries({
             queryKey: [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`]
           });

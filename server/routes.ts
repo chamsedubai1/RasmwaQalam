@@ -574,6 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
       const eventId = req.query.eventId ? Number(req.query.eventId) : undefined;
+      const classId = req.query.classId ? Number(req.query.classId) : undefined;
       const winnerCategory = req.query.winnerCategory as string | undefined;
       const forVoting = req.query.forVoting === 'true';
       const currentUserId = req.query.currentUserId ? Number(req.query.currentUserId) : undefined;
@@ -584,12 +585,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (userId) {
         submissions = await storage.getSubmissionsByUser(userId);
       } else if (eventId) {
+        // Get all submissions for this event
         submissions = await storage.getSubmissionsByEvent(eventId);
         
-        // If this is for voting purposes and we have a current user ID,
-        // filter out the current user's own submissions
+        // If this is for voting purposes and we have a current user ID
         if (forVoting && currentUserId) {
+          // 1. Filter out current user's own submissions
           submissions = submissions.filter(sub => sub.userId !== currentUserId);
+          
+          // 2. If we are in class voting mode, only show submissions from students in the same class
+          if (classId) {
+            // Get all users in the class
+            const classUsers = await storage.getUsersByClass(classId);
+            const classUserIds = classUsers.map(user => user.id);
+            
+            // Only keep submissions from users in this class
+            submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+          } else if (currentUserId) {
+            // If no class ID was explicitly provided but we have a current user,
+            // try to get their class ID from their user info
+            const currentUser = await storage.getUser(currentUserId);
+            
+            if (currentUser && currentUser.classId) {
+              // Get all users in the current user's class
+              const classUsers = await storage.getUsersByClass(currentUser.classId);
+              const classUserIds = classUsers.map(user => user.id);
+              
+              // Only keep submissions from users in the same class
+              submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+            }
+          }
         }
       } else if (winnerCategory) {
         submissions = await storage.getWinningSubmissions(winnerCategory);
