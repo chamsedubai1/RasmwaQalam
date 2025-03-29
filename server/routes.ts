@@ -575,6 +575,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
       const eventId = req.query.eventId ? Number(req.query.eventId) : undefined;
       const winnerCategory = req.query.winnerCategory as string | undefined;
+      const forVoting = req.query.forVoting === 'true';
+      const currentUserId = req.query.currentUserId ? Number(req.query.currentUserId) : undefined;
       
       let submissions;
       if (userId && eventId) {
@@ -583,17 +585,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissions = await storage.getSubmissionsByUser(userId);
       } else if (eventId) {
         submissions = await storage.getSubmissionsByEvent(eventId);
+        
+        // If this is for voting purposes and we have a current user ID,
+        // filter out the current user's own submissions
+        if (forVoting && currentUserId) {
+          submissions = submissions.filter(sub => sub.userId !== currentUserId);
+        }
       } else if (winnerCategory) {
         submissions = await storage.getWinningSubmissions(winnerCategory);
       } else {
         return res.status(400).json({ message: 'Query parameters are required' });
       }
       
-      // For each submission, get the vote count
+      // For each submission, get the vote count and whether current user voted
       const submissionsWithVotes = await Promise.all(
         submissions.map(async (sub) => {
           const voteCount = await storage.getVoteCountForSubmission(sub.id);
-          return { ...sub, voteCount };
+          
+          // Check if current user has voted for this submission
+          let hasVoted = false;
+          if (currentUserId) {
+            hasVoted = await storage.hasUserVotedForSubmission(currentUserId, sub.id);
+          }
+          
+          // Get the user's full name for each submission
+          const user = await storage.getUser(sub.userId);
+          const userFullName = user ? user.fullName : "Anonymous";
+          
+          return { ...sub, voteCount, hasVoted, userFullName };
         })
       );
       
@@ -696,8 +715,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: 'User already voted for this submission' });
       }
       
+      // Get the submission to determine the event
+      const submission = await storage.getSubmission(voteData.submissionId);
+      if (!submission) {
+        return res.status(404).json({ message: 'Submission not found' });
+      }
+      
+      // Get the event to determine the stage
+      const event = await storage.getEvent(submission.eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Count how many votes this user has already cast for submissions in this event
+      const userVotes = await storage.getVotesByVoter(voteData.voterId);
+      
+      // Filter to only count votes for submissions in the same event
+      const eventSubmissions = await storage.getSubmissionsByEvent(submission.eventId);
+      const eventSubmissionIds = eventSubmissions.map(s => s.id);
+      
+      const votesInThisEvent = userVotes.filter(vote => 
+        eventSubmissionIds.includes(vote.submissionId)
+      );
+      
+      // Check if user has reached the maximum number of votes (3) for this event
+      if (votesInThisEvent.length >= 3) {
+        return res.status(403).json({ 
+          message: 'Maximum number of votes (3) reached for this event',
+          votesUsed: votesInThisEvent.length
+        });
+      }
+      
       const vote = await storage.createVote(voteData);
-      res.status(201).json(vote);
+      res.status(201).json({
+        ...vote,
+        votesUsed: votesInThisEvent.length + 1
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Invalid vote data', errors: error.errors });
@@ -729,6 +782,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ hasVoted });
     } catch (error) {
       res.status(500).json({ message: 'Failed to check vote status' });
+    }
+  });
+  
+  apiRouter.get('/votes/count-by-voter', async (req, res) => {
+    try {
+      const voterId = req.query.voterId ? Number(req.query.voterId) : undefined;
+      const eventId = req.query.eventId ? Number(req.query.eventId) : undefined;
+      
+      if (!voterId || !eventId) {
+        return res.status(400).json({ message: 'voterId and eventId query parameters are required' });
+      }
+      
+      // Get all submissions for this event
+      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
+      const eventSubmissionIds = eventSubmissions.map(s => s.id);
+      
+      // Get all votes from this voter
+      const userVotes = await storage.getVotesByVoter(voterId);
+      
+      // Filter votes to only include those for submissions in this event
+      const votesInThisEvent = userVotes.filter(vote => 
+        eventSubmissionIds.includes(vote.submissionId)
+      );
+      
+      res.json({ 
+        votesUsed: votesInThisEvent.length, 
+        maxVotes: 3,
+        remaining: Math.max(0, 3 - votesInThisEvent.length)
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to count voter votes' });
     }
   });
 

@@ -87,9 +87,23 @@ const CreArt: React.FC = () => {
   const eventId = activeClassEvent && 'id' in activeClassEvent ? activeClassEvent.id : null;
   
   // Fetch submissions for class voting if there's an active class event
+  // Fetch submissions for class voting if there's an active class event
   const { data: classSubmissions = [], isLoading: isLoadingClassSubmissions } = useQuery({
-    queryKey: eventId ? [`/api/submissions?eventId=${eventId}`] : [`/api/submissions`],
-    enabled: !!eventId,
+    queryKey: eventId ? [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}`] : [`/api/submissions`],
+    enabled: !!eventId && !!userId,
+  });
+  
+  // Define interface for voting stats
+  interface VotingStats {
+    votesUsed: number;
+    maxVotes: number;
+    remaining: number;
+  }
+  
+  // Fetch voting stats to know how many votes are remaining
+  const { data: votingStats, isLoading: isLoadingVotingStats } = useQuery<VotingStats>({
+    queryKey: eventId && userId ? [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`] : [`/api/votes/count-by-voter`],
+    enabled: !!eventId && !!userId,
   });
   
   // Vote mutation
@@ -111,16 +125,40 @@ const CreArt: React.FC = () => {
         description: "Your vote has been recorded",
       });
       // Invalidate queries to refresh data
-      if (eventId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/submissions?eventId=${eventId}`] });
+      if (eventId && userId) {
+        // Invalidate both submissions and voting stats
+        queryClient.invalidateQueries({ 
+          queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}`] 
+        });
+        
+        // Also invalidate voting stats to update the vote counter
+        queryClient.invalidateQueries({
+          queryKey: [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`]
+        });
       }
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Failed to cast vote: ${error.message}`,
-        variant: "destructive"
-      });
+      // Check if this is the max votes reached error
+      if (error.message && error.message.includes('Maximum number of votes')) {
+        toast({
+          title: "Vote limit reached",
+          description: "You have already used your 3 votes for this event",
+          variant: "destructive"
+        });
+        
+        // Force refresh the voting stats
+        if (eventId && userId) {
+          queryClient.invalidateQueries({
+            queryKey: [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`]
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to cast vote: ${error.message}`,
+          variant: "destructive"
+        });
+      }
     }
   });
   
@@ -387,11 +425,40 @@ const CreArt: React.FC = () => {
         <TabsContent value="voting" className="mt-4">
           {activeClassEvent && (
             <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
-              <div className="flex items-center mb-4">
-                <Vote className="h-5 w-5 text-blue-600 mr-2" />
-                <h2 className="text-xl font-semibold font-heading text-blue-800">
-                  Class Voting - {activeClassEvent.name}
-                </h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Vote className="h-5 w-5 text-blue-600 mr-2" />
+                  <h2 className="text-xl font-semibold font-heading text-blue-800">
+                    Class Voting - {activeClassEvent.name}
+                  </h2>
+                </div>
+                
+                {/* Voting Stats */}
+                {!isLoadingVotingStats && votingStats && (
+                  <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 flex items-center space-x-3">
+                    <div className="text-sm text-blue-700">
+                      <span className="font-bold">{votingStats.remaining}</span> of <span className="font-bold">{votingStats.maxVotes}</span> votes remaining
+                    </div>
+                    <div className="h-2 w-20 bg-blue-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-600" 
+                        style={{ 
+                          width: `${Math.max(0, (votingStats.maxVotes - votingStats.votesUsed) / votingStats.maxVotes * 100)}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fallback when stats are loading */}
+                {isLoadingVotingStats && (
+                  <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 flex items-center space-x-3">
+                    <div className="text-sm text-blue-700">
+                      <span className="font-medium">Loading voting stats...</span>
+                    </div>
+                    <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                  </div>
+                )}
               </div>
               
               {isLoadingClassSubmissions ? (
@@ -441,12 +508,17 @@ const CreArt: React.FC = () => {
                           size="sm"
                           className={submission.hasVoted 
                             ? "bg-green-600 hover:bg-green-700 text-white rounded-full"
-                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"}
+                            : votingStats && votingStats.remaining <= 0
+                              ? "bg-gray-400 text-white rounded-full cursor-not-allowed"
+                              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"}
                           onClick={() => handleVote(submission.id)}
-                          disabled={submission.hasVoted || voteMutation.isPending}
+                          disabled={submission.hasVoted || voteMutation.isPending || (votingStats && votingStats.remaining <= 0)}
+                          title={votingStats && votingStats.remaining <= 0 ? "You have used all your votes" : ""}
                         >
                           {submission.hasVoted ? (
                             <><CheckCircle2 className="h-4 w-4 mr-1" /> Voted</>
+                          ) : votingStats && votingStats.remaining <= 0 ? (
+                            <><Vote className="h-4 w-4 mr-1" /> No votes left</>
                           ) : (
                             <><Heart className="h-4 w-4 mr-1" /> Vote</>
                           )}
