@@ -1,0 +1,3 @@
+name,gradeLevel,schoolId,teacherId,isLocked,id
+Creative Writing 101,9th Grade,,,false,1
+Class 2B,Grade 2,,,false,2

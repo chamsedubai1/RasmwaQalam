@@ -1646,9 +1646,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Check if teacher role is correct
-          if (teacher.role !== 'teacher') {
-            const errorMsg = `User with ID ${classData.teacherId} is not a teacher (role: ${teacher.role})`;
+          // Allow admin users to be assigned as teachers as well
+          if (teacher.role !== 'teacher' && teacher.role !== 'admin') {
+            const errorMsg = `User with ID ${classData.teacherId} must be a teacher or admin (current role: ${teacher.role})`;
             logToFile(errorMsg);
             results.errors.push(`Row ${i + 1}: ${errorMsg}`);
             continue;
