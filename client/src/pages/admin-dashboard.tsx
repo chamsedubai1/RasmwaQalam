@@ -39,6 +39,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -1316,6 +1317,7 @@ const AdminDashboard: React.FC = () => {
                 isLoading={isLoadingEvents}
                 isAdmin={true}
                 onEdit={handleEditEvent}
+                onManageParticipants={handleManageParticipants}
               />
             </CardContent>
           </Card>
@@ -3495,6 +3497,42 @@ const AdminDashboard: React.FC = () => {
               
               <DialogFooter className="mt-6">
                 <Button variant="outline" onClick={() => setShowStudentsDialog(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Participants Management Dialog */}
+      <Dialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Manage Event Participants</DialogTitle>
+            <DialogDescription>
+              View and manage participants for this event
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEventId && (
+            <>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">
+                  {events.find((e: any) => e.id === selectedEventId)?.name || "Event"} Participants
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Track submissions and send reminders
+                </p>
+              </div>
+              
+              {/* Participants table */}
+              <div className="overflow-y-auto max-h-[500px]">
+                <ParticipantsTable eventId={selectedEventId} />
+              </div>
+              
+              <DialogFooter className="mt-6">
+                <Button variant="outline" onClick={() => setShowParticipantsDialog(false)}>
                   Close
                 </Button>
               </DialogFooter>

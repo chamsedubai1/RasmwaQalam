@@ -571,66 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get detailed participant information for an event
-  apiRouter.get('/events/:eventId/participants', async (req, res) => {
-    try {
-      const eventId = Number(req.params.eventId);
-      
-      // Get all registrations for this event
-      const registrations = await storage.getRegistrationsByEvent(eventId);
-      
-      if (!registrations || registrations.length === 0) {
-        return res.json([]);
-      }
-      
-      // Get user IDs from registrations
-      const userIds = registrations.map(r => r.userId);
-      
-      // Get all users, schools, and classes for efficiency
-      const allUsers = await storage.getAllUsers();
-      const allSchools = await storage.getAllSchools();
-      const allClasses = await storage.getAllClasses();
-      
-      // Get all submissions for this event
-      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
-      
-      // Filter and map users
-      const participants = userIds.map(userId => {
-        const user = allUsers.find(u => u.id === userId);
-        if (!user) return null;
-        
-        // Find user's school and class
-        const school = allSchools.find(s => s.id === user.schoolId);
-        const classInfo = allClasses.find(c => c.id === user.classId);
-        
-        // Check if user has submitted
-        const hasSubmission = eventSubmissions.some(s => s.userId === userId);
-        
-        // Count votes the user has cast for this event
-        const userSubmission = eventSubmissions.find(s => s.userId === userId);
-        
-        return {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          role: user.role,
-          email: user.email,
-          schoolId: user.schoolId,
-          schoolName: school ? school.name : 'Unknown',
-          classId: user.classId,
-          className: classInfo ? classInfo.name : 'Unknown',
-          gradeLevel: classInfo ? classInfo.gradeLevel : 'Unknown',
-          hasSubmitted: hasSubmission,
-          submissionId: userSubmission ? userSubmission.id : null,
-          registrationDate: registrations.find(r => r.userId === userId)?.createdAt || null
-        };
-      }).filter(Boolean);
-      
-      res.json(participants);
-    } catch (error) {
-      console.error('Error fetching participants:', error);
-      res.status(500).json({ message: 'Failed to fetch participants' });
-    }
-  });
+  // Endpoint removed - duplicate of the one at line ~2081
   
   apiRouter.post('/registrations', async (req, res) => {
     try {
