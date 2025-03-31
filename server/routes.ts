@@ -66,11 +66,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Check if username already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
+      const existingUsername = await storage.getUserByUsername(userData.username);
+      if (existingUsername) {
         return res.status(409).json({ 
-          message: 'Username already exists. Please choose a different username.' 
+          message: 'Username already exists. Please choose a different username.',
+          field: 'username'
         });
+      }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(userData.email);
+      if (existingEmail) {
+        return res.status(409).json({ 
+          message: 'Email already exists. Please use a different email address.',
+          field: 'email'
+        });
+      }
+      
+      // For teachers, check if teacher is already assigned to a class
+      if (userData.role === 'teacher' && userData.classId) {
+        const teacherClasses = await storage.getClassesByTeacher(userData.id);
+        if (teacherClasses.length > 0) {
+          return res.status(409).json({
+            message: 'This teacher is already assigned to a class. Teachers can only be assigned to one class.',
+            field: 'classId'
+          });
+        }
       }
       
       // Create the user
@@ -167,6 +188,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post('/users', async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUsername = await storage.getUserByUsername(userData.username);
+      if (existingUsername) {
+        return res.status(409).json({ 
+          message: 'Username already exists. Please choose a different username.',
+          field: 'username'
+        });
+      }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(userData.email);
+      if (existingEmail) {
+        return res.status(409).json({ 
+          message: 'Email already exists. Please use a different email address.',
+          field: 'email'
+        });
+      }
+      
+      // For teachers, restrict to one class assignment
+      if (userData.role === 'teacher' && userData.classId) {
+        const existingClasses = await storage.getAllClasses();
+        const alreadyAssigned = existingClasses.some(c => c.teacherId !== null && 
+          userData.id !== c.teacherId && c.id === userData.classId);
+        
+        if (alreadyAssigned) {
+          return res.status(409).json({
+            message: 'This class already has a teacher assigned. Please choose a different class or create a new one.',
+            field: 'classId'
+          });
+        }
+      }
+      
       const user = await storage.createUser(userData);
       
       // Return user without password
@@ -189,12 +243,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
+      // Check for username and email conflicts if they are being changed
+      if (req.body.username && req.body.username !== user.username) {
+        const existingUsername = await storage.getUserByUsername(req.body.username);
+        if (existingUsername && existingUsername.id !== userId) {
+          return res.status(409).json({ 
+            message: 'Username already exists. Please choose a different username.',
+            field: 'username'
+          });
+        }
+      }
+      
+      if (req.body.email && req.body.email !== user.email) {
+        const existingEmail = await storage.getUserByEmail(req.body.email);
+        if (existingEmail && existingEmail.id !== userId) {
+          return res.status(409).json({ 
+            message: 'Email already exists. Please use a different email address.',
+            field: 'email'
+          });
+        }
+      }
+      
+      // For teachers, check class assignment when changing class
+      if (user.role === 'teacher' && req.body.classId && req.body.classId !== user.classId) {
+        // Check if the new class already has a teacher assigned
+        const classes = await storage.getAllClasses();
+        const isClassTaken = classes.some(c => 
+          c.id === req.body.classId && 
+          c.teacherId !== null && 
+          c.teacherId !== userId
+        );
+        
+        if (isClassTaken) {
+          return res.status(409).json({
+            message: 'This class already has a teacher assigned. Please choose a different class.',
+            field: 'classId'
+          });
+        }
+      }
+      
       const updatedUser = await storage.updateUser(userId, req.body);
       
       // Return user without password
       const { password, ...userWithoutPassword } = updatedUser!;
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error('User update error:', error);
       res.status(500).json({ message: 'Failed to update user' });
     }
   });
@@ -349,6 +443,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Received class creation request:', req.body);
       const classData = insertClassSchema.parse(req.body);
       console.log('Validated class data:', classData);
+      
+      // Check if the teacher is already assigned to another class
+      if (classData.teacherId) {
+        const teacherClasses = await storage.getClassesByTeacher(classData.teacherId);
+        if (teacherClasses.length > 0) {
+          console.error('Teacher already assigned to a class:', teacherClasses);
+          return res.status(409).json({
+            message: 'This teacher is already assigned to a class. Teachers can only be assigned to one class.',
+            field: 'teacherId'
+          });
+        }
+      }
+      
       const newClass = await storage.createClass(classData);
       console.log('Class created successfully:', newClass);
       res.status(201).json(newClass);
@@ -371,9 +478,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Class not found' });
       }
       
+      // Check if we're changing the teacher assignment
+      if (req.body.teacherId && req.body.teacherId !== classData.teacherId) {
+        // Check if the teacher is already assigned to another class
+        const teacherClasses = await storage.getClassesByTeacher(req.body.teacherId);
+        const otherAssignments = teacherClasses.filter(c => c.id !== classId);
+        
+        if (otherAssignments.length > 0) {
+          return res.status(409).json({
+            message: 'This teacher is already assigned to another class. Teachers can only be assigned to one class.',
+            field: 'teacherId'
+          });
+        }
+      }
+      
       const updatedClass = await storage.updateClass(classId, req.body);
       res.json(updatedClass);
     } catch (error) {
+      console.error('Class update error:', error);
       res.status(500).json({ message: 'Failed to update class' });
     }
   });
