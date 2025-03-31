@@ -20,6 +20,12 @@ export async function apiRequest<T = any>(
   });
 
   await throwIfResNotOk(res);
+  
+  // For 204 No Content responses (common for DELETE operations), return empty object
+  if (res.status === 204) {
+    return {} as T;
+  }
+  
   return await res.json() as T;
 }
 
