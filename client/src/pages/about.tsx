@@ -1,5 +1,6 @@
 import React from "react";
 import aboutStoryImage from "../assets/about-story_1743074317684.jpg";
+import missionImage from "../assets/mission-image.svg";
 import { useLanguage } from "@/hooks/use-language";
 import { 
   Sparkles, 
@@ -44,9 +45,9 @@ const About: React.FC = () => {
         <div className="md:flex">
           <div className="md:shrink-0 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20"></div>
-            <img className="h-60 w-full object-cover md:h-full md:w-60" 
-                src="https://images.unsplash.com/photo-1522661067900-ab829854a57f?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=400&q=80" 
-                alt="Students creating art" />
+            <img className="h-60 w-full object-cover md:h-full md:w-80" 
+                src={missionImage} 
+                alt={t("about.mission.image_alt")} />
           </div>
           <div className="p-8">
             <div className="flex items-center gap-3 mb-4">

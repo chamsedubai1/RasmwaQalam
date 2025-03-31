@@ -189,6 +189,7 @@ const translations: Record<Language, Record<string, string>> = {
     "about.hero.description": "Empowering student creativity through AI-assisted artistic expression and friendly competition",
     
     "about.mission.title": "Our Mission",
+    "about.mission.image_alt": "AI-Powered Creativity for Students",
     "about.mission.paragraph1": "FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.",
     "about.mission.paragraph2": "We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.",
     
@@ -441,6 +442,7 @@ const translations: Record<Language, Record<string, string>> = {
     "about.hero.description": "تمكين إبداع الطلاب من خلال التعبير الفني بمساعدة الذكاء الاصطناعي والمنافسة الودية",
     
     "about.mission.title": "مهمتنا",
+    "about.mission.image_alt": "الإبداع المدعوم بالذكاء الاصطناعي للطلاب",
     "about.mission.paragraph1": "تم إنشاء فزاع-للفنون لتمكين الطلاب من استكشاف إبداعهم باستخدام أدوات الذكاء الاصطناعي المتطورة مع بناء بيئة تنافسية وتعاونية للتعبير الفني.",
     "about.mission.paragraph2": "نؤمن بأنه من خلال الجمع بين التكنولوجيا والتعبير الفني، يمكننا مساعدة الطلاب على تطوير مهاراتهم الإبداعية والتقنية للمستقبل.",
     
