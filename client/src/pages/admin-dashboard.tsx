@@ -1312,8 +1312,9 @@ const AdminDashboard: React.FC = () => {
     const partnerData = {
       name: partnerName,
       description: partnerDescription,
-      websiteUrl: partnerWebsite || null,
-      logoUrl: partnerLogoUrl || null,
+      websiteUrl: partnerWebsite || "",
+      logoUrl: partnerLogoUrl || "",
+      partnerType: "sponsor", // Adding the required partnerType field
       isActive: partnerIsActive
     };
     
@@ -1362,8 +1363,9 @@ const AdminDashboard: React.FC = () => {
       id: selectedPartnerId,
       name: partnerName,
       description: partnerDescription,
-      websiteUrl: partnerWebsite || null,
-      logoUrl: partnerLogoUrl || null,
+      websiteUrl: partnerWebsite || "",
+      logoUrl: partnerLogoUrl || "",
+      partnerType: "sponsor", // Adding the required partnerType field
       isActive: partnerIsActive
     };
     
