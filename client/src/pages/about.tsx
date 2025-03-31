@@ -1,6 +1,6 @@
 import React from "react";
 import aboutStoryImage from "../assets/about-story_1743074317684.jpg";
-import missionImage from "../assets/mission-image.svg";
+import missionImage from "../assets/mission-robot-kids.png";
 import { useLanguage } from "@/hooks/use-language";
 import { 
   Sparkles, 
@@ -41,23 +41,25 @@ const About: React.FC = () => {
       </div>
       
       {/* Mission Statement Card */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 transform hover:scale-[1.01] transition-all">
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-16 transform hover:scale-[1.01] transition-all border border-blue-100">
         <div className="md:flex">
-          <div className="md:shrink-0 relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20"></div>
-            <img className="h-60 w-full object-cover md:h-full md:w-80" 
+          <div className="md:shrink-0 relative flex-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-indigo-600/10 z-10 mix-blend-overlay"></div>
+            <img 
+                className="h-72 w-full object-cover object-center md:h-full md:w-full" 
                 src={missionImage} 
                 alt={t("about.mission.image_alt")} />
+            <div className="absolute bottom-0 left-0 right-0 h-1/5 bg-gradient-to-t from-blue-900/70 to-transparent md:hidden"></div>
           </div>
-          <div className="p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center">
-                <Lightbulb className="h-5 w-5 text-white" />
+          <div className="p-8 md:p-10 flex-1 bg-gradient-to-br from-white to-blue-50">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
+                <Lightbulb className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-2xl font-heading font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.mission.title")}</h2>
+              <h2 className="text-2xl font-heading font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.mission.title")}</h2>
             </div>
-            <p className="text-gray-600 mb-4 leading-relaxed">{t("about.mission.paragraph1")}</p>
-            <p className="text-gray-600 leading-relaxed">{t("about.mission.paragraph2")}</p>
+            <p className="text-gray-700 mb-5 leading-relaxed text-lg">{t("about.mission.paragraph1")}</p>
+            <p className="text-gray-700 leading-relaxed text-lg">{t("about.mission.paragraph2")}</p>
           </div>
         </div>
       </div>
