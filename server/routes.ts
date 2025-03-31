@@ -1033,8 +1033,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get('/export/users', async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      // Remove sensitive data like passwords
-      const exportableUsers = users.map(({ password, ...rest }) => rest);
+      const schools = await storage.getAllSchools();
+      const classes = await storage.getAllClasses();
+      
+      // For students export, include School, Grade, Class, and Password information
+      const exportableUsers = users.map(user => {
+        // Find school and class information
+        const userSchool = schools.find(s => s.id === user.schoolId);
+        const userClass = classes.find(c => c.id === user.classId);
+        
+        // Create enhanced user object with additional fields
+        return {
+          ...user,
+          // Replace null values with empty strings for better CSV/Excel export
+          schoolName: userSchool ? userSchool.name : '',
+          className: userClass ? userClass.name : '',
+          gradeLevel: userClass ? userClass.gradeLevel : '',
+          // Include password for import/export functionality
+          // Note: In a real production environment, we would never export actual passwords
+          // This is only included here for the demonstration/development environment
+          password: user.password || ''
+        };
+      });
       
       const format = req.query.format as string || 'json';
       
@@ -1189,6 +1209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove file after processing
       fs.unlinkSync(req.file.path);
       
+      // Get schools and classes for reference
+      const schools = await storage.getAllSchools();
+      const classes = await storage.getAllClasses();
+      
       // Validate and insert users
       const results = {
         success: 0,
@@ -1197,11 +1221,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const item of data) {
         try {
+          // Handle school name, class name, and grade level lookup
+          let schoolId = item.schoolId;
+          let classId = item.classId;
+          
+          // If schoolName is provided but schoolId is missing, look up the school
+          if (item.schoolName && !schoolId) {
+            const foundSchool = schools.find(s => s.name === item.schoolName);
+            if (foundSchool) {
+              schoolId = foundSchool.id;
+            } else {
+              results.errors.push(`School name '${item.schoolName}' not found`);
+              continue;
+            }
+          }
+          
+          // If className is provided but classId is missing, look up the class
+          if (item.className && !classId) {
+            // Filter by school first if available
+            let potentialClasses = classes;
+            if (schoolId) {
+              potentialClasses = classes.filter(c => c.schoolId === schoolId);
+            }
+            
+            // Then by grade if available
+            if (item.gradeLevel) {
+              potentialClasses = potentialClasses.filter(c => c.gradeLevel === item.gradeLevel);
+            }
+            
+            // Find the matching class name
+            const foundClass = potentialClasses.find(c => c.name === item.className);
+            
+            if (foundClass) {
+              classId = foundClass.id;
+              // If school wasn't provided but we found the class, use its schoolId
+              if (!schoolId) {
+                schoolId = foundClass.schoolId;
+              }
+            } else {
+              results.errors.push(`Class name '${item.className}' not found (school: ${item.schoolName}, grade: ${item.gradeLevel})`);
+              continue;
+            }
+          }
+          
           // Set default values for missing fields if needed
           const userData = {
             ...item,
-            isActive: item.isActive !== undefined ? item.isActive : true
+            isActive: item.isActive !== undefined ? item.isActive : true,
+            schoolId: schoolId,
+            classId: classId
           };
+          
+          // Remove extra fields that aren't in the schema
+          delete userData.schoolName;
+          delete userData.className;
+          delete userData.gradeLevel;
           
           // Validate user data
           insertUserSchema.parse(userData);
@@ -1409,10 +1483,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch(entity) {
         case 'users':
           const users = await storage.getAllUsers();
-          // Remove sensitive data like passwords
+          const schools = await storage.getAllSchools();
+          const classes = await storage.getAllClasses();
+          
+          // Include School, Grade, Class, and Password information for students
           data = users.map(user => {
-            const { password, ...userWithoutPassword } = user;
-            return userWithoutPassword;
+            // Find school and class information
+            const userSchool = schools.find(s => s.id === user.schoolId);
+            const userClass = classes.find(c => c.id === user.classId);
+            
+            // Create enhanced user object with additional fields
+            return {
+              ...user,
+              // Replace null values with empty strings for better CSV/Excel export
+              schoolName: userSchool ? userSchool.name : '',
+              className: userClass ? userClass.name : '',
+              gradeLevel: userClass ? userClass.gradeLevel : '',
+              // Include password for import/export functionality
+              password: user.password || ''
+            };
           });
           break;
         case 'schools':
