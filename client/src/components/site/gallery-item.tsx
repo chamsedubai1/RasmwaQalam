@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/hooks/use-language";
 
 interface GalleryItemProps {
   id: number;
@@ -26,7 +27,9 @@ const GalleryItem: React.FC<GalleryItemProps> = ({
   contentType,
   content
 }) => {
-  const winnerBadgeText = `${winnerCategory.charAt(0).toUpperCase() + winnerCategory.slice(1)} Winner`;
+  const { t } = useLanguage();
+  const categoryTranslated = t(`gallery.filters.${winnerCategory}_winners`).replace(/winners$/i, '').trim();
+  const winnerBadgeText = t('gallery.item.winner').replace('{category}', categoryTranslated);
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -51,12 +54,12 @@ const GalleryItem: React.FC<GalleryItemProps> = ({
       </div>
       <div className="p-5">
         <h3 className="font-heading font-semibold text-lg mb-1">{title}</h3>
-        <p className="text-gray-500 text-sm mb-3">By {creator} • {grade}</p>
+        <p className="text-gray-500 text-sm mb-3">{t('gallery.item.by')} {creator} • {grade}</p>
         <p className="text-gray-600 text-sm mb-3">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded">{eventName}</span>
           <Button variant="link" className="text-primary hover:text-indigo-700 p-0 h-auto">
-            View Details
+            {t('gallery.item.view_details')}
           </Button>
         </div>
       </div>

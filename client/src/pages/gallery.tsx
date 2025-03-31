@@ -28,8 +28,10 @@ import {
   Search,
   Loader2
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 const Gallery: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("paintings");
   const [winnerCategory, setWinnerCategory] = useState("all");
   const [eventFilter, setEventFilter] = useState("all");
@@ -79,10 +81,10 @@ const Gallery: React.FC = () => {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            Winners Gallery
+            {t('gallery.hero.title')}
           </h1>
           <p className="text-lg text-amber-100 max-w-2xl mx-auto">
-            Explore the remarkable winning submissions from our creative challenges
+            {t('gallery.hero.description')}
           </p>
         </div>
       </div>
@@ -94,28 +96,28 @@ const Gallery: React.FC = () => {
             <ImageIcon className="h-5 w-5 text-amber-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.contentType === 'image').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Paintings</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.paintings')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <FileText className="h-5 w-5 text-blue-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.contentType === 'text').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Poems</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.poems')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Trophy className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.globalWinner).length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Global Winners</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.global_winners')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Sparkles className="h-5 w-5 text-green-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{events ? events.length : 0}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Events</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.events')}</div>
         </div>
       </div>
       
@@ -125,11 +127,11 @@ const Gallery: React.FC = () => {
           <TabsList className="grid w-full grid-cols-2 bg-white rounded-xl p-1 shadow-sm border border-amber-100">
             <TabsTrigger value="paintings" className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-amber-600 data-[state=active]:text-white">
               <Palette className="h-4 w-4" />
-              <span>Paintings</span>
+              <span>{t('gallery.tabs.paintings')}</span>
             </TabsTrigger>
             <TabsTrigger value="poetry" className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white">
               <PenTool className="h-4 w-4" />
-              <span>Poetry</span>
+              <span>{t('gallery.tabs.poetry')}</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -139,32 +141,32 @@ const Gallery: React.FC = () => {
       <div className="bg-white rounded-xl shadow-md border border-amber-50 p-6 mb-8">
         <div className="flex items-center mb-4">
           <Filter className="h-5 w-5 text-amber-600 mr-2" />
-          <h2 className="font-semibold text-gray-800">Refine Your Gallery View</h2>
+          <h2 className="font-semibold text-gray-800">{t('gallery.filters.title')}</h2>
         </div>
         <div className="flex flex-wrap gap-6">
           <div>
-            <Label htmlFor="gallery-stage" className="block text-sm font-medium text-gray-700 mb-1">Competition Stage</Label>
+            <Label htmlFor="gallery-stage" className="block text-sm font-medium text-gray-700 mb-1">{t('gallery.filters.competition_stage')}</Label>
             <Select value={winnerCategory} onValueChange={setWinnerCategory}>
               <SelectTrigger id="gallery-stage" className="w-[200px] border-amber-200">
-                <SelectValue placeholder="All Stages" />
+                <SelectValue placeholder={t('gallery.filters.all_winners')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Winners</SelectItem>
-                <SelectItem value="class">Class Winners</SelectItem>
-                <SelectItem value="school">School Winners</SelectItem>
-                <SelectItem value="country">Country Winners</SelectItem>
-                <SelectItem value="global">Global Winners</SelectItem>
+                <SelectItem value="all">{t('gallery.filters.all_winners')}</SelectItem>
+                <SelectItem value="class">{t('gallery.filters.class_winners')}</SelectItem>
+                <SelectItem value="school">{t('gallery.filters.school_winners')}</SelectItem>
+                <SelectItem value="country">{t('gallery.filters.country_winners')}</SelectItem>
+                <SelectItem value="global">{t('gallery.filters.global_winners')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="gallery-event" className="block text-sm font-medium text-gray-700 mb-1">Event</Label>
+            <Label htmlFor="gallery-event" className="block text-sm font-medium text-gray-700 mb-1">{t('gallery.filters.event')}</Label>
             <Select value={eventFilter} onValueChange={setEventFilter}>
               <SelectTrigger id="gallery-event" className="w-[200px] border-amber-200">
-                <SelectValue placeholder="All Events" />
+                <SelectValue placeholder={t('gallery.filters.all_events')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Events</SelectItem>
+                <SelectItem value="all">{t('gallery.filters.all_events')}</SelectItem>
                 {events.map((event: any) => (
                   <SelectItem key={event.id} value={event.id.toString()}>
                     {event.name}
@@ -180,14 +182,14 @@ const Gallery: React.FC = () => {
       {isLoading ? (
         <div className="py-16 text-center bg-white rounded-xl shadow-md border border-amber-50">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mb-4"></div>
-          <p className="text-gray-600">Loading masterpieces...</p>
+          <p className="text-gray-600">{t('gallery.loading')}</p>
         </div>
       ) : filteredSubmissions.length === 0 ? (
         <div className="py-16 text-center bg-white rounded-xl shadow-md border border-amber-50">
           <div className="inline-block h-16 w-16 rounded-full bg-amber-50 flex items-center justify-center mb-4 mx-auto">
             <Search className="h-8 w-8 text-amber-300" />
           </div>
-          <p className="text-gray-600 mb-3">No winning submissions found matching your filters.</p>
+          <p className="text-gray-600 mb-3">{t('gallery.empty.description')}</p>
           <Button 
             variant="outline" 
             className="mt-2 border-amber-200 text-amber-700 hover:bg-amber-50"
@@ -196,7 +198,7 @@ const Gallery: React.FC = () => {
               setEventFilter("all");
             }}
           >
-            Reset All Filters
+            {t('gallery.empty.reset')}
           </Button>
         </div>
       ) : (
