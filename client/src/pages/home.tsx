@@ -44,65 +44,28 @@ const Home: React.FC = () => {
 
   return (
     <div>
-      {/* Hero Section */}
-      <div className="relative mb-16">
-        <div className="bg-gradient-to-br from-primary via-blue-700 to-indigo-900 rounded-xl overflow-hidden shadow-2xl transform hover:scale-[1.01] transition-all duration-300">
-          <div className="absolute inset-0 opacity-25 mix-blend-overlay">
-            <img 
-              src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&h=400&q=80" 
-              alt="Art background" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/50 to-transparent"></div>
-          <div className="relative px-8 py-20 sm:px-16 sm:py-24 text-white">
-            <div className="animate-fadeIn">
-              <h1 className="text-4xl sm:text-6xl font-bold font-heading mb-4 tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500">FAZAA</span>
-                <span> - Art</span>
-              </h1>
-              <h2 className="text-3xl sm:text-4xl font-bold font-heading mb-6 text-white/90">{t("home.hero.title")}</h2>
-              <p className="text-xl mb-8 max-w-2xl text-white/80 leading-relaxed">{t("home.hero.description")}</p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/events">
-                  <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-full shadow-lg transition-all border-0 px-8 py-6 text-lg">
-                    {t("home.hero.cta.explore")}
-                  </Button>
-                </Link>
-                {userRole === "student" && (
-                  <Link href="/creart">
-                    <Button size="lg" variant="outline" className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-white/30 font-medium rounded-full shadow-lg transition-all px-8 py-6 text-lg">
-                      {t("home.hero.cta.create")}
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* AI Robot Art Section */}
-      <div className="w-full my-16 px-4 md:px-0">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl overflow-hidden shadow-lg">
+      <div className="w-full mt-10 mb-20 px-4 md:px-8">
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-500 to-blue-700 rounded-2xl overflow-hidden shadow-2xl">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row">
-              <div className="w-full md:w-2/3 overflow-hidden">
+              <div className="w-full md:w-2/3 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/30 to-transparent z-10"></div>
                 <img 
                   src={aiRobotImage} 
                   alt={t("home.airobot.alt")} 
-                  className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-500" 
+                  className="w-full h-full object-cover transform hover:scale-[1.03] transition-transform duration-700" 
                 />
               </div>
-              <div className="w-full md:w-1/3 p-8 md:p-12 flex flex-col justify-center">
-                <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4 bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+              <div className="w-full md:w-1/3 p-8 md:p-12 flex flex-col justify-center backdrop-blur-sm bg-white/[0.03]">
+                <h1 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-white">
                   {t("home.airobot.title")}
-                </h2>
-                <p className="text-gray-700 mb-6 leading-relaxed">
+                </h1>
+                <p className="text-white/90 mb-8 leading-relaxed text-lg">
                   {t("home.airobot.description")}
                 </p>
                 <Link href="/creart">
-                  <Button className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+                  <Button size="lg" className="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-full shadow-lg transition-all border-0 px-8 py-6 text-lg">
                     {t("home.airobot.button")}
                   </Button>
                 </Link>
