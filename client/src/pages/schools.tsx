@@ -27,11 +27,14 @@ const Schools: React.FC = () => {
     return school.activeStudentCount || 0;
   };
   
-  // Filter schools by search query
-  const filteredSchools = schools.filter((school: any) => 
-    school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (school.description && school.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter schools by search query and active status
+  const filteredSchools = schools.filter((school: any) => {
+    // Always filter out inactive schools on public page
+    if (!school.isActive) return false;
+    
+    return school.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (school.description && school.description.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
   
   return (
     <div>
@@ -90,15 +93,15 @@ const Schools: React.FC = () => {
           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <School className="h-5 w-5 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{schools ? schools.length : 0}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Total Schools</div>
+          <div className="text-2xl font-bold text-gray-800">{schools.filter((s: any) => s.isActive).length}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Active Schools</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-blue-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Users className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">
-            {schools.reduce((total: number, school: any) => total + getActiveStudentCount(school), 0)}
+            {schools.filter((s: any) => s.isActive).reduce((total: number, school: any) => total + getActiveStudentCount(school), 0)}
           </div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">Active Students</div>
         </div>

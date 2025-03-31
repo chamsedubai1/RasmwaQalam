@@ -708,9 +708,17 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
-  // Fetch all schools
+  // Fetch all schools (including inactive ones for admin)
   const { data: schools = [], isLoading: isLoadingSchools, refetch: refetchSchools } = useQuery({
     queryKey: ['/api/schools'],
+    queryFn: async () => {
+      // Add showInactive=true parameter to fetch all schools regardless of status
+      const response = await fetch('/api/schools?showInactive=true');
+      if (!response.ok) {
+        throw new Error('Failed to fetch schools');
+      }
+      return response.json();
+    },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 1000, // Consider data stale after 1 second
