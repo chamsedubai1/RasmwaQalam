@@ -67,8 +67,13 @@ import {
   PieChart,
   Loader2,
   Eye,
-  Mail
+  Mail,
+  Award
 } from "lucide-react";
+import { 
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
 
 // ParticipantsTable component for showing event participants
@@ -76,36 +81,82 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMarkingWinner, setIsMarkingWinner] = useState(false);
   const { toast } = useToast();
   
-  useEffect(() => {
+  // Function to mark a submission as a winner
+  const markAsWinner = async (submissionId: number, stage: string) => {
+    if (!eventId || !submissionId) return;
+    
+    setIsMarkingWinner(true);
+    
+    try {
+      const response = await fetch('/api/submissions/mark-winners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId,
+          stage,
+          winnerIds: [submissionId]
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to mark as winner');
+      }
+      
+      toast({
+        title: "Success",
+        description: `Submission marked as winner for ${stage} stage`,
+      });
+      
+      // Refresh the participants data
+      fetchParticipants();
+      
+    } catch (err) {
+      console.error('Error marking winner:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to mark as winner',
+        variant: "destructive"
+      });
+    } finally {
+      setIsMarkingWinner(false);
+    }
+  };
+  
+  // Define the fetchParticipants function outside useEffect
+  const fetchParticipants = async () => {
     if (!eventId) return;
     
-    const fetchParticipants = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await fetch(`/api/events/${eventId}/participants`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch participants');
-        }
-        
-        const data = await response.json();
-        setParticipants(data);
-      } catch (err) {
-        console.error('Error fetching participants:', err);
-        setError('Failed to load participants data');
-        toast({
-          title: 'Error',
-          description: 'Failed to load participants data',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsLoading(true);
+    setError(null);
     
+    try {
+      const response = await fetch(`/api/events/${eventId}/participants`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch participants');
+      }
+      
+      const data = await response.json();
+      setParticipants(data);
+    } catch (err) {
+      console.error('Error fetching participants:', err);
+      setError('Failed to load participants data');
+      toast({
+        title: 'Error',
+        description: 'Failed to load participants data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchParticipants();
   }, [eventId, toast]);
   
@@ -217,59 +268,101 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
               <div className="flex space-x-2">
                 {participant.hasSubmitted && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // View submission
+                        toast({
+                          title: "View Submission",
+                          description: `Viewing submission for ${participant.name}`,
+                        });
+                        // Navigate to the submission view
+                        window.open(`/submission/${participant.submissionId}`, '_blank');
+                      }}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Award className="h-3.5 w-3.5 mr-1" />
+                          Mark Winner
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'class')}
+                          disabled={isMarkingWinner}
+                        >
+                          Class Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'school')}
+                          disabled={isMarkingWinner}
+                        >
+                          School Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'country')}
+                          disabled={isMarkingWinner}
+                        >
+                          Country Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'global')}
+                          disabled={isMarkingWinner}
+                        >
+                          Global Winner
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                )}
+                
+                {!participant.hasSubmitted && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      // View submission
-                      toast({
-                        title: "View Submission",
-                        description: `Viewing submission for ${participant.name}`,
-                      });
-                      // In a real implementation, you would navigate to the submission
-                      window.open(`/submission/${participant.submissionId}`, '_blank');
+                      // Send reminder email
+                      if (!participant.hasSubmitted && eventId) {
+                        fetch(`/api/events/${eventId}/reminder`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ userId: participant.id }),
+                        })
+                          .then((res) => {
+                            if (res.ok) {
+                              toast({
+                                title: "Reminder Sent",
+                                description: `Email reminder sent to ${participant.name}`,
+                              });
+                            } else {
+                              throw new Error('Failed to send reminder');
+                            }
+                          })
+                          .catch((error) => {
+                            toast({
+                              title: "Error",
+                              description: "Failed to send reminder",
+                              variant: "destructive",
+                            });
+                          });
+                      }
                     }}
                   >
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    View
+                    <Mail className="h-3.5 w-3.5 mr-1" />
+                    Remind
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Send reminder email
-                    if (!participant.hasSubmitted && eventId) {
-                      fetch(`/api/events/${eventId}/reminder`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ userId: participant.id }),
-                      })
-                        .then((res) => {
-                          if (res.ok) {
-                            toast({
-                              title: "Reminder Sent",
-                              description: `Email reminder sent to ${participant.name}`,
-                            });
-                          } else {
-                            throw new Error('Failed to send reminder');
-                          }
-                        })
-                        .catch((error) => {
-                          toast({
-                            title: "Error",
-                            description: "Failed to send reminder",
-                            variant: "destructive",
-                          });
-                        });
-                    }
-                  }}
-                >
-                  <Mail className="h-3.5 w-3.5 mr-1" />
-                  Remind
-                </Button>
               </div>
             </td>
           </tr>
