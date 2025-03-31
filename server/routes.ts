@@ -5,6 +5,11 @@ import express from "express";
 import { z } from "zod";
 import { generatePoem as generateOpenAIPoem, generateImage as generateOpenAIImage } from "./openai";
 import { generateText as generateHuggingFaceText, generateImage as generateHuggingFaceImage } from "./huggingface";
+import multer from "multer";
+import * as XLSX from "xlsx";
+import * as fs from "fs";
+import * as path from "path";
+import Papa from "papaparse";
 
 // Set this to true to use Hugging Face (free open-source AI) instead of OpenAI
 const USE_HUGGING_FACE = true;
@@ -1016,6 +1021,534 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to generate image' });
     }
   });
+
+  // Set up file upload middleware
+  const upload = multer({ 
+    dest: 'uploads/',
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+
+  // Import/export endpoints
+  // Data export endpoints
+  apiRouter.get('/export/users', async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove sensitive data like passwords
+      const exportableUsers = users.map(({ password, ...rest }) => rest);
+      
+      const format = req.query.format as string || 'json';
+      
+      if (format === 'csv') {
+        const csv = Papa.unparse(exportableUsers);
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="users.csv"');
+        return res.send(csv);
+      } else if (format === 'xlsx') {
+        const ws = XLSX.utils.json_to_sheet(exportableUsers);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Users');
+        
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.header('Content-Disposition', 'attachment; filename="users.xlsx"');
+        return res.send(Buffer.from(excelBuffer));
+      }
+      
+      // Default: JSON
+      res.json(exportableUsers);
+    } catch (error) {
+      console.error('Export users error:', error);
+      res.status(500).json({ message: 'Failed to export users' });
+    }
+  });
+
+  apiRouter.get('/export/schools', async (req, res) => {
+    try {
+      const schools = await storage.getAllSchools();
+      
+      const format = req.query.format as string || 'json';
+      
+      if (format === 'csv') {
+        const csv = Papa.unparse(schools);
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="schools.csv"');
+        return res.send(csv);
+      } else if (format === 'xlsx') {
+        const ws = XLSX.utils.json_to_sheet(schools);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Schools');
+        
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.header('Content-Disposition', 'attachment; filename="schools.xlsx"');
+        return res.send(Buffer.from(excelBuffer));
+      }
+      
+      // Default: JSON
+      res.json(schools);
+    } catch (error) {
+      console.error('Export schools error:', error);
+      res.status(500).json({ message: 'Failed to export schools' });
+    }
+  });
+
+  apiRouter.get('/export/classes', async (req, res) => {
+    try {
+      const classes = await storage.getAllClasses();
+      
+      const format = req.query.format as string || 'json';
+      
+      if (format === 'csv') {
+        const csv = Papa.unparse(classes);
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="classes.csv"');
+        return res.send(csv);
+      } else if (format === 'xlsx') {
+        const ws = XLSX.utils.json_to_sheet(classes);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Classes');
+        
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.header('Content-Disposition', 'attachment; filename="classes.xlsx"');
+        return res.send(Buffer.from(excelBuffer));
+      }
+      
+      // Default: JSON
+      res.json(classes);
+    } catch (error) {
+      console.error('Export classes error:', error);
+      res.status(500).json({ message: 'Failed to export classes' });
+    }
+  });
+
+  apiRouter.get('/export/events', async (req, res) => {
+    try {
+      const events = await storage.getAllEvents();
+      
+      const format = req.query.format as string || 'json';
+      
+      if (format === 'csv') {
+        const csv = Papa.unparse(events);
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename="events.csv"');
+        return res.send(csv);
+      } else if (format === 'xlsx') {
+        const ws = XLSX.utils.json_to_sheet(events);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Events');
+        
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.header('Content-Disposition', 'attachment; filename="events.xlsx"');
+        return res.send(Buffer.from(excelBuffer));
+      }
+      
+      // Default: JSON
+      res.json(events);
+    } catch (error) {
+      console.error('Export events error:', error);
+      res.status(500).json({ message: 'Failed to export events' });
+    }
+  });
+  
+  // Data import endpoints
+  apiRouter.post('/import/users', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      let data: any[] = [];
+      
+      if (fileExtension === '.csv') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        data = Papa.parse(fileContent, { header: true }).data;
+      } else if (fileExtension === '.xlsx') {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = XLSX.utils.sheet_to_json(worksheet);
+      } else if (fileExtension === '.txt') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        // Try to parse as JSON
+        try {
+          data = JSON.parse(fileContent);
+          if (!Array.isArray(data)) {
+            data = [data];
+          }
+        } catch (e) {
+          // Try to parse as CSV if JSON parsing fails
+          data = Papa.parse(fileContent, { header: true }).data;
+        }
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
+      }
+      
+      // Remove file after processing
+      fs.unlinkSync(req.file.path);
+      
+      // Validate and insert users
+      const results = {
+        success: 0,
+        errors: [] as string[]
+      };
+      
+      for (const item of data) {
+        try {
+          // Set default values for missing fields if needed
+          const userData = {
+            ...item,
+            isActive: item.isActive !== undefined ? item.isActive : true
+          };
+          
+          // Validate user data
+          insertUserSchema.parse(userData);
+          
+          // Check if username already exists
+          const existingUser = await storage.getUserByUsername(userData.username);
+          if (existingUser) {
+            results.errors.push(`Username ${userData.username} already exists`);
+            continue;
+          }
+          
+          // Create user
+          await storage.createUser(userData);
+          results.success++;
+        } catch (error) {
+          let errorMessage = 'Invalid user data';
+          if (error instanceof z.ZodError) {
+            errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          }
+          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+        }
+      }
+      
+      res.json({
+        message: `Import completed: ${results.success} users imported successfully, ${results.errors.length} errors`,
+        ...results
+      });
+    } catch (error) {
+      console.error('Import users error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to import users', error: errorMessage });
+    }
+  });
+  
+  apiRouter.post('/import/schools', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      let data: any[] = [];
+      
+      if (fileExtension === '.csv') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        data = Papa.parse(fileContent, { header: true }).data;
+      } else if (fileExtension === '.xlsx') {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = XLSX.utils.sheet_to_json(worksheet);
+      } else if (fileExtension === '.txt') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        // Try to parse as JSON
+        try {
+          data = JSON.parse(fileContent);
+          if (!Array.isArray(data)) {
+            data = [data];
+          }
+        } catch (e) {
+          // Try to parse as CSV if JSON parsing fails
+          data = Papa.parse(fileContent, { header: true }).data;
+        }
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
+      }
+      
+      // Remove file after processing
+      fs.unlinkSync(req.file.path);
+      
+      // Validate and insert schools
+      const results = {
+        success: 0,
+        errors: [] as string[]
+      };
+      
+      for (const item of data) {
+        try {
+          // Validate school data
+          insertSchoolSchema.parse(item);
+          
+          // Create school
+          await storage.createSchool(item);
+          results.success++;
+        } catch (error) {
+          let errorMessage = 'Invalid school data';
+          if (error instanceof z.ZodError) {
+            errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          }
+          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+        }
+      }
+      
+      res.json({
+        message: `Import completed: ${results.success} schools imported successfully, ${results.errors.length} errors`,
+        ...results
+      });
+    } catch (error) {
+      console.error('Import schools error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to import schools', error: errorMessage });
+    }
+  });
+  
+  apiRouter.post('/import/classes', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      let data: any[] = [];
+      
+      if (fileExtension === '.csv') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        data = Papa.parse(fileContent, { header: true }).data;
+      } else if (fileExtension === '.xlsx') {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = XLSX.utils.sheet_to_json(worksheet);
+      } else if (fileExtension === '.txt') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        // Try to parse as JSON
+        try {
+          data = JSON.parse(fileContent);
+          if (!Array.isArray(data)) {
+            data = [data];
+          }
+        } catch (e) {
+          // Try to parse as CSV if JSON parsing fails
+          data = Papa.parse(fileContent, { header: true }).data;
+        }
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
+      }
+      
+      // Remove file after processing
+      fs.unlinkSync(req.file.path);
+      
+      // Validate and insert classes
+      const results = {
+        success: 0,
+        errors: [] as string[]
+      };
+      
+      for (const item of data) {
+        try {
+          // Convert string IDs to numbers if needed
+          const classData = {
+            ...item,
+            schoolId: typeof item.schoolId === 'string' ? parseInt(item.schoolId, 10) : item.schoolId,
+            teacherId: item.teacherId ? (typeof item.teacherId === 'string' ? parseInt(item.teacherId, 10) : item.teacherId) : null
+          };
+          
+          // Validate class data
+          insertClassSchema.parse(classData);
+          
+          // Check if school exists
+          const school = await storage.getSchool(classData.schoolId);
+          if (!school) {
+            results.errors.push(`School with ID ${classData.schoolId} not found`);
+            continue;
+          }
+          
+          // Check if teacher exists (if provided)
+          if (classData.teacherId) {
+            const teacher = await storage.getUser(classData.teacherId);
+            if (!teacher) {
+              results.errors.push(`Teacher with ID ${classData.teacherId} not found`);
+              continue;
+            }
+          }
+          
+          // Create class
+          await storage.createClass(classData);
+          results.success++;
+        } catch (error) {
+          let errorMessage = 'Invalid class data';
+          if (error instanceof z.ZodError) {
+            errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          }
+          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+        }
+      }
+      
+      res.json({
+        message: `Import completed: ${results.success} classes imported successfully, ${results.errors.length} errors`,
+        ...results
+      });
+    } catch (error) {
+      console.error('Import classes error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to import classes', error: errorMessage });
+    }
+  });
+  
+  // Export endpoints
+  apiRouter.get('/export/:entity/:format', async (req, res) => {
+    try {
+      const { entity, format } = req.params;
+      let data: any[] = [];
+
+      // Get the data based on the entity
+      switch(entity) {
+        case 'users':
+          const users = await storage.getAllUsers();
+          // Remove sensitive data like passwords
+          data = users.map(user => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+          });
+          break;
+        case 'schools':
+          data = await storage.getAllSchools();
+          break;
+        case 'classes':
+          data = await storage.getAllClasses();
+          break;
+        case 'events':
+          data = await storage.getAllEvents();
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid entity type' });
+      }
+
+      // Format the data based on the requested format
+      switch(format) {
+        case 'json':
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', `attachment; filename=${entity}.json`);
+          return res.json(data);
+        
+        case 'csv':
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', `attachment; filename=${entity}.csv`);
+          // Convert data to CSV
+          const csv = Papa.unparse(data);
+          return res.send(csv);
+        
+        case 'xlsx':
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Disposition', `attachment; filename=${entity}.xlsx`);
+          
+          // Create workbook
+          const workbook = XLSX.utils.book_new();
+          const worksheet = XLSX.utils.json_to_sheet(data);
+          
+          // Add worksheet to workbook
+          XLSX.utils.book_append_sheet(workbook, worksheet, entity);
+          
+          // Write to buffer and send
+          const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+          return res.send(buffer);
+        
+        default:
+          return res.status(400).json({ message: 'Invalid format' });
+      }
+    } catch (error) {
+      console.error(`Export ${req.params.entity} error:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: `Failed to export ${req.params.entity}`, error: errorMessage });
+    }
+  });
+
+  apiRouter.post('/import/events', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      let data: any[] = [];
+      
+      if (fileExtension === '.csv') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        data = Papa.parse(fileContent, { header: true }).data;
+      } else if (fileExtension === '.xlsx') {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = XLSX.utils.sheet_to_json(worksheet);
+      } else if (fileExtension === '.txt') {
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        // Try to parse as JSON
+        try {
+          data = JSON.parse(fileContent);
+          if (!Array.isArray(data)) {
+            data = [data];
+          }
+        } catch (e) {
+          // Try to parse as CSV if JSON parsing fails
+          data = Papa.parse(fileContent, { header: true }).data;
+        }
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
+      }
+      
+      // Remove file after processing
+      fs.unlinkSync(req.file.path);
+      
+      // Validate and insert events
+      const results = {
+        success: 0,
+        errors: [] as string[]
+      };
+      
+      for (const item of data) {
+        try {
+          // Handle date strings conversion
+          const eventData = {
+            ...item,
+            startDate: item.startDate ? new Date(item.startDate) : undefined,
+            endDate: item.endDate ? new Date(item.endDate) : undefined
+          };
+          
+          // Validate event data
+          insertEventSchema.parse(eventData);
+          
+          // Create event
+          await storage.createEvent(eventData);
+          results.success++;
+        } catch (error) {
+          let errorMessage = 'Invalid event data';
+          if (error instanceof z.ZodError) {
+            errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          }
+          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+        }
+      }
+      
+      res.json({
+        message: `Import completed: ${results.success} events imported successfully, ${results.errors.length} errors`,
+        ...results
+      });
+    } catch (error) {
+      console.error('Import events error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to import events', error: errorMessage });
+    }
+  });
+
+  // Create uploads directory if it doesn't exist
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 
   // Register API routes
   app.use('/api', apiRouter);

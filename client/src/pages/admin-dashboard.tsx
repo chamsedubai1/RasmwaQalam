@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
@@ -48,6 +50,11 @@ import {
   Briefcase,
   UserCog,
   Building,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  FilePlus,
+  FileText,
   Library,
   BookOpen,
   PieChart,
@@ -55,11 +62,25 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
+// Data export function
+const handleExportData = (entity: string, format: string) => {
+  // Create a link element to trigger the download
+  const link = document.createElement('a');
+  link.href = `/api/export/${entity}/${format}`;
+  link.download = `${entity}.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 const AdminDashboard: React.FC = () => {
   const { userRole } = useUserRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("users");
+  
+  // For export functionality
+  const [isExporting, setIsExporting] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1753,6 +1774,479 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </>
                 )}
+              </div>
+              
+              {/* Import/Export Section */}
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold mb-4">Data Import/Export</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Import Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Import Data</CardTitle>
+                      <CardDescription>
+                        Upload data files to import users, schools, classes, or events
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="users" className="w-full">
+                        <TabsList className="grid grid-cols-4 mb-4">
+                          <TabsTrigger value="users">Users</TabsTrigger>
+                          <TabsTrigger value="schools">Schools</TabsTrigger>
+                          <TabsTrigger value="classes">Classes</TabsTrigger>
+                          <TabsTrigger value="events">Events</TabsTrigger>
+                        </TabsList>
+                        
+                        {/* Users Import */}
+                        <TabsContent value="users">
+                          <form 
+                            className="space-y-4"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              
+                              if (!formData.get('file')) {
+                                toast({
+                                  title: "No file selected",
+                                  description: "Please select a file to import",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              // Show loading toast
+                              toast({
+                                title: "Importing users",
+                                description: "Please wait while we import the data..."
+                              });
+                              
+                              // Send the file to the server
+                              fetch('/api/import/users', {
+                                method: 'POST',
+                                body: formData
+                              })
+                              .then(res => res.json())
+                              .then(data => {
+                                toast({
+                                  title: "Import completed",
+                                  description: data.message
+                                });
+                                // Refresh data
+                                refetchUsers();
+                              })
+                              .catch(err => {
+                                toast({
+                                  title: "Import failed",
+                                  description: err.message,
+                                  variant: "destructive"
+                                });
+                              });
+                            }}
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="userFile">Upload User Data</Label>
+                              <Input
+                                id="userFile"
+                                name="file"
+                                type="file"
+                                accept=".csv,.xlsx,.txt"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Supported formats: CSV, Excel, TXT (JSON)
+                              </p>
+                            </div>
+                            <div className="pt-2">
+                              <Button type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
+                                Import Users
+                              </Button>
+                            </div>
+                          </form>
+                        </TabsContent>
+                        
+                        {/* Schools Import */}
+                        <TabsContent value="schools">
+                          <form 
+                            className="space-y-4"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              
+                              if (!formData.get('file')) {
+                                toast({
+                                  title: "No file selected",
+                                  description: "Please select a file to import",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              toast({
+                                title: "Importing schools",
+                                description: "Please wait while we import the data..."
+                              });
+                              
+                              fetch('/api/import/schools', {
+                                method: 'POST',
+                                body: formData
+                              })
+                              .then(res => res.json())
+                              .then(data => {
+                                toast({
+                                  title: "Import completed",
+                                  description: data.message
+                                });
+                                refetchSchools();
+                              })
+                              .catch(err => {
+                                toast({
+                                  title: "Import failed",
+                                  description: err.message,
+                                  variant: "destructive"
+                                });
+                              });
+                            }}
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="schoolFile">Upload School Data</Label>
+                              <Input
+                                id="schoolFile"
+                                name="file"
+                                type="file"
+                                accept=".csv,.xlsx,.txt"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Supported formats: CSV, Excel, TXT (JSON)
+                              </p>
+                            </div>
+                            <div className="pt-2">
+                              <Button type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
+                                Import Schools
+                              </Button>
+                            </div>
+                          </form>
+                        </TabsContent>
+                        
+                        {/* Classes Import */}
+                        <TabsContent value="classes">
+                          <form 
+                            className="space-y-4"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              
+                              if (!formData.get('file')) {
+                                toast({
+                                  title: "No file selected",
+                                  description: "Please select a file to import",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              toast({
+                                title: "Importing classes",
+                                description: "Please wait while we import the data..."
+                              });
+                              
+                              fetch('/api/import/classes', {
+                                method: 'POST',
+                                body: formData
+                              })
+                              .then(res => res.json())
+                              .then(data => {
+                                toast({
+                                  title: "Import completed",
+                                  description: data.message
+                                });
+                                refetchClasses();
+                              })
+                              .catch(err => {
+                                toast({
+                                  title: "Import failed",
+                                  description: err.message,
+                                  variant: "destructive"
+                                });
+                              });
+                            }}
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="classFile">Upload Class Data</Label>
+                              <Input
+                                id="classFile"
+                                name="file"
+                                type="file"
+                                accept=".csv,.xlsx,.txt"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Supported formats: CSV, Excel, TXT (JSON)
+                              </p>
+                            </div>
+                            <div className="pt-2">
+                              <Button type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
+                                Import Classes
+                              </Button>
+                            </div>
+                          </form>
+                        </TabsContent>
+                        
+                        {/* Events Import */}
+                        <TabsContent value="events">
+                          <form 
+                            className="space-y-4"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              
+                              if (!formData.get('file')) {
+                                toast({
+                                  title: "No file selected",
+                                  description: "Please select a file to import",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              toast({
+                                title: "Importing events",
+                                description: "Please wait while we import the data..."
+                              });
+                              
+                              fetch('/api/import/events', {
+                                method: 'POST',
+                                body: formData
+                              })
+                              .then(res => res.json())
+                              .then(data => {
+                                toast({
+                                  title: "Import completed",
+                                  description: data.message
+                                });
+                                refetchEvents();
+                              })
+                              .catch(err => {
+                                toast({
+                                  title: "Import failed",
+                                  description: err.message,
+                                  variant: "destructive"
+                                });
+                              });
+                            }}
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="eventFile">Upload Event Data</Label>
+                              <Input
+                                id="eventFile"
+                                name="file"
+                                type="file"
+                                accept=".csv,.xlsx,.txt"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Supported formats: CSV, Excel, TXT (JSON)
+                              </p>
+                            </div>
+                            <div className="pt-2">
+                              <Button type="submit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path></svg>
+                                Import Events
+                              </Button>
+                            </div>
+                          </form>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Export Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Export Data</CardTitle>
+                      <CardDescription>
+                        Download data for users, schools, classes, or events
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="users" className="w-full">
+                        <TabsList className="grid grid-cols-4 mb-4">
+                          <TabsTrigger value="users">Users</TabsTrigger>
+                          <TabsTrigger value="schools">Schools</TabsTrigger>
+                          <TabsTrigger value="classes">Classes</TabsTrigger>
+                          <TabsTrigger value="events">Events</TabsTrigger>
+                        </TabsList>
+                        
+                        {/* Users Export */}
+                        <TabsContent value="users">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Export Format</Label>
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex items-center space-x-4">
+                                  <Button 
+                                    onClick={() => handleExportData('users', 'csv')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    CSV
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleExportData('users', 'xlsx')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    Excel
+                                  </Button>
+                                </div>
+                                <Button 
+                                  onClick={() => handleExportData('users', 'json')}
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                  JSON
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="pt-2">
+                              <p className="text-xs text-gray-500">
+                                All user data will be exported excluding sensitive information like passwords.
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+                        
+                        {/* Schools Export */}
+                        <TabsContent value="schools">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Export Format</Label>
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex items-center space-x-4">
+                                  <Button 
+                                    onClick={() => handleExportData('schools', 'csv')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    CSV
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleExportData('schools', 'xlsx')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    Excel
+                                  </Button>
+                                </div>
+                                <Button 
+                                  onClick={() => handleExportData('schools', 'json')}
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                  JSON
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="pt-2">
+                              <p className="text-xs text-gray-500">
+                                All school data will be exported in the selected format.
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+                        
+                        {/* Classes Export */}
+                        <TabsContent value="classes">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Export Format</Label>
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex items-center space-x-4">
+                                  <Button 
+                                    onClick={() => handleExportData('classes', 'csv')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    CSV
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleExportData('classes', 'xlsx')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    Excel
+                                  </Button>
+                                </div>
+                                <Button 
+                                  onClick={() => handleExportData('classes', 'json')}
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                  JSON
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="pt-2">
+                              <p className="text-xs text-gray-500">
+                                All class data will be exported in the selected format.
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+                        
+                        {/* Events Export */}
+                        <TabsContent value="events">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Export Format</Label>
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex items-center space-x-4">
+                                  <Button 
+                                    onClick={() => handleExportData('events', 'csv')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    CSV
+                                  </Button>
+                                  <Button 
+                                    onClick={() => handleExportData('events', 'xlsx')}
+                                    variant="outline"
+                                    className="flex-1"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                    Excel
+                                  </Button>
+                                </div>
+                                <Button 
+                                  onClick={() => handleExportData('events', 'json')}
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                                  JSON
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="pt-2">
+                              <p className="text-xs text-gray-500">
+                                All event data will be exported in the selected format.
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </CardContent>
           </Card>
