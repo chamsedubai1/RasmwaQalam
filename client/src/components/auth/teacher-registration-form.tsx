@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useForm, FormProvider } from "react-hook-form";
 import { CaptchaField } from "./captcha-field";
+import { PasswordStrength } from "@/components/ui/password-strength";
 
 interface TeacherRegistrationFormProps {
   onSubmit: (data: any) => Promise<void>;
@@ -110,8 +111,17 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     
     if (!password) {
       errors.password = "Password is required";
-    } else if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
+    } else if (password.length < 8) {
+      errors.password = "Password must be at least 8 characters";
+    } else if (!/[A-Z]/.test(password)) {
+      errors.password = "Password must contain at least one uppercase letter";
+    } else if (!/[0-9]/.test(password)) {
+      errors.password = "Password must contain at least one number";
+    } else {
+      const specialChars = password.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/g);
+      if (!specialChars || specialChars.join('').length < 2) {
+        errors.password = "Password must contain at least two special characters";
+      }
     }
     
     if (!confirmPassword) {
@@ -281,6 +291,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
           className={formErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
         />
+        {password && <PasswordStrength password={password} />}
       </div>
       
       <div className="space-y-2">

@@ -100,11 +100,30 @@ export const votes = pgTable("votes", {
 });
 
 // Insert schemas
+// Validate password: min 8 chars, at least 1 uppercase, 1 number, 2 special chars
+const passwordValidator = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .refine(
+    (password) => /[A-Z]/.test(password),
+    "Password must contain at least one uppercase letter"
+  )
+  .refine(
+    (password) => /[0-9]/.test(password),
+    "Password must contain at least one number"
+  )
+  .refine(
+    (password) => {
+      const specialChars = password.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/g);
+      return specialChars !== null && specialChars.join('').length >= 2;
+    },
+    "Password must contain at least two special characters"
+  );
+
 export const insertUserSchema = createInsertSchema(users, {
-  fullName: z.string().min(2).max(100),
-  email: z.string().email(),
-  username: z.string().min(3).max(50),
-  password: z.string().min(6),
+  fullName: z.string().min(2, "Full name must be at least 2 characters").max(100, "Full name must be less than 100 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters").max(50, "Username must be less than 50 characters"),
+  password: passwordValidator,
 });
 
 export const insertSchoolSchema = createInsertSchema(schools);
