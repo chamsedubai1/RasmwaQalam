@@ -33,10 +33,10 @@ import {
   Sparkles,
   CheckCircle2,
   Star,
+  AlertCircle,
   Plus,
   Check
 } from "lucide-react";
-import { AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SubmissionWithVotes {

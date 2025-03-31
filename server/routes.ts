@@ -696,6 +696,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'User is not registered for this event' });
       }
       
+      // Get the event to check its stage
+      const event = await storage.getEvent(submissionData.eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Check if event is in a stage that allows submissions (only class stage)
+      if (event.stage !== 'class') {
+        return res.status(403).json({ 
+          message: 'Submissions are only allowed for events in the class stage',
+          currentStage: event.stage 
+        });
+      }
+      
       // Check if user already has 3 submissions for this event
       const existingSubmissions = await storage.getSubmissionsByUserAndEvent(
         submissionData.userId, 
