@@ -60,13 +60,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // CAPTCHA endpoints
-  apiRouter.get('/captcha', (req, res) => {
+  apiRouter.get('/api/captcha', (req, res) => {
     try {
-      // Get session ID
-      const sessionId = req.sessionID || req.ip || crypto.randomBytes(16).toString('hex');
+      // Get session ID - use IP address as fallback if session not available
+      const sessionId = req.ip || crypto.randomBytes(16).toString('hex');
       
       // Generate new CAPTCHA
       const captcha = generateCaptcha(sessionId);
+      
+      // Store in session if available (optional)
+      if (req.session) {
+        req.session.captcha = {
+          text: captcha.text,
+          expiry: captcha.expiry
+        };
+      }
       
       // Return the SVG image (without the actual text)
       res.json({
@@ -77,6 +85,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('CAPTCHA generation error:', error);
       res.status(500).json({ message: 'Failed to generate CAPTCHA' });
     }
+  });
+  
+  // Keep old endpoint for backward compatibility
+  apiRouter.get('/captcha', (req, res) => {
+    res.redirect('/api/captcha');
   });
   
   // Verify CAPTCHA without proceeding further

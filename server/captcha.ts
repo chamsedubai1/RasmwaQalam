@@ -178,15 +178,36 @@ export function requireCaptcha(req: Request, res: Response, next: NextFunction) 
     return res.status(400).json({ message: 'CAPTCHA is required', field: 'captchaText' });
   }
   
-  // Get session ID
-  const sessionId = req.sessionID || req.ip || crypto.randomBytes(16).toString('hex');
-  
-  if (!validateCaptcha(sessionId, captchaText)) {
-    return res.status(400).json({ 
-      message: 'Invalid or expired CAPTCHA. Please try again.', 
-      field: 'captchaText'
-    });
+  // Check session first for CAPTCHA
+  if (req.session && req.session.captcha) {
+    const { text, expiry } = req.session.captcha;
+    
+    // Check if expired
+    if (new Date() > new Date(expiry)) {
+      delete req.session.captcha;
+      return res.status(400).json({ 
+        message: 'CAPTCHA expired. Please refresh and try again.', 
+        field: 'captchaText'
+      });
+    }
+    
+    // Case insensitive comparison
+    if (text.toUpperCase() === captchaText.toUpperCase()) {
+      // CAPTCHA is valid, remove from session to prevent reuse
+      delete req.session.captcha;
+      return next();
+    }
   }
   
-  next();
+  // Fall back to IP-based CAPTCHA validation
+  const sessionId = req.ip || crypto.randomBytes(16).toString('hex');
+  
+  if (validateCaptcha(sessionId, captchaText)) {
+    return next();
+  }
+  
+  return res.status(400).json({ 
+    message: 'Invalid or expired CAPTCHA. Please try again.', 
+    field: 'captchaText'
+  });
 }
