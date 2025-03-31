@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import ImageUpload from '@/components/ui/image-upload';
 import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
@@ -654,11 +655,13 @@ const AdminDashboard: React.FC = () => {
   const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
   const [showCreateSchoolDialog, setShowCreateSchoolDialog] = useState(false);
   const [showCreateClassDialog, setShowCreateClassDialog] = useState(false);
+  const [showCreatePartnerDialog, setShowCreatePartnerDialog] = useState(false);
   
   // Edit dialogs
   const [showEditUserDialog, setShowEditUserDialog] = useState(false);
   const [showEditEventDialog, setShowEditEventDialog] = useState(false);
   const [showEditSchoolDialog, setShowEditSchoolDialog] = useState(false);
+  const [showEditPartnerDialog, setShowEditPartnerDialog] = useState(false);
   
   // Form state for school
   const [schoolName, setSchoolName] = useState("");
@@ -683,6 +686,7 @@ const AdminDashboard: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(null);
   
   // Delete dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -723,6 +727,14 @@ const AdminDashboard: React.FC = () => {
   // Fetch all classes for class management
   const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery({
     queryKey: ['/api/classes'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
+  });
+  
+  // Fetch all partners for partner management
+  const { data: partners = [], isLoading: isLoadingPartners, refetch: refetchPartners } = useQuery({
+    queryKey: ['/api/partners'],
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 1000, // Consider data stale after 1 second
@@ -947,6 +959,13 @@ const AdminDashboard: React.FC = () => {
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventImageUrl, setEventImageUrl] = useState("");
+  
+  // Form state for partner
+  const [partnerName, setPartnerName] = useState("");
+  const [partnerDescription, setPartnerDescription] = useState("");
+  const [partnerWebsite, setPartnerWebsite] = useState("");
+  const [partnerLogoUrl, setPartnerLogoUrl] = useState("");
+  const [partnerIsActive, setPartnerIsActive] = useState(true);
 
   // Create event mutation
   const createEventMutation = useMutation({
@@ -1201,6 +1220,157 @@ const AdminDashboard: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
 
+  // Create partner mutation
+  const createPartnerMutation = useMutation({
+    mutationFn: async (partnerData: any) => {
+      return apiRequest("POST", "/api/partners", partnerData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/partners'] });
+      
+      // Reset form fields
+      setPartnerName("");
+      setPartnerDescription("");
+      setPartnerWebsite("");
+      setPartnerLogoUrl("");
+      setPartnerIsActive(true);
+      
+      // Close dialog
+      setShowCreatePartnerDialog(false);
+      
+      // Success message
+      toast({
+        title: "Partner Created",
+        description: "Partner has been successfully created",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating partner:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create partner. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update partner mutation
+  const updatePartnerMutation = useMutation({
+    mutationFn: async (partnerData: any) => {
+      return apiRequest("PATCH", `/api/partners/${partnerData.id}`, {
+        name: partnerData.name,
+        description: partnerData.description,
+        websiteUrl: partnerData.websiteUrl,
+        logoUrl: partnerData.logoUrl,
+        isActive: partnerData.isActive
+      });
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/partners'] });
+      
+      // Reset form fields
+      setPartnerName("");
+      setPartnerDescription("");
+      setPartnerWebsite("");
+      setPartnerLogoUrl("");
+      setPartnerIsActive(true);
+      setSelectedPartnerId(null);
+      
+      // Close dialog
+      setShowEditPartnerDialog(false);
+      
+      // Success message
+      toast({
+        title: "Partner Updated",
+        description: "Partner has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating partner:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update partner. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCreatePartner = () => {
+    // Validate form fields
+    if (!partnerName || !partnerDescription) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields (name and description)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build partner data and submit using mutation
+    const partnerData = {
+      name: partnerName,
+      description: partnerDescription,
+      websiteUrl: partnerWebsite || null,
+      logoUrl: partnerLogoUrl || null,
+      isActive: partnerIsActive
+    };
+    
+    // Call the mutation with partner data
+    createPartnerMutation.mutate(partnerData);
+  };
+
+  const handleEditPartner = (partnerData: any) => {
+    // Set selected partner ID
+    setSelectedPartnerId(partnerData.id);
+    
+    // Pre-populate form fields with selected partner data
+    setPartnerName(partnerData.name || "");
+    setPartnerDescription(partnerData.description || "");
+    setPartnerWebsite(partnerData.websiteUrl || "");
+    setPartnerLogoUrl(partnerData.logoUrl || "");
+    setPartnerIsActive(partnerData.isActive !== undefined ? partnerData.isActive : true);
+    
+    // Open edit dialog
+    setShowEditPartnerDialog(true);
+  };
+
+  const handleUpdatePartner = () => {
+    // Validate form fields
+    if (!partnerName || !partnerDescription) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields (name and description)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if partner ID is selected
+    if (!selectedPartnerId) {
+      toast({
+        title: "Error",
+        description: "No partner selected for update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build partner data and submit using mutation
+    const partnerData = {
+      id: selectedPartnerId,
+      name: partnerName,
+      description: partnerDescription,
+      websiteUrl: partnerWebsite || null,
+      logoUrl: partnerLogoUrl || null,
+      isActive: partnerIsActive
+    };
+    
+    // Call the mutation with partner data
+    updatePartnerMutation.mutate(partnerData);
+  };
+  
   // Create class mutation
   const createClassMutation = useMutation({
     mutationFn: async (classData: any) => {
@@ -1465,6 +1635,10 @@ const AdminDashboard: React.FC = () => {
             <Calendar className="h-4 w-4" />
             <span>Events</span>
           </TabsTrigger>
+          <TabsTrigger value="partners" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Briefcase className="h-4 w-4" />
+            <span>Partners</span>
+          </TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
             <PieChart className="h-4 w-4" />
             <span>Reports</span>
@@ -1661,6 +1835,154 @@ const AdminDashboard: React.FC = () => {
                 onEdit={handleEditEvent}
                 onManageParticipants={handleManageParticipants}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="partners">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Manage Partners</CardTitle>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    refetchPartners();
+                    toast({
+                      title: "Refreshed",
+                      description: "Partner list has been refreshed",
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                </Button>
+                
+                {/* Import Button */}
+                <Button variant="outline" onClick={() => handleImportClick("partners")}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Import
+                </Button>
+                
+                {/* Export Button */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => handleExportData("partners", "csv")}>
+                      CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportData("partners", "json")}>
+                      JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportData("partners", "xlsx")}>
+                      Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button onClick={() => setShowCreatePartnerDialog(true)}>
+                  Add New Partner
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingPartners ? (
+                <div className="text-center py-8">
+                  <p className="text-blue-600">Loading partners...</p>
+                </div>
+              ) : partners.length === 0 ? (
+                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-blue-700">No partners found. Add your first partner!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-blue-200 rounded-md">
+                  <table className="w-full">
+                    <thead className="bg-blue-50">
+                      <tr className="border-b border-blue-200">
+                        <th className="text-left p-3 text-blue-800">Name</th>
+                        <th className="text-left p-3 text-blue-800">Website</th>
+                        <th className="text-left p-3 text-blue-800">Logo</th>
+                        <th className="text-left p-3 text-blue-800">Status</th>
+                        <th className="text-left p-3 text-blue-800">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partners.map((partner: any) => (
+                        <tr key={partner.id} className="border-b border-blue-100 hover:bg-blue-50">
+                          <td className="p-3 text-blue-800 font-medium">{partner.name}</td>
+                          <td className="p-3">
+                            {partner.websiteUrl ? (
+                              <a 
+                                href={partner.websiteUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {partner.websiteUrl}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {partner.logoUrl ? (
+                              <div className="w-12 h-12 rounded-md overflow-hidden border">
+                                <img 
+                                  src={partner.logoUrl} 
+                                  alt={`${partner.name} logo`} 
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-md flex items-center justify-center bg-blue-50 text-blue-400 border border-blue-200">
+                                <Briefcase className="w-6 h-6" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <Badge
+                              variant={partner.isActive ? "default" : "secondary"}
+                              className={partner.isActive ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-800"}
+                            >
+                              {partner.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => handleEditPartner(partner)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path></svg>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                className="text-red-500 hover:text-red-700"
+                                onClick={() => {
+                                  setSelectedItemToDelete({
+                                    type: 'partner',
+                                    id: partner.id
+                                  });
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -3444,12 +3766,10 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="event-image">Image URL</Label>
-              <Input 
-                id="event-image" 
-                placeholder="Enter image URL" 
-                value={eventImageUrl}
-                onChange={(e) => setEventImageUrl(e.target.value)}
+              <Label htmlFor="event-image">Event Image</Label>
+              <ImageUpload 
+                onImageUploaded={(url) => setEventImageUrl(url)}
+                existingImageUrl={eventImageUrl}
               />
             </div>
           </div>
@@ -3563,12 +3883,10 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-event-image">Image URL</Label>
-              <Input 
-                id="edit-event-image" 
-                placeholder="Enter image URL" 
-                value={eventImageUrl}
-                onChange={(e) => setEventImageUrl(e.target.value)}
+              <Label htmlFor="edit-event-image">Event Image</Label>
+              <ImageUpload 
+                onImageUploaded={(url) => setEventImageUrl(url)}
+                existingImageUrl={eventImageUrl}
               />
             </div>
           </div>
@@ -3634,12 +3952,10 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="school-image">Logo/Image URL</Label>
-              <Input 
-                id="school-image" 
-                placeholder="Enter image URL" 
-                value={schoolImageUrl}
-                onChange={(e) => setSchoolImageUrl(e.target.value)}
+              <Label htmlFor="school-image">School Logo/Image</Label>
+              <ImageUpload 
+                onImageUploaded={(url) => setSchoolImageUrl(url)}
+                existingImageUrl={schoolImageUrl}
               />
             </div>
           </div>
@@ -3705,12 +4021,10 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-school-image">Logo/Image URL</Label>
-              <Input 
-                id="edit-school-image" 
-                placeholder="Enter image URL" 
-                value={schoolImageUrl}
-                onChange={(e) => setSchoolImageUrl(e.target.value)}
+              <Label htmlFor="edit-school-image">School Logo/Image</Label>
+              <ImageUpload 
+                onImageUploaded={(url) => setSchoolImageUrl(url)}
+                existingImageUrl={schoolImageUrl}
               />
             </div>
           </div>
@@ -3882,6 +4196,172 @@ const AdminDashboard: React.FC = () => {
           )}
         </WideDialogContent>
       </WideDialog>
+
+      {/* Create Partner Dialog */}
+      <Dialog open={showCreatePartnerDialog} onOpenChange={setShowCreatePartnerDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Partner</DialogTitle>
+            <DialogDescription>
+              Add a new partner to collaborate with your organization
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="partnerName" className="mb-2 block">
+                Partner Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="partnerName"
+                placeholder="Enter partner name"
+                value={partnerName}
+                onChange={(e) => setPartnerName(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="partnerDescription" className="mb-2 block">
+                Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="partnerDescription"
+                placeholder="Enter a description of this partner"
+                rows={3}
+                value={partnerDescription}
+                onChange={(e) => setPartnerDescription(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="partnerWebsite" className="mb-2 block">
+                Website (Optional)
+              </Label>
+              <Input
+                id="partnerWebsite"
+                placeholder="https://www.example.com"
+                value={partnerWebsite}
+                onChange={(e) => setPartnerWebsite(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="partnerLogo" className="mb-2 block">
+                Logo URL (Optional)
+              </Label>
+              <Input
+                id="partnerLogo"
+                placeholder="URL to partner logo"
+                value={partnerLogoUrl}
+                onChange={(e) => setPartnerLogoUrl(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="partnerActive"
+                checked={partnerIsActive}
+                onCheckedChange={setPartnerIsActive}
+              />
+              <Label htmlFor="partnerActive">
+                Active (shown on public pages)
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreatePartnerDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreatePartner}>
+              Create Partner
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Partner Dialog */}
+      <Dialog open={showEditPartnerDialog} onOpenChange={setShowEditPartnerDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Partner</DialogTitle>
+            <DialogDescription>
+              Update partner information
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="editPartnerName" className="mb-2 block">
+                Partner Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="editPartnerName"
+                placeholder="Enter partner name"
+                value={partnerName}
+                onChange={(e) => setPartnerName(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="editPartnerDescription" className="mb-2 block">
+                Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="editPartnerDescription"
+                placeholder="Enter a description of this partner"
+                rows={3}
+                value={partnerDescription}
+                onChange={(e) => setPartnerDescription(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="editPartnerWebsite" className="mb-2 block">
+                Website (Optional)
+              </Label>
+              <Input
+                id="editPartnerWebsite"
+                placeholder="https://www.example.com"
+                value={partnerWebsite}
+                onChange={(e) => setPartnerWebsite(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="editPartnerLogo" className="mb-2 block">
+                Logo URL (Optional)
+              </Label>
+              <Input
+                id="editPartnerLogo"
+                placeholder="URL to partner logo"
+                value={partnerLogoUrl}
+                onChange={(e) => setPartnerLogoUrl(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="editPartnerActive"
+                checked={partnerIsActive}
+                onCheckedChange={setPartnerIsActive}
+              />
+              <Label htmlFor="editPartnerActive">
+                Active (shown on public pages)
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditPartnerDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdatePartner}>
+              Update Partner
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
