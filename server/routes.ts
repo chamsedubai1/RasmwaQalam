@@ -654,7 +654,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const user = await storage.getUser(sub.userId);
           const userFullName = user ? user.fullName : "Anonymous";
           
-          return { ...sub, voteCount, hasVoted, userFullName };
+          // Get the event name for each submission
+          const event = await storage.getEvent(sub.eventId);
+          const eventName = event ? event.name : `Event #${sub.eventId}`;
+          
+          return { ...sub, voteCount, hasVoted, userFullName, eventName };
         })
       );
       

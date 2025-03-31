@@ -94,14 +94,26 @@ const CreArt: React.FC = () => {
     enabled: !!userId, // Only run the query if userId exists and is not falsy
   });
   
-  // Fetch class submissions for an open event at class stage
+  // Fetch ALL class stage events (not necessarily registered to them)
   const { data: classEvents = [] } = useQuery({
     queryKey: ['/api/events?status=open&stage=class'],
   });
   
-  // Using optional chaining to safely access properties
-  const activeClassEvent = Array.isArray(classEvents) && classEvents.length > 0 ? classEvents[0] : null;
-  const eventId = activeClassEvent && 'id' in activeClassEvent ? activeClassEvent.id : null;
+  // Find registered events at class stage where students have submitted content
+  // This is a critical change to fix the voting system - we need to find events BOTH students are registered for
+  const registeredClassEvents = Array.isArray(classEvents) && Array.isArray(registrations) 
+    ? classEvents.filter(event => 
+        registrations.some(r => r.eventId === event.id) &&
+        Array.isArray(submissions) && submissions.some(s => s.eventId === event.id)
+      )
+    : [];
+  
+  console.log('Available class events:', classEvents);
+  console.log('Registered class events with submissions:', registeredClassEvents);
+  
+  // Use the first registered class event that has a submission as the active event
+  const activeClassEvent = registeredClassEvents.length > 0 ? registeredClassEvents[0] : null;
+  const eventId = activeClassEvent && activeClassEvent.id ? activeClassEvent.id : null;
   
   // Get user's classId from the user context
   const classId = user?.classId;
@@ -513,7 +525,11 @@ const CreArt: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-xs text-blue-500">
-                        Submitted to event #{submission.eventId}
+                        {submission.eventId === eventId 
+                          ? `Submitted to: ${submission.eventName || activeClassEvent?.name || 'current event'}` 
+                          : submission.eventName 
+                            ? `Submitted to: ${submission.eventName}` 
+                            : `Submitted to event #${submission.eventId}`}
                       </div>
                     </div>
                   </div>
@@ -599,9 +615,16 @@ const CreArt: React.FC = () => {
                       )}
                       
                       <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                        <div>
+                        <div className="flex flex-col">
                           <span className="text-sm font-medium text-blue-700">
                             {submission.voteCount || 0} votes
+                          </span>
+                          <span className="text-xs text-blue-500">
+                            {submission.eventId === eventId 
+                              ? `Current event: ${submission.eventName || activeClassEvent?.name}` 
+                              : submission.eventName 
+                                ? `Event: ${submission.eventName}` 
+                                : `Event #${submission.eventId}`}
                           </span>
                         </div>
                         <Button
