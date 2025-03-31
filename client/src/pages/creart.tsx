@@ -63,6 +63,16 @@ const CreArt: React.FC = () => {
   // Fetch user registrations - only run the query if we have a valid userId
   const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery({
     queryKey: [`/api/registrations?userId=${userId}`],
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      const response = await fetch(`/api/registrations?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch registrations');
+      }
+      return response.json();
+    },
     enabled: !!userId, // Only run the query if userId exists and is not falsy
   });
   

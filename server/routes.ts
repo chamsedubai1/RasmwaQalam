@@ -579,6 +579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const forVoting = req.query.forVoting === 'true';
       const currentUserId = req.query.currentUserId ? Number(req.query.currentUserId) : undefined;
       
+      console.log('Submissions query params:', { userId, eventId, classId, forVoting, currentUserId });
+      
       let submissions;
       if (userId && eventId) {
         submissions = await storage.getSubmissionsByUserAndEvent(userId, eventId);
@@ -587,32 +589,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (eventId) {
         // Get all submissions for this event
         submissions = await storage.getSubmissionsByEvent(eventId);
+        console.log(`Found ${submissions.length} submissions for event ID ${eventId}`);
         
         // If this is for voting purposes and we have a current user ID
         if (forVoting && currentUserId) {
           // 1. Filter out current user's own submissions
+          const beforeFilter = submissions.length;
           submissions = submissions.filter(sub => sub.userId !== currentUserId);
+          console.log(`Filtered out user's own submissions: ${beforeFilter} -> ${submissions.length}`);
           
           // 2. If we are in class voting mode, only show submissions from students in the same class
           if (classId) {
             // Get all users in the class
             const classUsers = await storage.getUsersByClass(classId);
             const classUserIds = classUsers.map(user => user.id);
+            console.log(`Users in class ${classId}:`, classUserIds);
             
+            const beforeClassFilter = submissions.length;
             // Only keep submissions from users in this class
             submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+            console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
+            
+            // Debug: Get student submissions for this event
+            const allStudentSubmissions = await storage.getSubmissionsByEvent(eventId);
+            console.log(`All submissions for event ${eventId}:`, 
+              allStudentSubmissions.map(s => ({ id: s.id, userId: s.userId, title: s.title })));
           } else if (currentUserId) {
             // If no class ID was explicitly provided but we have a current user,
             // try to get their class ID from their user info
             const currentUser = await storage.getUser(currentUserId);
+            console.log('Current user:', currentUser);
             
             if (currentUser && currentUser.classId) {
               // Get all users in the current user's class
               const classUsers = await storage.getUsersByClass(currentUser.classId);
               const classUserIds = classUsers.map(user => user.id);
+              console.log(`Users in current user's class ${currentUser.classId}:`, classUserIds);
               
+              const beforeClassFilter = submissions.length;
               // Only keep submissions from users in the same class
               submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+              console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
             }
           }
         }

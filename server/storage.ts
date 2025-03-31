@@ -301,6 +301,29 @@ export class MemStorage implements IStorage {
       isActive: true
     });
     
+    // Add two student users in the same class for voting testing
+    const studa1 = this.createUser({
+      username: "studa1",
+      password: "password123",
+      fullName: "Studa One",
+      email: "testa1@gmail.com",
+      role: "student",
+      schoolId: school1.id,
+      gradeLevel: "Grade 2",
+      isActive: true
+    });
+    
+    const studa2 = this.createUser({
+      username: "studa2",
+      password: "password123",
+      fullName: "Studa Two",
+      email: "testa2@gmail.com",
+      role: "student",
+      schoolId: school1.id,
+      gradeLevel: "Grade 2",
+      isActive: true
+    });
+    
     // Add sample classes
     const class1 = this.createClass({
       name: "Creative Writing 101",
@@ -310,8 +333,18 @@ export class MemStorage implements IStorage {
       isLocked: false
     });
     
+    const class2 = this.createClass({
+      name: "Class 2B",
+      gradeLevel: "Grade 2",
+      schoolId: school1.id,
+      teacherId: teacher1.id,
+      isLocked: false
+    });
+    
     // Update students with class
     this.updateUser(student1.id, { classId: class1.id });
+    this.updateUser(studa1.id, { classId: class2.id });
+    this.updateUser(studa2.id, { classId: class2.id });
     
     // Add sample events
     const poetryEvent = this.createEvent({
@@ -347,6 +380,17 @@ export class MemStorage implements IStorage {
       eventId: paintingEvent.id
     });
     
+    // Register studa1 and studa2 for poetry event
+    this.createRegistration({
+      userId: studa1.id,
+      eventId: poetryEvent.id
+    });
+    
+    this.createRegistration({
+      userId: studa2.id,
+      eventId: poetryEvent.id
+    });
+    
     // Add sample submissions
     this.createSubmission({
       title: "Morning Bloom",
@@ -354,6 +398,25 @@ export class MemStorage implements IStorage {
       contentType: "text",
       content: "Dewdrops glisten on petals wide,\nSunbeams dance as shadows hide.\nSpring awakens with gentle might,\nNature's canvas bathed in light.",
       userId: student1.id,
+      eventId: poetryEvent.id
+    });
+    
+    // Add submissions for studa1 and studa2 for class voting testing
+    this.createSubmission({
+      title: "Spring Blossoms",
+      description: "A poem about spring flowers",
+      contentType: "text",
+      content: "Spring blossoms dance in the wind,\nColors burst through winter's end,\nNature awakens once again,\nA beautiful sight for all to behold.",
+      userId: studa2.id,
+      eventId: poetryEvent.id
+    });
+    
+    this.createSubmission({
+      title: "The Spring Awakening",
+      description: "A poem about new beginnings",
+      contentType: "text",
+      content: "As winter fades away,\nSpring brings life to a new day,\nBirds sing their cheerful tune,\nNature's beauty will be here soon.",
+      userId: studa1.id,
       eventId: poetryEvent.id
     });
   }
