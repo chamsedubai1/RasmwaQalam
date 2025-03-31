@@ -1175,43 +1175,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data import endpoints
   apiRouter.post('/import/users', upload.single('file'), async (req, res) => {
     try {
+      // Create log directory if it doesn't exist
+      if (!fs.existsSync('uploads/log')) {
+        fs.mkdirSync('uploads/log', { recursive: true });
+      }
+      
+      const logFilePath = 'uploads/log/import_users_debug.log';
+      
+      const logToFile = (message: string) => {
+        fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+      };
+      
+      logToFile('Starting user import process');
+      
       if (!req.file) {
+        logToFile('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
       }
       
       const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      logToFile(`File uploaded: ${req.file.originalname}, extension: ${fileExtension}`);
+      
       let data: any[] = [];
       
       if (fileExtension === '.csv') {
         const fileContent = fs.readFileSync(req.file.path, 'utf8');
-        data = Papa.parse(fileContent, { header: true }).data;
+        logToFile(`CSV file content length: ${fileContent.length} characters`);
+        const parseResult = Papa.parse(fileContent, { header: true });
+        data = parseResult.data;
+        logToFile(`Parsed ${data.length} rows from CSV file`);
+        
+        // Log a sample of the parsed data
+        if (data.length > 0) {
+          logToFile(`Sample data first row: ${JSON.stringify(data[0])}`);
+        }
       } else if (fileExtension === '.xlsx') {
         const workbook = XLSX.readFile(req.file.path);
         const sheetName = workbook.SheetNames[0];
+        logToFile(`Excel file, using sheet: ${sheetName}`);
         const worksheet = workbook.Sheets[sheetName];
         data = XLSX.utils.sheet_to_json(worksheet);
+        logToFile(`Parsed ${data.length} rows from Excel file`);
       } else if (fileExtension === '.txt') {
         const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        logToFile(`TXT file content length: ${fileContent.length} characters`);
         // Try to parse as JSON
         try {
           data = JSON.parse(fileContent);
           if (!Array.isArray(data)) {
             data = [data];
           }
+          logToFile(`Parsed ${data.length} items from JSON content`);
         } catch (e) {
+          logToFile(`JSON parsing failed, trying CSV: ${e.message}`);
           // Try to parse as CSV if JSON parsing fails
-          data = Papa.parse(fileContent, { header: true }).data;
+          const parseResult = Papa.parse(fileContent, { header: true });
+          data = parseResult.data;
+          logToFile(`Parsed ${data.length} rows as CSV`);
         }
       } else {
+        logToFile(`Unsupported file format: ${fileExtension}`);
         return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
       }
       
-      // Remove file after processing
-      fs.unlinkSync(req.file.path);
+      // Filter out empty rows (common in CSV files)
+      data = data.filter(item => {
+        // Check if the row has at least one non-empty value
+        return Object.values(item).some(val => val !== '' && val !== undefined && val !== null);
+      });
+      
+      logToFile(`After filtering empty rows: ${data.length} rows remain`);
       
       // Get schools and classes for reference
       const schools = await storage.getAllSchools();
       const classes = await storage.getAllClasses();
+      logToFile(`Loaded ${schools.length} schools and ${classes.length} classes for reference`);
       
       // Validate and insert users
       const results = {
@@ -1219,25 +1257,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: [] as string[]
       };
       
-      for (const item of data) {
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        logToFile(`Processing row ${i + 1}: ${JSON.stringify(item)}`);
+        
         try {
+          // Make sure required fields are present
+          if (!item.username || !item.password || !item.fullName || !item.email || !item.role) {
+            const missingFields = [];
+            if (!item.username) missingFields.push('username');
+            if (!item.password) missingFields.push('password');
+            if (!item.fullName) missingFields.push('fullName');
+            if (!item.email) missingFields.push('email');
+            if (!item.role) missingFields.push('role');
+            
+            const errorMsg = `Row ${i + 1}: Missing required fields: ${missingFields.join(', ')}`;
+            logToFile(errorMsg);
+            results.errors.push(errorMsg);
+            continue;
+          }
+          
           // Handle school name, class name, and grade level lookup
-          let schoolId = item.schoolId;
-          let classId = item.classId;
+          let schoolId = item.schoolId ? Number(item.schoolId) : undefined;
+          let classId = item.classId ? Number(item.classId) : undefined;
+          
+          logToFile(`Initial IDs - schoolId: ${schoolId}, classId: ${classId}`);
           
           // If schoolName is provided but schoolId is missing, look up the school
           if (item.schoolName && !schoolId) {
+            logToFile(`Looking up school by name: ${item.schoolName}`);
             const foundSchool = schools.find(s => s.name === item.schoolName);
             if (foundSchool) {
               schoolId = foundSchool.id;
+              logToFile(`Found school with ID: ${schoolId}`);
             } else {
-              results.errors.push(`School name '${item.schoolName}' not found`);
+              const errorMsg = `School name '${item.schoolName}' not found`;
+              logToFile(errorMsg);
+              results.errors.push(`Row ${i + 1}: ${errorMsg}`);
               continue;
             }
           }
           
           // If className is provided but classId is missing, look up the class
           if (item.className && !classId) {
+            logToFile(`Looking up class by name: ${item.className}`);
             // Filter by school first if available
             let potentialClasses = classes;
             if (schoolId) {
@@ -1249,63 +1312,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
               potentialClasses = potentialClasses.filter(c => c.gradeLevel === item.gradeLevel);
             }
             
+            logToFile(`Filtered to ${potentialClasses.length} potential classes`);
+            
             // Find the matching class name
             const foundClass = potentialClasses.find(c => c.name === item.className);
             
             if (foundClass) {
               classId = foundClass.id;
+              logToFile(`Found class with ID: ${classId}`);
               // If school wasn't provided but we found the class, use its schoolId
               if (!schoolId) {
                 schoolId = foundClass.schoolId;
+                logToFile(`Using schoolId from class: ${schoolId}`);
               }
             } else {
-              results.errors.push(`Class name '${item.className}' not found (school: ${item.schoolName}, grade: ${item.gradeLevel})`);
+              const errorMsg = `Class name '${item.className}' not found (school: ${item.schoolName}, grade: ${item.gradeLevel})`;
+              logToFile(errorMsg);
+              results.errors.push(`Row ${i + 1}: ${errorMsg}`);
               continue;
             }
           }
           
+          // Normalize the role value to match our enum
+          const normalizedRole = item.role.toLowerCase();
+          if (!['student', 'teacher', 'admin'].includes(normalizedRole)) {
+            const errorMsg = `Invalid role: ${item.role}. Must be one of: student, teacher, admin`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+            continue;
+          }
+          
           // Set default values for missing fields if needed
           const userData = {
-            ...item,
-            isActive: item.isActive !== undefined ? item.isActive : true,
+            username: item.username,
+            password: item.password,
+            fullName: item.fullName,
+            email: item.email,
+            role: normalizedRole as 'student' | 'teacher' | 'admin',
+            isActive: item.isActive === 'false' ? false : true,
             schoolId: schoolId,
-            classId: classId
+            classId: classId,
+            gradeLevel: item.gradeLevel
           };
           
-          // Remove extra fields that aren't in the schema
-          delete userData.schoolName;
-          delete userData.className;
-          delete userData.gradeLevel;
-          
-          // Validate user data
-          insertUserSchema.parse(userData);
+          logToFile(`Prepared user data: ${JSON.stringify(userData)}`);
           
           // Check if username already exists
           const existingUser = await storage.getUserByUsername(userData.username);
           if (existingUser) {
-            results.errors.push(`Username ${userData.username} already exists`);
+            const errorMsg = `Username ${userData.username} already exists`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
             continue;
           }
           
           // Create user
-          await storage.createUser(userData);
-          results.success++;
+          try {
+            const newUser = await storage.createUser(userData);
+            logToFile(`Successfully created user with ID: ${newUser.id}`);
+            results.success++;
+          } catch (createError) {
+            const errorMsg = `Failed to create user: ${createError.message}`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+          }
         } catch (error) {
           let errorMessage = 'Invalid user data';
           if (error instanceof z.ZodError) {
             errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          } else if (error instanceof Error) {
+            errorMessage = error.message;
           }
-          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+          logToFile(`Error processing row ${i + 1}: ${errorMessage}`);
+          results.errors.push(`Row ${i + 1}: ${errorMessage}`);
         }
       }
       
+      const resultMsg = `Import completed: ${results.success} users imported successfully, ${results.errors.length} errors`;
+      logToFile(resultMsg);
+      logToFile(`Errors: ${JSON.stringify(results.errors)}`);
+      
+      // Keep the file for debugging
+      // fs.unlinkSync(req.file.path);
+      
       res.json({
-        message: `Import completed: ${results.success} users imported successfully, ${results.errors.length} errors`,
+        message: resultMsg,
         ...results
       });
     } catch (error) {
       console.error('Import users error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      fs.appendFileSync('uploads/log/import_users_debug.log', `ERROR: ${errorMessage}\n`);
       res.status(500).json({ message: 'Failed to import users', error: errorMessage });
     }
   });
@@ -1382,39 +1479,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post('/import/classes', upload.single('file'), async (req, res) => {
     try {
+      // Create log directory if it doesn't exist
+      if (!fs.existsSync('uploads/log')) {
+        fs.mkdirSync('uploads/log', { recursive: true });
+      }
+      
+      const logFilePath = 'uploads/log/import_classes_debug.log';
+      
+      const logToFile = (message: string) => {
+        fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+      };
+      
+      logToFile('Starting class import process');
+      
       if (!req.file) {
+        logToFile('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
       }
       
       const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      logToFile(`File uploaded: ${req.file.originalname}, extension: ${fileExtension}`);
+      
       let data: any[] = [];
       
       if (fileExtension === '.csv') {
         const fileContent = fs.readFileSync(req.file.path, 'utf8');
-        data = Papa.parse(fileContent, { header: true }).data;
+        logToFile(`CSV file content length: ${fileContent.length} characters`);
+        const parseResult = Papa.parse(fileContent, { header: true });
+        data = parseResult.data;
+        logToFile(`Parsed ${data.length} rows from CSV file`);
+        
+        // Log a sample of the parsed data
+        if (data.length > 0) {
+          logToFile(`Sample data first row: ${JSON.stringify(data[0])}`);
+        }
       } else if (fileExtension === '.xlsx') {
         const workbook = XLSX.readFile(req.file.path);
         const sheetName = workbook.SheetNames[0];
+        logToFile(`Excel file, using sheet: ${sheetName}`);
         const worksheet = workbook.Sheets[sheetName];
         data = XLSX.utils.sheet_to_json(worksheet);
+        logToFile(`Parsed ${data.length} rows from Excel file`);
       } else if (fileExtension === '.txt') {
         const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        logToFile(`TXT file content length: ${fileContent.length} characters`);
         // Try to parse as JSON
         try {
           data = JSON.parse(fileContent);
           if (!Array.isArray(data)) {
             data = [data];
           }
+          logToFile(`Parsed ${data.length} items from JSON content`);
         } catch (e) {
+          logToFile(`JSON parsing failed, trying CSV: ${e.message}`);
           // Try to parse as CSV if JSON parsing fails
-          data = Papa.parse(fileContent, { header: true }).data;
+          const parseResult = Papa.parse(fileContent, { header: true });
+          data = parseResult.data;
+          logToFile(`Parsed ${data.length} rows as CSV`);
         }
       } else {
+        logToFile(`Unsupported file format: ${fileExtension}`);
         return res.status(400).json({ message: 'Unsupported file format. Please upload CSV, XLSX, or TXT file' });
       }
       
-      // Remove file after processing
-      fs.unlinkSync(req.file.path);
+      // Filter out empty rows (common in CSV files)
+      data = data.filter(item => {
+        // Check if the row has at least one non-empty value
+        return Object.values(item).some(val => val !== '' && val !== undefined && val !== null);
+      });
+      
+      logToFile(`After filtering empty rows: ${data.length} rows remain`);
+      
+      // Get schools and teachers for reference
+      const schools = await storage.getAllSchools();
+      const teachers = await storage.getUsersByRole('teacher');
+      logToFile(`Loaded ${schools.length} schools and ${teachers.length} teachers for reference`);
       
       // Validate and insert classes
       const results = {
@@ -1422,53 +1561,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: [] as string[]
       };
       
-      for (const item of data) {
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        logToFile(`Processing row ${i + 1}: ${JSON.stringify(item)}`);
+        
         try {
-          // Convert string IDs to numbers if needed
-          const classData = {
-            ...item,
-            schoolId: typeof item.schoolId === 'string' ? parseInt(item.schoolId, 10) : item.schoolId,
-            teacherId: item.teacherId ? (typeof item.teacherId === 'string' ? parseInt(item.teacherId, 10) : item.teacherId) : null
-          };
-          
-          // Validate class data
-          insertClassSchema.parse(classData);
-          
-          // Check if school exists
-          const school = await storage.getSchool(classData.schoolId);
-          if (!school) {
-            results.errors.push(`School with ID ${classData.schoolId} not found`);
+          // Make sure required fields are present
+          if (!item.name || !item.gradeLevel || (!item.schoolId && !item.schoolName) || 
+              (!item.teacherId && !item.teacherUsername)) {
+            const missingFields = [];
+            if (!item.name) missingFields.push('name');
+            if (!item.gradeLevel) missingFields.push('gradeLevel');
+            if (!item.schoolId && !item.schoolName) missingFields.push('schoolId or schoolName');
+            if (!item.teacherId && !item.teacherUsername) missingFields.push('teacherId or teacherUsername');
+            
+            const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
             continue;
           }
           
-          // Check if teacher exists (if provided)
-          if (classData.teacherId) {
-            const teacher = await storage.getUser(classData.teacherId);
-            if (!teacher) {
-              results.errors.push(`Teacher with ID ${classData.teacherId} not found`);
+          // Handle schoolId and teacherId resolution
+          let schoolId = item.schoolId ? Number(item.schoolId) : undefined;
+          let teacherId = item.teacherId ? Number(item.teacherId) : undefined;
+          
+          logToFile(`Initial IDs - schoolId: ${schoolId}, teacherId: ${teacherId}`);
+          
+          // Resolve school by name if needed
+          if (!schoolId && item.schoolName) {
+            logToFile(`Looking up school by name: ${item.schoolName}`);
+            const foundSchool = schools.find(s => s.name === item.schoolName);
+            if (foundSchool) {
+              schoolId = foundSchool.id;
+              logToFile(`Found school with ID: ${schoolId}`);
+            } else {
+              const errorMsg = `School name '${item.schoolName}' not found`;
+              logToFile(errorMsg);
+              results.errors.push(`Row ${i + 1}: ${errorMsg}`);
               continue;
             }
           }
           
+          // Resolve teacher by username if needed
+          if (!teacherId && item.teacherUsername) {
+            logToFile(`Looking up teacher by username: ${item.teacherUsername}`);
+            const foundTeacher = teachers.find(t => t.username === item.teacherUsername);
+            if (foundTeacher) {
+              teacherId = foundTeacher.id;
+              logToFile(`Found teacher with ID: ${teacherId}`);
+            } else {
+              const errorMsg = `Teacher username '${item.teacherUsername}' not found`;
+              logToFile(errorMsg);
+              results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+              continue;
+            }
+          }
+          
+          // Convert string IDs to numbers if needed
+          const classData = {
+            name: item.name.trim(),
+            gradeLevel: item.gradeLevel.trim(),
+            schoolId: schoolId as number,
+            teacherId: teacherId as number,
+            isLocked: item.isLocked === 'true' || item.isLocked === true
+          };
+          
+          logToFile(`Prepared class data: ${JSON.stringify(classData)}`);
+          
+          // Check if school exists
+          const school = await storage.getSchool(classData.schoolId);
+          if (!school) {
+            const errorMsg = `School with ID ${classData.schoolId} not found`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+            continue;
+          }
+          
+          // Check if teacher exists
+          const teacher = await storage.getUser(classData.teacherId);
+          if (!teacher) {
+            const errorMsg = `Teacher with ID ${classData.teacherId} not found`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+            continue;
+          }
+          
+          // Check if teacher role is correct
+          if (teacher.role !== 'teacher') {
+            const errorMsg = `User with ID ${classData.teacherId} is not a teacher (role: ${teacher.role})`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+            continue;
+          }
+          
           // Create class
-          await storage.createClass(classData);
-          results.success++;
+          try {
+            const newClass = await storage.createClass(classData);
+            logToFile(`Successfully created class with ID: ${newClass.id}`);
+            results.success++;
+          } catch (createError) {
+            const errorMsg = `Failed to create class: ${createError.message}`;
+            logToFile(errorMsg);
+            results.errors.push(`Row ${i + 1}: ${errorMsg}`);
+          }
         } catch (error) {
           let errorMessage = 'Invalid class data';
           if (error instanceof z.ZodError) {
             errorMessage = `Validation error: ${error.errors.map(e => e.message).join(', ')}`;
+          } else if (error instanceof Error) {
+            errorMessage = error.message;
           }
-          results.errors.push(`Row ${results.success + results.errors.length + 1}: ${errorMessage}`);
+          logToFile(`Error processing row ${i + 1}: ${errorMessage}`);
+          results.errors.push(`Row ${i + 1}: ${errorMessage}`);
         }
       }
       
+      const resultMsg = `Import completed: ${results.success} classes imported successfully, ${results.errors.length} errors`;
+      logToFile(resultMsg);
+      logToFile(`Errors: ${JSON.stringify(results.errors)}`);
+      
+      // Keep the file for debugging
+      // fs.unlinkSync(req.file.path);
+      
       res.json({
-        message: `Import completed: ${results.success} classes imported successfully, ${results.errors.length} errors`,
+        message: resultMsg,
         ...results
       });
     } catch (error) {
       console.error('Import classes error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      fs.appendFileSync('uploads/log/import_classes_debug.log', `ERROR: ${errorMessage}\n`);
       res.status(500).json({ message: 'Failed to import classes', error: errorMessage });
     }
   });
