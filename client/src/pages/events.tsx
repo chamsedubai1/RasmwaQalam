@@ -19,8 +19,10 @@ import {
   Award, 
   Globe2
 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 const Events: React.FC = () => {
+  const { t } = useLanguage();
   const [eventType, setEventType] = useState("all");
   const [eventStatus, setEventStatus] = useState("all");
   const [eventStage, setEventStage] = useState("all");
@@ -58,23 +60,23 @@ const Events: React.FC = () => {
         </div>
         <div className="relative z-10 py-12 px-6 sm:px-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            Creative Challenges
+            {t("events.hero.title")}
           </h1>
           <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-6">
-            Discover, participate, and showcase your talent in our artistic competitions
+            {t("events.hero.description")}
           </p>
           <div className="flex items-center justify-center mt-2 space-x-2">
             <div className="flex items-center bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
               <Calendar className="w-4 h-4 mr-2" />
-              <span>Updated Weekly</span>
+              <span>{t("events.hero.badge1")}</span>
             </div>
             <div className="flex items-center bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
               <Award className="w-4 h-4 mr-2" />
-              <span>Win Recognition</span>
+              <span>{t("events.hero.badge2")}</span>
             </div>
             <div className="flex items-center bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
               <Globe2 className="w-4 h-4 mr-2" />
-              <span>Global Platform</span>
+              <span>{t("events.hero.badge3")}</span>
             </div>
           </div>
         </div>
@@ -87,28 +89,28 @@ const Events: React.FC = () => {
             <Sparkles className="h-5 w-5 text-amber-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredEvents.filter((e) => e.status === 'open').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Active Events</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t("events.stats.active")}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-blue-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Calendar className="h-5 w-5 text-blue-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredEvents.filter((e) => e.status === 'upcoming').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Upcoming</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t("events.stats.upcoming")}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-blue-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <TrendingUp className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredEvents.filter((e) => e.type === 'poetry').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Poetry Challenges</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t("events.stats.poetry")}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-blue-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Award className="h-5 w-5 text-pink-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">{filteredEvents.filter((e) => e.type === 'painting').length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Art Challenges</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">{t("events.stats.art")}</div>
         </div>
       </div>
       
@@ -116,48 +118,48 @@ const Events: React.FC = () => {
       <div className="bg-white rounded-xl shadow-md border border-blue-50 p-6 mb-8">
         <div className="flex items-center mb-4">
           <Filter className="h-5 w-5 text-blue-600 mr-2" />
-          <h2 className="font-semibold text-gray-800">Filter Events</h2>
+          <h2 className="font-semibold text-gray-800">{t("events.filters.title")}</h2>
         </div>
         <div className="flex flex-wrap gap-6">
           <div>
-            <Label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">Event Type</Label>
+            <Label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">{t("events.filters.type.label")}</Label>
             <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger id="event-type" className="w-[180px]">
-                <SelectValue placeholder="All Types" />
+                <SelectValue placeholder={t("events.filters.type.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="poetry">Poetry</SelectItem>
-                <SelectItem value="painting">Painting</SelectItem>
+                <SelectItem value="all">{t("events.filters.type.all")}</SelectItem>
+                <SelectItem value="poetry">{t("events.filters.type.poetry")}</SelectItem>
+                <SelectItem value="painting">{t("events.filters.type.painting")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="event-status" className="block text-sm font-medium text-gray-700 mb-1">Status</Label>
+            <Label htmlFor="event-status" className="block text-sm font-medium text-gray-700 mb-1">{t("events.filters.status.label")}</Label>
             <Select value={eventStatus} onValueChange={setEventStatus}>
               <SelectTrigger id="event-status" className="w-[180px]">
-                <SelectValue placeholder="All Statuses" />
+                <SelectValue placeholder={t("events.filters.status.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="all">{t("events.filters.status.all")}</SelectItem>
+                <SelectItem value="upcoming">{t("events.filters.status.upcoming")}</SelectItem>
+                <SelectItem value="open">{t("events.filters.status.open")}</SelectItem>
+                <SelectItem value="closed">{t("events.filters.status.closed")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="event-stage" className="block text-sm font-medium text-gray-700 mb-1">Stage</Label>
+            <Label htmlFor="event-stage" className="block text-sm font-medium text-gray-700 mb-1">{t("events.filters.stage.label")}</Label>
             <Select value={eventStage} onValueChange={setEventStage}>
               <SelectTrigger id="event-stage" className="w-[180px]">
-                <SelectValue placeholder="All Stages" />
+                <SelectValue placeholder={t("events.filters.stage.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Stages</SelectItem>
-                <SelectItem value="class">Class</SelectItem>
-                <SelectItem value="school">School</SelectItem>
-                <SelectItem value="country">Country</SelectItem>
-                <SelectItem value="global">Global</SelectItem>
+                <SelectItem value="all">{t("events.filters.stage.all")}</SelectItem>
+                <SelectItem value="class">{t("events.filters.stage.class")}</SelectItem>
+                <SelectItem value="school">{t("events.filters.stage.school")}</SelectItem>
+                <SelectItem value="country">{t("events.filters.stage.country")}</SelectItem>
+                <SelectItem value="global">{t("events.filters.stage.global")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -168,14 +170,14 @@ const Events: React.FC = () => {
       {isLoading ? (
         <div className="py-12 text-center bg-white rounded-xl shadow-md border border-blue-50">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mb-4"></div>
-          <p className="text-gray-600">Loading amazing competitions for you...</p>
+          <p className="text-gray-600">{t("events.loading")}</p>
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="py-12 text-center bg-white rounded-xl shadow-md border border-blue-50">
           <div className="inline-block h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 mx-auto">
             <Filter className="h-8 w-8 text-blue-300" />
           </div>
-          <p className="text-gray-600 mb-3">No events found matching your filters.</p>
+          <p className="text-gray-600 mb-3">{t("events.no_results")}</p>
           <Button 
             variant="outline" 
             className="mt-2 border-blue-200 text-blue-700 hover:bg-blue-50"
@@ -185,7 +187,7 @@ const Events: React.FC = () => {
               setEventStage("all");
             }}
           >
-            Reset All Filters
+            {t("events.reset_filters")}
           </Button>
         </div>
       ) : (
