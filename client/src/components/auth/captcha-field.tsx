@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Control } from 'react-hook-form';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+// No longer using Alert component
+// import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Extend this interface based on your form structure
 interface CaptchaFieldProps {
@@ -93,12 +94,12 @@ export function CaptchaField({ control, name, label = "CAPTCHA", description }: 
               </Button>
             </div>
             
-            <Alert variant="outline" className="bg-muted/50 py-2 mb-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
+            <div className="bg-muted/50 border rounded-md py-2 px-3 mb-2 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+              <span className="text-xs">
                 Enter all {captchaLength} characters exactly as shown above. The CAPTCHA is case-insensitive.
-              </AlertDescription>
-            </Alert>
+              </span>
+            </div>
             
             <FormControl>
               <Input

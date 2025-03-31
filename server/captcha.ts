@@ -42,10 +42,10 @@ function generateRandomString(length: number): string {
  */
 function generateCaptchaSvg(text: string): string {
   // SVG parameters
-  const width = 220;
+  const width = 250; // Wider to accommodate all characters
   const height = 80;
-  const fontSize = 36;
-  const charSpacing = 10;
+  const fontSize = 32; // Slightly smaller font
+  const charSpacing = 8; // Reduced spacing
   
   // Generate random colors
   const getRandomColor = () => {
@@ -76,30 +76,44 @@ function generateCaptchaSvg(text: string): string {
     svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${getRandomColor()}" fill-opacity="0.3"/>`;
   }
   
+  // Calculate total width required for all characters
+  const charCount = text.length;
+  const availableWidth = width - 50; // 25px padding on each side
+  const maxCharWidth = availableWidth / charCount;
+  
   // Add the characters with random transformations
-  let x = 30;
+  let x = 25; // Start from left padding
+  
+  // Debug info for character positioning
+  console.log(`Generating CAPTCHA SVG with ${charCount} characters. Available width: ${availableWidth}px`);
+  
   for (let i = 0; i < text.length; i++) {
     const char = text.charAt(i);
-    const y = height / 2 + (Math.random() * 10 - 5);
-    const rotate = Math.random() * 20 - 10;
+    const y = height / 2 + (Math.random() * 8 - 4); // Less vertical variation
+    const rotate = Math.random() * 16 - 8; // Less rotation
     const color = getRandomColor();
+    const charFontSize = fontSize + Math.floor(Math.random() * 6 - 3); // Less font size variation
     
     svg += `<text x="${x}" y="${y}" 
       font-family="Arial, sans-serif" 
-      font-size="${fontSize + Math.floor(Math.random() * 10 - 5)}" 
+      font-size="${charFontSize}" 
       font-weight="bold" 
       fill="${color}" 
       transform="rotate(${rotate} ${x} ${y})">${char}</text>`;
     
-    x += fontSize + charSpacing + Math.floor(Math.random() * 10);
+    console.log(`Character ${i+1} (${char}): x=${x}, fontSize=${charFontSize}`);
+    
+    // More consistent spacing based on available width
+    const nextCharSpace = Math.min(charFontSize + charSpacing, maxCharWidth);
+    x += nextCharSpace;
   }
   
-  // Add some more distortion with wavy patterns
+  // Add a subtle wavy pattern for distraction
   svg += `<path d="M0,${height/2} Q${width/4},${height/3} ${width/2},${height/2} T${width},${height/2}" 
     stroke="${getRandomColor()}" 
     stroke-width="2" 
     fill="none" 
-    stroke-opacity="0.3"/>`;
+    stroke-opacity="0.2"/>`;
   
   // Close SVG
   svg += '</svg>';
@@ -113,8 +127,9 @@ function generateCaptchaSvg(text: string): string {
  * @returns CAPTCHA data including the text and SVG image
  */
 export function generateCaptcha(sessionId: string): CaptchaData {
-  // Generate random text (5-6 characters)
-  const length = 5 + Math.floor(Math.random() * 2); 
+  // Generate fixed length text (4-5 characters) 
+  // Shorter is easier for users to see and type correctly
+  const length = 4 + Math.floor(Math.random() * 2); 
   const text = generateRandomString(length);
   
   // Generate SVG image
