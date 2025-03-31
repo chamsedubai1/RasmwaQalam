@@ -15,74 +15,67 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
     >
       {/* Logo Background */}
       <defs>
-        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4338ca" />
-          <stop offset="100%" stopColor="#3b82f6" />
+        <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0c4a6e" />
+          <stop offset="100%" stopColor="#0369a1" />
         </linearGradient>
-        <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#fcd34d" />
-          <stop offset="100%" stopColor="#93c5fd" />
+        <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#fcd34d" />
         </linearGradient>
-        <linearGradient id="brushGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ec4899" />
-          <stop offset="50%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="10" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
       </defs>
       
-      {/* Circle Background */}
-      <circle cx="256" cy="256" r="200" fill="url(#logoGradient)" opacity="0.95" />
+      {/* Main shape */}
+      <rect x="50" y="50" width="412" height="412" rx="40" fill="url(#gradient1)" />
       
-      {/* Artistic Elements */}
-      <g transform="translate(80, 100) scale(0.7)">
-        {/* Palette */}
-        <path
-          d="M120,120 C60,150 60,250 120,280 C180,310 280,310 340,280 C400,250 400,150 340,120 C280,90 180,90 120,120 Z"
-          fill="#1e3a8a"
-          stroke="#fff"
-          strokeWidth="8"
-        />
+      {/* Artistic Elements - Abstract F */}
+      <g filter="url(#glow)">
+        {/* Horizontal lines of 'F' */}
+        <rect x="120" y="150" width="280" height="40" rx="20" fill="url(#gradient2)" />
+        <rect x="120" y="250" width="200" height="40" rx="20" fill="url(#gradient2)" />
         
-        {/* Color Dots */}
-        <circle cx="140" cy="170" r="22" fill="#ef4444" stroke="#fff" strokeWidth="2" />
-        <circle cx="200" cy="140" r="22" fill="#f59e0b" stroke="#fff" strokeWidth="2" />
-        <circle cx="260" cy="140" r="22" fill="#10b981" stroke="#fff" strokeWidth="2" />
-        <circle cx="320" cy="170" r="22" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
-        <circle cx="230" cy="220" r="22" fill="#8b5cf6" stroke="#fff" strokeWidth="2" />
+        {/* Vertical line of 'F' */}
+        <rect x="120" y="150" width="40" height="220" rx="20" fill="url(#gradient2)" />
         
-        {/* Paintbrush */}
-        <path
-          d="M370,250 C390,230 410,170 390,150 C370,130 350,150 340,170 C330,190 340,220 350,240 L310,280 C300,290 340,330 350,320 L390,280 C410,260 380,240 370,250 Z"
-          fill="url(#brushGradient)"
-          stroke="#fff"
-          strokeWidth="5"
-        />
+        {/* Abstract artistic elements */}
+        <circle cx="380" cy="350" r="60" fill="#ec4899" opacity="0.9" />
+        <circle cx="320" cy="290" r="40" fill="#8b5cf6" opacity="0.9" />
+        
+        {/* Creative splashes */}
+        <path d="M380,220 Q420,180 450,220 T480,200" stroke="#06b6d4" strokeWidth="12" fill="none" />
+        <path d="M220,400 Q260,380 280,410 T320,390" stroke="#06b6d4" strokeWidth="12" fill="none" />
       </g>
       
-      {/* FAZAA Text */}
+      {/* FAZAA Text - Bold and Prominent */}
       <text
         x="256"
-        y="360"
-        fontSize="65"
+        y="440"
+        fontSize="72"
         fontWeight="bold"
         textAnchor="middle"
-        fill="url(#textGradient)"
+        fill="white"
         style={{ fontFamily: "Arial, sans-serif" }}
-        stroke="#ffffff"
-        strokeWidth="1"
+        stroke="#0c4a6e"
+        strokeWidth="2"
       >
         FAZAA
       </text>
       
-      {/* Art Text */}
+      {/* ART Text */}
       <text
-        x="256"
-        y="410"
-        fontSize="40"
+        x="400"
+        y="140"
+        fontSize="60"
         fontWeight="bold"
         textAnchor="middle"
-        fill="#ffffff"
+        fill="white"
         style={{ fontFamily: "Arial, sans-serif" }}
+        stroke="#0c4a6e"
+        strokeWidth="1"
       >
         ART
       </text>
