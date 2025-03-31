@@ -62,18 +62,25 @@ const CreArt: React.FC = () => {
   
   // Fetch user registrations - only run the query if we have a valid userId
   const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery({
-    queryKey: [`/api/registrations?userId=${userId}`],
+    // Use array notation for query key to ensure proper cache invalidation
+    queryKey: ['/api/registrations', userId],
     queryFn: async () => {
       if (!userId) {
         return [];
       }
+      console.log('Fetching registrations for user:', userId);
       const response = await fetch(`/api/registrations?userId=${userId}`);
       if (!response.ok) {
+        console.error('Failed to fetch registrations:', await response.text());
         throw new Error('Failed to fetch registrations');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched registrations:', data);
+      return data;
     },
     enabled: !!userId, // Only run the query if userId exists and is not falsy
+    staleTime: 0, // Don't cache the results
+    refetchOnWindowFocus: true // Refetch when the window regains focus
   });
   
   // Fetch events
@@ -194,11 +201,30 @@ const CreArt: React.FC = () => {
     return <Redirect to="/" />;
   }
   
+  // Debug registrations
+  useEffect(() => {
+    if (activeTab === 'events') {
+      console.log('Registrations for display:', registrations);
+      console.log('Events for display:', events);
+    }
+  }, [activeTab, registrations, events]);
+
   // Combine events with registrations and submissions
   const eventsWithDetails = Array.isArray(events) ? events.map((event: any) => {
-    const isRegistered = Array.isArray(registrations) && registrations.some((r: any) => r.eventId === event.id);
+    // Debug each registration check
+    console.log(`Checking event ${event.id} (${event.name}) against registrations`);
+    
+    // Use double equality (==) for comparing numbers since one might be a string
+    const isRegistered = Array.isArray(registrations) && registrations.some((r: any) => {
+      const matches = Number(r.eventId) === Number(event.id);
+      console.log(`  Registration check: ${r.eventId} === ${event.id} ? ${matches}`);
+      return matches;
+    });
+    
     const userSubmissionsForEvent = Array.isArray(submissions) ? 
       submissions.filter((s: any) => s.eventId === event.id) : [];
+    
+    console.log(`  Event ${event.id} registered: ${isRegistered}, submissions: ${userSubmissionsForEvent.length}`);
     
     return {
       ...event,
