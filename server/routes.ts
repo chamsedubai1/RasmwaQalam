@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sessionCaptcha = req.session?.captcha;
     
     // Get CAPTCHA from store based on IP
-    const ipBasedCaptcha = captchaStore.get(req.ip);
+    const ipBasedCaptcha = captchaStore.get(req.ip || '');
     
     // Return session info
     res.json({

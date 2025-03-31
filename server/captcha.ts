@@ -249,9 +249,17 @@ export function requireCaptcha(req: Request, res: Response, next: NextFunction) 
     return next();
   }
   
-  console.log('CAPTCHA validation failed');
+  // Create a more descriptive error message
+  let errorMessage = 'Invalid or expired CAPTCHA. Please try again.';
+  
+  // If we have stored CAPTCHA and the lengths don't match, provide a hint
+  if (storedCaptcha && storedCaptcha.text.length !== captchaText.length) {
+    errorMessage = `Please enter the complete CAPTCHA text (${storedCaptcha.text.length} characters). You entered ${captchaText.length} characters.`;
+  }
+  
+  console.log(`CAPTCHA validation failed. Error: ${errorMessage}`);
   return res.status(400).json({ 
-    message: 'Invalid or expired CAPTCHA. Please try again.', 
+    message: errorMessage, 
     field: 'captchaText'
   });
 }
