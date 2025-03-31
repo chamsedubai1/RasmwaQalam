@@ -1036,7 +1036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schools = await storage.getAllSchools();
       const classes = await storage.getAllClasses();
       
-      // For students export, include School, Grade, Class, and Password information
+      // For students export, include School Id, Class Id, Grade Id, and Password information
       const exportableUsers = users.map(user => {
         // Find school and class information
         const userSchool = schools.find(s => s.id === user.schoolId);
@@ -1045,10 +1045,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create enhanced user object with additional fields
         return {
           ...user,
-          // Replace null values with empty strings for better CSV/Excel export
-          schoolName: userSchool ? userSchool.name : '',
-          className: userClass ? userClass.name : '',
-          gradeLevel: userClass ? userClass.gradeLevel : '',
+          // Include IDs instead of names
+          schoolId: user.schoolId || '',
+          classId: user.classId || '',
+          gradeId: userClass ? userClass.gradeLevel : '',
           // Include password for import/export functionality
           // Note: In a real production environment, we would never export actual passwords
           // This is only included here for the demonstration/development environment
@@ -1486,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const schools = await storage.getAllSchools();
           const classes = await storage.getAllClasses();
           
-          // Include School, Grade, Class, and Password information for students
+          // Include School ID, Class ID, Grade ID, and Password information for students
           data = users.map(user => {
             // Find school and class information
             const userSchool = schools.find(s => s.id === user.schoolId);
@@ -1495,10 +1495,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Create enhanced user object with additional fields
             return {
               ...user,
-              // Replace null values with empty strings for better CSV/Excel export
-              schoolName: userSchool ? userSchool.name : '',
-              className: userClass ? userClass.name : '',
-              gradeLevel: userClass ? userClass.gradeLevel : '',
+              // Include IDs instead of names
+              schoolId: user.schoolId || '',
+              classId: user.classId || '',
+              gradeId: userClass ? userClass.gradeLevel : '',
               // Include password for import/export functionality
               password: user.password || ''
             };
