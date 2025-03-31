@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
@@ -82,6 +82,15 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMarkingWinner, setIsMarkingWinner] = useState(false);
+  const [sortField, setSortField] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [filters, setFilters] = useState({
+    name: "",
+    school: "",
+    class: "",
+    grade: "",
+    hasSubmitted: "all"
+  });
   const { toast } = useToast();
   
   // Function to mark a submission as a winner
@@ -128,6 +137,87 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
     }
   };
   
+  // Sort function
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New field, default to ascending
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Filter participants based on current filters
+  const filteredParticipants = useMemo(() => {
+    return participants.filter(p => {
+      const nameMatch = p.name?.toLowerCase().includes(filters.name.toLowerCase()) || !filters.name;
+      const schoolMatch = p.schoolName?.toLowerCase().includes(filters.school.toLowerCase()) || !filters.school;
+      const classMatch = p.className?.toLowerCase().includes(filters.class.toLowerCase()) || !filters.class;
+      const gradeMatch = p.gradeLevel?.toLowerCase().includes(filters.grade.toLowerCase()) || !filters.grade;
+      const submissionMatch = 
+        filters.hasSubmitted === "all" || 
+        (filters.hasSubmitted === "yes" && p.hasSubmitted) || 
+        (filters.hasSubmitted === "no" && !p.hasSubmitted);
+
+      return nameMatch && schoolMatch && classMatch && gradeMatch && submissionMatch;
+    });
+  }, [participants, filters]);
+
+  // Sort filtered participants
+  const sortedParticipants = useMemo(() => {
+    return [...filteredParticipants].sort((a, b) => {
+      let valA, valB;
+      
+      // Handle special cases for different field types
+      switch (sortField) {
+        case "name":
+          valA = a.name || "";
+          valB = b.name || "";
+          break;
+        case "school":
+          valA = a.schoolName || "";
+          valB = b.schoolName || "";
+          break;
+        case "class":
+          valA = a.className || "";
+          valB = b.className || "";
+          break;
+        case "grade":
+          valA = a.gradeLevel || "";
+          valB = b.gradeLevel || "";
+          break;
+        case "registrationDate":
+          valA = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
+          valB = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
+          break;
+        case "submissionTitle":
+          valA = a.submissionTitle || "";
+          valB = b.submissionTitle || "";
+          break;
+        case "voteCount":
+          valA = a.voteCount || 0;
+          valB = b.voteCount || 0;
+          break;
+        case "stage":
+          valA = a.currentStage || "";
+          valB = b.currentStage || "";
+          break;
+        default:
+          valA = a[sortField] || "";
+          valB = b[sortField] || "";
+      }
+      
+      // Compare based on direction
+      const comparison = typeof valA === "number" 
+        ? valA - valB
+        : String(valA).localeCompare(String(valB));
+        
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredParticipants, sortField, sortDirection]);
+
   // Define the fetchParticipants function outside useEffect
   const fetchParticipants = async () => {
     if (!eventId) return;
@@ -142,7 +232,48 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
       }
       
       const data = await response.json();
-      setParticipants(data);
+      
+      // Fetch additional data for each submission
+      const participantsWithDetails = await Promise.all(
+        data.map(async (participant: any) => {
+          if (participant.hasSubmitted && participant.submissionId) {
+            try {
+              const submissionResponse = await fetch(`/api/submissions/${participant.submissionId}`);
+              if (submissionResponse.ok) {
+                const submissionData = await submissionResponse.json();
+                return { 
+                  ...participant,
+                  submissionTitle: submissionData.title || "Untitled",
+                  voteCount: submissionData.voteCount || 0,
+                  classWinner: submissionData.classWinner || false,
+                  schoolWinner: submissionData.schoolWinner || false,
+                  countryWinner: submissionData.countryWinner || false,
+                  globalWinner: submissionData.globalWinner || false,
+                  // Determine the current stage
+                  currentStage: submissionData.globalWinner ? "Global" : 
+                               submissionData.countryWinner ? "Country" : 
+                               submissionData.schoolWinner ? "School" : 
+                               submissionData.classWinner ? "Class" : "-"
+                };
+              }
+            } catch (submissionErr) {
+              console.error(`Error fetching submission ${participant.submissionId}:`, submissionErr);
+            }
+          }
+          return { 
+            ...participant, 
+            submissionTitle: participant.hasSubmitted ? "Untitled" : "-",
+            voteCount: 0,
+            classWinner: false,
+            schoolWinner: false,
+            countryWinner: false,
+            globalWinner: false,
+            currentStage: "-"
+          };
+        })
+      );
+      
+      setParticipants(participantsWithDetails);
     } catch (err) {
       console.error('Error fetching participants:', err);
       setError('Failed to load participants data');
@@ -207,168 +338,277 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
     );
   }
   
+  // Function to render a sortable column header
+  const SortableHeader = ({ label, field }: { label: string, field: string }) => (
+    <th 
+      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center">
+        {label}
+        {sortField === field && (
+          <span className="ml-1">
+            {sortDirection === "asc" ? "↑" : "↓"}
+          </span>
+        )}
+      </div>
+    </th>
+  );
+
+  // Add filter fields
+  const filterFields = (
+    <div className="bg-white p-4 mb-4 rounded-md shadow-sm">
+      <h3 className="text-sm font-medium mb-2">Filter Participants</h3>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <Label htmlFor="nameFilter" className="mb-1 block text-xs">Name</Label>
+          <Input
+            id="nameFilter"
+            value={filters.name}
+            onChange={(e) => setFilters({...filters, name: e.target.value})}
+            placeholder="Filter by name"
+            className="text-xs"
+          />
+        </div>
+        <div>
+          <Label htmlFor="schoolFilter" className="mb-1 block text-xs">School</Label>
+          <Input
+            id="schoolFilter"
+            value={filters.school}
+            onChange={(e) => setFilters({...filters, school: e.target.value})}
+            placeholder="Filter by school"
+            className="text-xs"
+          />
+        </div>
+        <div>
+          <Label htmlFor="classFilter" className="mb-1 block text-xs">Class</Label>
+          <Input
+            id="classFilter"
+            value={filters.class}
+            onChange={(e) => setFilters({...filters, class: e.target.value})}
+            placeholder="Filter by class"
+            className="text-xs"
+          />
+        </div>
+        <div>
+          <Label htmlFor="gradeFilter" className="mb-1 block text-xs">Grade</Label>
+          <Input
+            id="gradeFilter"
+            value={filters.grade}
+            onChange={(e) => setFilters({...filters, grade: e.target.value})}
+            placeholder="Filter by grade"
+            className="text-xs"
+          />
+        </div>
+        <div>
+          <Label htmlFor="submissionFilter" className="mb-1 block text-xs">Submission Status</Label>
+          <Select 
+            value={filters.hasSubmitted} 
+            onValueChange={(value) => setFilters({...filters, hasSubmitted: value})}
+          >
+            <SelectTrigger id="submissionFilter" className="text-xs">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="yes">Submitted</SelectItem>
+              <SelectItem value="no">Not Submitted</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Container with expanded width
   return (
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Name
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            School
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Class
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Grade
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Registration Date
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Submission
-          </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {participants.map((participant) => (
-          <tr key={participant.id}>
-            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-              {participant.name}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              {participant.schoolName}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              {participant.className}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              {participant.gradeLevel}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              {participant.registrationDate 
-                ? new Date(participant.registrationDate).toLocaleDateString() 
-                : 'N/A'}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              {participant.hasSubmitted ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Submitted
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Not Submitted
-                </span>
-              )}
-            </td>
-            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-              <div className="flex space-x-2">
-                {participant.hasSubmitted && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // View submission
-                        toast({
-                          title: "View Submission",
-                          description: `Viewing submission for ${participant.name}`,
-                        });
-                        // Navigate to the submission view
-                        window.open(`/submission/${participant.submissionId}`, '_blank');
-                      }}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      View
-                    </Button>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Award className="h-3.5 w-3.5 mr-1" />
-                          Mark Winner
+    <div className="max-w-[1800px] mx-auto">
+      {filterFields}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <SortableHeader label="Name" field="name" />
+              <SortableHeader label="School" field="school" />
+              <SortableHeader label="Class" field="class" />
+              <SortableHeader label="Grade" field="grade" />
+              <SortableHeader label="Registration Date" field="registrationDate" />
+              <SortableHeader label="Submission Title" field="submissionTitle" />
+              <SortableHeader label="Votes" field="voteCount" />
+              <SortableHeader label="Event Stage" field="stage" />
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Winner Status
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {sortedParticipants.map((participant) => (
+              <tr key={participant.id} className={
+                // Highlight winners with background color based on their current stage
+                participant.classWinner ? "bg-blue-50" :
+                participant.schoolWinner ? "bg-purple-50" :
+                participant.countryWinner ? "bg-amber-50" :
+                participant.globalWinner ? "bg-emerald-50" : ""
+              }>
+                <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {participant.name}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.schoolName}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.className}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.gradeLevel}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.registrationDate 
+                    ? new Date(participant.registrationDate).toLocaleDateString() 
+                    : 'N/A'}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.hasSubmitted ? participant.submissionTitle : '-'}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.hasSubmitted ? participant.voteCount : '-'}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.hasSubmitted ? participant.currentStage : '-'}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {participant.hasSubmitted ? (
+                    <div className="flex flex-wrap gap-1">
+                      {participant.classWinner && (
+                        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                          Class
+                        </Badge>
+                      )}
+                      {participant.schoolWinner && (
+                        <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+                          School
+                        </Badge>
+                      )}
+                      {participant.countryWinner && (
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                          Country
+                        </Badge>
+                      )}
+                      {participant.globalWinner && (
+                        <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                          Global
+                        </Badge>
+                      )}
+                      {!participant.classWinner && !participant.schoolWinner && 
+                       !participant.countryWinner && !participant.globalWinner && "-"}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div className="flex space-x-2">
+                    {participant.hasSubmitted && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            window.open(`/submission/${participant.submissionId}`, '_blank');
+                          }}
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          View
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => markAsWinner(participant.submissionId, 'class')}
-                          disabled={isMarkingWinner}
-                        >
-                          Class Winner
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => markAsWinner(participant.submissionId, 'school')}
-                          disabled={isMarkingWinner}
-                        >
-                          School Winner
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => markAsWinner(participant.submissionId, 'country')}
-                          disabled={isMarkingWinner}
-                        >
-                          Country Winner
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => markAsWinner(participant.submissionId, 'global')}
-                          disabled={isMarkingWinner}
-                        >
-                          Global Winner
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                )}
-                
-                {!participant.hasSubmitted && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Send reminder email
-                      if (!participant.hasSubmitted && eventId) {
-                        fetch(`/api/events/${eventId}/reminder`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({ userId: participant.id }),
-                        })
-                          .then((res) => {
-                            if (res.ok) {
-                              toast({
-                                title: "Reminder Sent",
-                                description: `Email reminder sent to ${participant.name}`,
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Award className="h-3.5 w-3.5 mr-1" />
+                              Mark Winner
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => markAsWinner(participant.submissionId, 'class')}
+                              disabled={isMarkingWinner}
+                            >
+                              Class Winner
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => markAsWinner(participant.submissionId, 'school')}
+                              disabled={isMarkingWinner}
+                            >
+                              School Winner
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => markAsWinner(participant.submissionId, 'country')}
+                              disabled={isMarkingWinner}
+                            >
+                              Country Winner
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => markAsWinner(participant.submissionId, 'global')}
+                              disabled={isMarkingWinner}
+                            >
+                              Global Winner
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    )}
+                    
+                    {!participant.hasSubmitted && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Send reminder email
+                          if (!participant.hasSubmitted && eventId) {
+                            fetch(`/api/events/${eventId}/reminder`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ userId: participant.id }),
+                            })
+                              .then((res) => {
+                                if (res.ok) {
+                                  toast({
+                                    title: "Reminder Sent",
+                                    description: `Email reminder sent to ${participant.name}`,
+                                  });
+                                } else {
+                                  throw new Error('Failed to send reminder');
+                                }
+                              })
+                              .catch((error) => {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to send reminder",
+                                  variant: "destructive",
+                                });
                               });
-                            } else {
-                              throw new Error('Failed to send reminder');
-                            }
-                          })
-                          .catch((error) => {
-                            toast({
-                              title: "Error",
-                              description: "Failed to send reminder",
-                              variant: "destructive",
-                            });
-                          });
-                      }
-                    }}
-                  >
-                    <Mail className="h-3.5 w-3.5 mr-1" />
-                    Remind
-                  </Button>
-                )}
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                          }
+                        }}
+                      >
+                        <Mail className="h-3.5 w-3.5 mr-1" />
+                        Remind
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
@@ -3600,7 +3840,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* Participants Management Dialog */}
       <Dialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[90vw] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Manage Event Participants</DialogTitle>
             <DialogDescription>
@@ -3615,12 +3855,12 @@ const AdminDashboard: React.FC = () => {
                   {events.find((e: any) => e.id === selectedEventId)?.name || "Event"} Participants
                 </h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Track submissions and send reminders
+                  Track submissions, votes, and winners
                 </p>
               </div>
               
               {/* Participants table */}
-              <div className="overflow-y-auto max-h-[500px]">
+              <div className="overflow-y-auto max-h-[70vh]">
                 <ParticipantsTable eventId={selectedEventId} />
               </div>
               
