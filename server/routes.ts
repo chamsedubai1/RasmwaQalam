@@ -598,11 +598,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           submissions = submissions.filter(sub => sub.userId !== currentUserId);
           console.log(`Filtered out user's own submissions: ${beforeFilter} -> ${submissions.length}`);
           
-          // Check if we have any submissions after removing the user's own
-          if (submissions.length === 0) {
-            console.log(`No submissions found for event ${eventId} after filtering out user's own submissions`);
-          }
-          
           // 2. If we are in class voting mode, only show submissions from students in the same class
           if (classId) {
             // Get all users in the class
@@ -610,34 +605,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const classUserIds = classUsers.map(user => user.id);
             console.log(`Users in class ${classId}:`, classUserIds);
             
-            // Check if we have any users in the class
-            if (classUserIds.length <= 1) {
-              console.log(`Warning: Only found one user (likely current user) in class ${classId}`);
-            }
-            
             const beforeClassFilter = submissions.length;
             // Only keep submissions from users in this class
             submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
             console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
             
-            // If we have no submissions after filtering, log a detailed message
-            if (submissions.length === 0) {
-              // Debug: Get student submissions for this event
-              const allStudentSubmissions = await storage.getSubmissionsByEvent(eventId);
-              console.log(`All submissions for event ${eventId}:`, 
-                allStudentSubmissions.map(s => ({ id: s.id, userId: s.userId, title: s.title })));
-                
-              // Debug: Get all registrations for this event to check if students registered but haven't submitted
-              const eventRegistrations = await storage.getRegistrationsByEvent(eventId);
-              console.log(`Registrations for event ${eventId}:`, 
-                eventRegistrations.map(r => ({ userId: r.userId })));
-                
-              // Look for classmates who registered but haven't submitted
-              const registeredClassmates = eventRegistrations
-                .filter(r => classUserIds.includes(r.userId) && r.userId !== currentUserId);
-              console.log(`Classmates registered for event ${eventId} but haven't submitted:`, 
-                registeredClassmates.map(r => r.userId));
-            }
+            // Debug: Get student submissions for this event
+            const allStudentSubmissions = await storage.getSubmissionsByEvent(eventId);
+            console.log(`All submissions for event ${eventId}:`, 
+              allStudentSubmissions.map(s => ({ id: s.id, userId: s.userId, title: s.title })));
           } else if (currentUserId) {
             // If no class ID was explicitly provided but we have a current user,
             // try to get their class ID from their user info
