@@ -99,12 +99,14 @@ const CreArt: React.FC = () => {
     queryKey: ['/api/events?status=open&stage=class'],
   });
   
-  // Find registered events at class stage where students have submitted content
-  // This is a critical change to fix the voting system - we need to find events BOTH students are registered for
+  // Find registered class-stage events
+  // We need all class events the current student is registered for
+  // It's OK if the student hasn't submitted content yet
   const registeredClassEvents = Array.isArray(classEvents) && Array.isArray(registrations) 
     ? classEvents.filter(event => 
-        registrations.some(r => r.eventId === event.id) &&
-        Array.isArray(submissions) && submissions.some(s => s.eventId === event.id)
+        // Consider events where:
+        // 1. The student is registered
+        registrations.some(r => r.eventId === event.id)
       )
     : [];
   
@@ -112,8 +114,14 @@ const CreArt: React.FC = () => {
   console.log('Registered class events with submissions:', registeredClassEvents);
   
   // Use the first registered class event that has a submission as the active event
+  // Use the first registered class event as the active event
+  // This will work even if the student hasn't made any submissions yet
   const activeClassEvent = registeredClassEvents.length > 0 ? registeredClassEvents[0] : null;
   const eventId = activeClassEvent && activeClassEvent.id ? activeClassEvent.id : null;
+  
+  console.log('Active class event selected:', activeClassEvent ? 
+    `${activeClassEvent.name} (ID: ${activeClassEvent.id})` : 'None');
+  
   
   // Get user's classId from the user context
   const classId = user?.classId;
@@ -587,7 +595,11 @@ const CreArt: React.FC = () => {
                   <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
                     <Vote className="h-8 w-8 text-blue-400" />
                   </div>
-                  <p className="text-blue-700">No submissions available for voting yet.</p>
+                  <p className="text-blue-700 mb-2">No submissions available for voting yet.</p>
+                  <p className="text-sm text-blue-600">
+                    To see submissions here, you and your classmates need to submit content to 
+                    <span className="font-medium"> {activeClassEvent?.name}</span>.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
