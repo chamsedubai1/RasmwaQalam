@@ -1398,7 +1398,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isActive: item.isActive === 'false' ? false : true,
             schoolId: schoolId,
             classId: classId,
-            gradeLevel: item.gradeLevel
+            // Use gradeLevel if present, otherwise try gradeId (for backward compatibility)
+            gradeLevel: item.gradeLevel || item.gradeId || undefined
           };
           
           logToFile(`Prepared user data: ${JSON.stringify(userData)}`);
@@ -1766,6 +1767,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Include IDs instead of names
               schoolId: user.schoolId || '',
               classId: user.classId || '',
+              // Include both fields for compatibility with import process
+              gradeLevel: user.gradeLevel || (userClass ? userClass.gradeLevel : ''),
               gradeId: userClass ? userClass.gradeLevel : '',
               // Include password for import/export functionality
               password: user.password || ''
