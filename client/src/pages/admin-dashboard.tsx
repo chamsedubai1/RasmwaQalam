@@ -671,7 +671,7 @@ const AdminDashboard: React.FC = () => {
   const [schoolImageUrl, setSchoolImageUrl] = useState("");
   const [showEditClassDialog, setShowEditClassDialog] = useState(false);
   
-  // Form state for users
+  // Form state for users with validation error tracking
   const [userFullName, setUserFullName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userUsername, setUserUsername] = useState("");
@@ -680,6 +680,16 @@ const AdminDashboard: React.FC = () => {
   const [userSchoolId, setUserSchoolId] = useState("");
   const [userClassId, setUserClassId] = useState("");
   const [userIsActive, setUserIsActive] = useState(true);
+  
+  // Field-specific error states
+  const [formErrors, setFormErrors] = useState<{
+    fullName?: string;
+    email?: string;
+    username?: string;
+    password?: string;
+    schoolId?: string;
+    classId?: string;
+  }>({});
   
   // Selected item IDs for edit operations
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -940,11 +950,59 @@ const AdminDashboard: React.FC = () => {
   });
 
   const handleCreateUser = () => {
-    // Validate form fields
-    if (!userFullName || !userEmail || !userUsername || !userPassword) {
+    // Reset previous errors
+    setFormErrors({});
+    
+    // Validate form fields with specific error messages
+    const errors: {
+      fullName?: string;
+      email?: string;
+      username?: string;
+      password?: string;
+      schoolId?: string;
+      classId?: string;
+    } = {};
+    
+    if (!userFullName) {
+      errors.fullName = "Full name is required";
+    }
+    
+    if (!userEmail) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(userEmail)) {
+      errors.email = "Email format is invalid";
+    }
+    
+    if (!userUsername) {
+      errors.username = "Username is required";
+    } else if (userUsername.length < 4) {
+      errors.username = "Username must be at least 4 characters";
+    }
+    
+    if (!userPassword) {
+      errors.password = "Password is required";
+    } else if (userPassword.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+    
+    // If role is student or teacher, schoolId is required
+    if ((userRoleValue === "student" || userRoleValue === "teacher") && !userSchoolId) {
+      errors.schoolId = "School selection is required";
+    }
+    
+    // If role is student, classId is required
+    if (userRoleValue === "student" && !userClassId) {
+      errors.classId = "Class selection is required";
+    }
+    
+    // Check if there are any errors
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      
+      // Show toast with main error message
       toast({
-        title: "Missing Information",
-        description: "Please fill out all required fields",
+        title: "Validation Error",
+        description: "Please correct the highlighted fields",
         variant: "destructive",
       });
       return;
@@ -3383,28 +3441,62 @@ const AdminDashboard: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="user-fullName">Full Name</Label>
-                <Input id="user-fullName" placeholder="Enter full name" />
+                <Label htmlFor="user-fullName" className={formErrors.fullName ? "text-red-500" : ""}>
+                  Full Name {formErrors.fullName && <span className="text-xs font-normal">- {formErrors.fullName}</span>}
+                </Label>
+                <Input 
+                  id="user-fullName" 
+                  placeholder="Enter full name" 
+                  value={userFullName}
+                  onChange={(e) => setUserFullName(e.target.value)}
+                  className={formErrors.fullName ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="user-email">Email</Label>
-                <Input id="user-email" type="email" placeholder="Enter email" />
+                <Label htmlFor="user-email" className={formErrors.email ? "text-red-500" : ""}>
+                  Email {formErrors.email && <span className="text-xs font-normal">- {formErrors.email}</span>}
+                </Label>
+                <Input 
+                  id="user-email" 
+                  type="email" 
+                  placeholder="Enter email"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  className={formErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="user-username">Username</Label>
-                <Input id="user-username" placeholder="Enter username" />
+                <Label htmlFor="user-username" className={formErrors.username ? "text-red-500" : ""}>
+                  Username {formErrors.username && <span className="text-xs font-normal">- {formErrors.username}</span>}
+                </Label>
+                <Input 
+                  id="user-username" 
+                  placeholder="Enter username"
+                  value={userUsername}
+                  onChange={(e) => setUserUsername(e.target.value)}
+                  className={formErrors.username ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="user-password">Password</Label>
-                <Input id="user-password" type="password" placeholder="Enter password" />
+                <Label htmlFor="user-password" className={formErrors.password ? "text-red-500" : ""}>
+                  Password {formErrors.password && <span className="text-xs font-normal">- {formErrors.password}</span>}
+                </Label>
+                <Input 
+                  id="user-password" 
+                  type="password" 
+                  placeholder="Enter password"
+                  value={userPassword}
+                  onChange={(e) => setUserPassword(e.target.value)}
+                  className={formErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="user-role">Role</Label>
-                <Select>
+                <Select value={userRoleValue} onValueChange={setUserRoleValue}>
                   <SelectTrigger id="user-role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -3416,9 +3508,11 @@ const AdminDashboard: React.FC = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="user-school">School</Label>
-                <Select>
-                  <SelectTrigger id="user-school">
+                <Label htmlFor="user-school" className={formErrors.schoolId ? "text-red-500" : ""}>
+                  School {formErrors.schoolId && <span className="text-xs font-normal">- {formErrors.schoolId}</span>}
+                </Label>
+                <Select value={userSchoolId} onValueChange={setUserSchoolId}>
+                  <SelectTrigger id="user-school" className={formErrors.schoolId ? "border-red-500 focus-visible:ring-red-500" : ""}>
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
                   <SelectContent>
