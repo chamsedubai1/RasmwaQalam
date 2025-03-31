@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { CaptchaField } from "./captcha-field";
 
 interface StudentRegistrationFormProps {
@@ -379,12 +379,14 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
       </div>
       
       <div className="space-y-2">
-        <CaptchaField 
-          control={form.control} 
-          name="captchaText"
-          label="Security Verification"
-          description="Please enter the text shown in the image to verify you're not a robot"
-        />
+        <FormProvider {...form}>
+          <CaptchaField 
+            control={form.control} 
+            name="captchaText"
+            label="Security Verification"
+            description="Please enter the text shown in the image to verify you're not a robot"
+          />
+        </FormProvider>
       </div>
       
       <Button 
