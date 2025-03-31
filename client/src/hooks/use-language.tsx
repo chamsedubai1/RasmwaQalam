@@ -183,6 +183,52 @@ const translations: Record<Language, Record<string, string>> = {
     "footer.yourEmail": "Your email",
     "footer.subscribe": "Subscribe",
     "footer.allRightsReserved": "All rights reserved.",
+    
+    // About page
+    "about.hero.title": "About",
+    "about.hero.description": "Empowering student creativity through AI-assisted artistic expression and friendly competition",
+    
+    "about.mission.title": "Our Mission",
+    "about.mission.paragraph1": "FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.",
+    "about.mission.paragraph2": "We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.",
+    
+    "about.values.title": "Our Values",
+    "about.values.creativity.title": "Creativity",
+    "about.values.creativity.description": "We foster an environment where creative thinking is celebrated and encouraged, allowing students to express their unique perspectives.",
+    "about.values.collaboration.title": "Collaboration",
+    "about.values.collaboration.description": "We believe in the power of shared experiences and learning from each other through friendly competition and peer feedback.",
+    "about.values.innovation.title": "Innovation",
+    "about.values.innovation.description": "We embrace new technologies as tools for expanding artistic possibilities, helping students explore the frontier of AI-assisted creativity.",
+    
+    "about.story.title": "Our Story",
+    "about.story.image_alt": "Artistic inspiration with neural network connections",
+    "about.story.badge": "IB CAS Project",
+    "about.story.paragraph1": "Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.",
+    "about.story.paragraph2": "Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.",
+    "about.story.paragraph3": "Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.",
+    
+    "about.competition.title": "Competition Structure",
+    "about.competition.stage1.title": "Class Stage",
+    "about.competition.stage1.description": "Students compete against classmates, with peer voting determining the top 3 submissions that advance to the next stage.",
+    "about.competition.stage2.title": "School Stage",
+    "about.competition.stage2.description": "Class winners compete against other classes in their grade level, with the top 3 submissions from each school advancing.",
+    "about.competition.stage3.title": "Country Stage",
+    "about.competition.stage3.description": "School winners compete nationally, with a panel of educators and artists selecting the top submissions to advance to the global stage.",
+    "about.competition.stage4.title": "Global Stage",
+    "about.competition.stage4.description": "The best submissions from around the world compete for international recognition, with winners receiving special recognition and prizes.",
+    
+    // Schools page
+    "schools.hero.title": "Participating Schools",
+    "schools.hero.description": "Discover the vibrant community of educational institutions taking part in our creative challenges",
+    "schools.search.placeholder": "Search schools...",
+    "schools.search.clear": "Clear search",
+    "schools.stats.active_schools": "Active Schools",
+    "schools.stats.students": "Active Students",
+    "schools.stats.countries": "Countries",
+    "schools.empty.title": "No schools found",
+    "schools.empty.description": "We couldn't find any schools matching your search",
+    "schools.card.student_count": "Active Students",
+    "schools.card.view_details": "View Details",
   },
   ar: {
     // Navigation
@@ -348,6 +394,52 @@ const translations: Record<Language, Record<string, string>> = {
     "footer.yourEmail": "بريدك الإلكتروني",
     "footer.subscribe": "اشترك",
     "footer.allRightsReserved": "جميع الحقوق محفوظة.",
+    
+    // About page
+    "about.hero.title": "نبذة عن",
+    "about.hero.description": "تمكين إبداع الطلاب من خلال التعبير الفني بمساعدة الذكاء الاصطناعي والمنافسة الودية",
+    
+    "about.mission.title": "مهمتنا",
+    "about.mission.paragraph1": "تم إنشاء فزاع-للفنون لتمكين الطلاب من استكشاف إبداعهم باستخدام أدوات الذكاء الاصطناعي المتطورة مع بناء بيئة تنافسية وتعاونية للتعبير الفني.",
+    "about.mission.paragraph2": "نؤمن بأنه من خلال الجمع بين التكنولوجيا والتعبير الفني، يمكننا مساعدة الطلاب على تطوير مهاراتهم الإبداعية والتقنية للمستقبل.",
+    
+    "about.values.title": "قيمنا",
+    "about.values.creativity.title": "الإبداع",
+    "about.values.creativity.description": "نحن نعزز بيئة يتم فيها الاحتفال بالتفكير الإبداعي وتشجيعه، مما يسمح للطلاب بالتعبير عن وجهات نظرهم الفريدة.",
+    "about.values.collaboration.title": "التعاون",
+    "about.values.collaboration.description": "نؤمن بقوة التجارب المشتركة والتعلم من بعضنا البعض من خلال المنافسة الودية وملاحظات الأقران.",
+    "about.values.innovation.title": "الابتكار",
+    "about.values.innovation.description": "نحن نتبنى التقنيات الجديدة كأدوات لتوسيع الإمكانيات الفنية، ومساعدة الطلاب على استكشاف حدود الإبداع بمساعدة الذكاء الاصطناعي.",
+    
+    "about.story.title": "قصتنا",
+    "about.story.image_alt": "إلهام فني مع اتصالات الشبكة العصبية",
+    "about.story.badge": "مشروع CAS للبكالوريا الدولية",
+    "about.story.paragraph1": "فزاع-للفنون هي مبادرة مبتكرة نشأت كمشروع البكالوريا الدولية CAS (الإبداع، النشاط، الخدمة) بهدف إنشاء مجتمع فني نابض بالحياة.",
+    "about.story.paragraph2": "تستفيد منصة فزاع-للفنون الفريدة من قوة الذكاء الاصطناعي لتعزيز المنافسة الإبداعية بين أعضائها. من خلال استخدام الإيحاءات التي يولدها الذكاء الاصطناعي، تتحدى فزاع-للفنون المشاركين لصياغة قصائد وإنشاء أعمال فنية مبنية على مواضيع مختارة بعناية.",
+    "about.story.paragraph3": "تم تصميم مسابقات فزاع-للفنون لتشجيع مجتمعنا على التعمق أكثر في إبداعهم، ودفع حدود التفكير التقليدي وإلهام المشاركين للتفكير خارج الصندوق. من خلال هذه العملية، لا تغذي فزاع-للفنون التعبير الفني فحسب، بل تعزز أيضًا تطوير محتوى مثير للتفكير وخيالي.",
+    
+    "about.competition.title": "هيكل المسابقة",
+    "about.competition.stage1.title": "مرحلة الصف",
+    "about.competition.stage1.description": "يتنافس الطلاب ضد زملائهم في الصف، حيث يحدد تصويت الأقران أفضل 3 مشاركات التي تتقدم إلى المرحلة التالية.",
+    "about.competition.stage2.title": "مرحلة المدرسة",
+    "about.competition.stage2.description": "يتنافس الفائزون في الصف ضد الصفوف الأخرى في مستوى صفهم، مع تقدم أفضل 3 مشاركات من كل مدرسة.",
+    "about.competition.stage3.title": "مرحلة الدولة",
+    "about.competition.stage3.description": "يتنافس الفائزون في المدارس على المستوى الوطني، مع لجنة من المعلمين والفنانين لاختيار أفضل المشاركات للتقدم إلى المرحلة العالمية.",
+    "about.competition.stage4.title": "المرحلة العالمية",
+    "about.competition.stage4.description": "تتنافس أفضل المشاركات من جميع أنحاء العالم للحصول على اعتراف دولي، مع حصول الفائزين على تقدير خاص وجوائز.",
+    
+    // Schools page
+    "schools.hero.title": "المدارس المشاركة",
+    "schools.hero.description": "اكتشف مجتمع المؤسسات التعليمية النابض بالحياة المشاركة في تحدياتنا الإبداعية",
+    "schools.search.placeholder": "البحث عن المدارس...",
+    "schools.search.clear": "مسح البحث",
+    "schools.stats.active_schools": "المدارس النشطة",
+    "schools.stats.students": "الطلاب النشطون",
+    "schools.stats.countries": "الدول",
+    "schools.empty.title": "لم يتم العثور على مدارس",
+    "schools.empty.description": "لم نتمكن من العثور على أي مدارس تطابق بحثك",
+    "schools.card.student_count": "الطلاب النشطون",
+    "schools.card.view_details": "عرض التفاصيل",
   }
 };
 

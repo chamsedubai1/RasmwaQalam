@@ -1,5 +1,6 @@
 import React from "react";
 import aboutStoryImage from "../assets/about-story_1743074317684.jpg";
+import { useLanguage } from "@/hooks/use-language";
 import { 
   Sparkles, 
   Users, 
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 
 const About: React.FC = () => {
+  const { t } = useLanguage();
+  
   return (
     <div className="max-w-5xl mx-auto">
       {/* Hero Section */}
@@ -28,10 +31,10 @@ const About: React.FC = () => {
         </div>
         <div className="relative z-10 py-16 px-6 sm:px-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            About <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">FAZAA</span> - Art
+            {t("about.hero.title")} <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">FAZAA</span> - Art
           </h1>
           <p className="text-lg text-blue-100 max-w-2xl mx-auto">
-            Empowering student creativity through AI-assisted artistic expression and friendly competition
+            {t("about.hero.description")}
           </p>
         </div>
       </div>
@@ -50,10 +53,10 @@ const About: React.FC = () => {
               <div className="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center">
                 <Lightbulb className="h-5 w-5 text-white" />
               </div>
-              <h2 className="text-2xl font-heading font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Mission</h2>
+              <h2 className="text-2xl font-heading font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.mission.title")}</h2>
             </div>
-            <p className="text-gray-600 mb-4 leading-relaxed">FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.</p>
-            <p className="text-gray-600 leading-relaxed">We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.</p>
+            <p className="text-gray-600 mb-4 leading-relaxed">{t("about.mission.paragraph1")}</p>
+            <p className="text-gray-600 leading-relaxed">{t("about.mission.paragraph2")}</p>
           </div>
         </div>
       </div>
@@ -62,7 +65,7 @@ const About: React.FC = () => {
         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
           <LucideHeart className="h-5 w-5 text-white" />
         </div>
-        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Values</h2>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.values.title")}</h2>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -74,8 +77,8 @@ const About: React.FC = () => {
               <Palette className="text-amber-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
             </div>
           </div>
-          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Creativity</h3>
-          <p className="text-gray-600 text-center">We foster an environment where creative thinking is celebrated and encouraged, allowing students to express their unique perspectives.</p>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">{t("about.values.creativity.title")}</h3>
+          <p className="text-gray-600 text-center">{t("about.values.creativity.description")}</p>
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-md border border-blue-50 hover:shadow-lg transition-all group">
@@ -86,8 +89,8 @@ const About: React.FC = () => {
               <Users className="text-blue-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
             </div>
           </div>
-          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Collaboration</h3>
-          <p className="text-gray-600 text-center">We believe in the power of shared experiences and learning from each other through friendly competition and peer feedback.</p>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">{t("about.values.collaboration.title")}</h3>
+          <p className="text-gray-600 text-center">{t("about.values.collaboration.description")}</p>
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-md border border-blue-50 hover:shadow-lg transition-all group">
@@ -98,8 +101,8 @@ const About: React.FC = () => {
               <Rocket className="text-indigo-600 h-8 w-8 z-10 group-hover:scale-110 transition-all duration-300" />
             </div>
           </div>
-          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">Innovation</h3>
-          <p className="text-gray-600 text-center">We embrace new technologies as tools for expanding artistic possibilities, helping students explore the frontier of AI-assisted creativity.</p>
+          <h3 className="font-heading font-semibold text-center mb-2 text-gray-800">{t("about.values.innovation.title")}</h3>
+          <p className="text-gray-600 text-center">{t("about.values.innovation.description")}</p>
         </div>
       </div>
 
@@ -107,7 +110,7 @@ const About: React.FC = () => {
         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
           <Star className="h-5 w-5 text-white" />
         </div>
-        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Our Story</h2>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.story.title")}</h2>
       </div>
       
       <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 transform hover:scale-[1.01] transition-all border border-blue-50">
@@ -117,7 +120,7 @@ const About: React.FC = () => {
             <img 
               className="h-full w-full object-cover md:w-64 lg:w-80" 
               src={aboutStoryImage} 
-              alt="Artistic inspiration with neural network connections" 
+              alt={t("about.story.image_alt")} 
             />
             <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-blue-700/70 to-transparent md:hidden"></div>
           </div>
@@ -127,11 +130,11 @@ const About: React.FC = () => {
             </div>
             <div className="relative">
               <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                IB CAS Project
+                {t("about.story.badge")}
               </div>
-              <p className="text-gray-700 mb-4 leading-relaxed">Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.</p>
-              <p className="text-gray-700 mb-4 leading-relaxed">Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.</p>
-              <p className="text-gray-700 leading-relaxed">Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.</p>
+              <p className="text-gray-700 mb-4 leading-relaxed">{t("about.story.paragraph1")}</p>
+              <p className="text-gray-700 mb-4 leading-relaxed">{t("about.story.paragraph2")}</p>
+              <p className="text-gray-700 leading-relaxed">{t("about.story.paragraph3")}</p>
             </div>
           </div>
         </div>
@@ -141,7 +144,7 @@ const About: React.FC = () => {
         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
           <Trophy className="h-5 w-5 text-white" />
         </div>
-        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Competition Structure</h2>
+        <h2 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">{t("about.competition.title")}</h2>
       </div>
       
       <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12 border border-blue-50">
@@ -158,8 +161,8 @@ const About: React.FC = () => {
                   <span className="font-bold text-white">1</span>
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-blue-800">Class Stage</h3>
-                  <p className="text-gray-600">Students compete against classmates, with peer voting determining the top 3 submissions that advance to the next stage.</p>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-blue-800">{t("about.competition.stage1.title")}</h3>
+                  <p className="text-gray-600">{t("about.competition.stage1.description")}</p>
                 </div>
               </div>
             </div>
@@ -171,8 +174,8 @@ const About: React.FC = () => {
                   <span className="font-bold text-white">2</span>
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-indigo-800">School Stage</h3>
-                  <p className="text-gray-600">Class winners compete against other classes in their grade level, with the top 3 submissions from each school advancing.</p>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-indigo-800">{t("about.competition.stage2.title")}</h3>
+                  <p className="text-gray-600">{t("about.competition.stage2.description")}</p>
                 </div>
               </div>
             </div>
@@ -184,8 +187,8 @@ const About: React.FC = () => {
                   <span className="font-bold text-white">3</span>
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-purple-800">Country Stage</h3>
-                  <p className="text-gray-600">School winners compete nationally, with a panel of educators and artists selecting the top submissions to advance to the global stage.</p>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-purple-800">{t("about.competition.stage3.title")}</h3>
+                  <p className="text-gray-600">{t("about.competition.stage3.description")}</p>
                 </div>
               </div>
             </div>
@@ -197,8 +200,8 @@ const About: React.FC = () => {
                   <span className="font-bold text-white">4</span>
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-amber-800">Global Stage</h3>
-                  <p className="text-gray-600">The best submissions from around the world compete for international recognition, with winners receiving special recognition and prizes.</p>
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-amber-800">{t("about.competition.stage4.title")}</h3>
+                  <p className="text-gray-600">{t("about.competition.stage4.description")}</p>
                 </div>
               </div>
             </div>

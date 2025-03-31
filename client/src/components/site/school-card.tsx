@@ -1,5 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface SchoolCardProps {
   id: number;
@@ -18,6 +19,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
   websiteUrl,
   activeStudents
 }) => {
+  const { t } = useLanguage();
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
       <div className="h-48 bg-gray-200 relative">
@@ -32,7 +34,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
         <p className="text-gray-600 text-sm mb-3">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded">
-            {activeStudents} Active Students
+            {activeStudents} {t("schools.card.student_count")}
           </span>
           <a 
             href={websiteUrl} 
@@ -40,7 +42,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
             rel="noopener noreferrer" 
             className="text-primary hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
           >
-            Visit Website <ExternalLink size={14} />
+            {t("schools.card.view_details")} <ExternalLink size={14} />
           </a>
         </div>
       </div>
