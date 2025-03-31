@@ -4249,13 +4249,12 @@ const AdminDashboard: React.FC = () => {
             
             <div>
               <Label htmlFor="partnerLogo" className="mb-2 block">
-                Logo URL (Optional)
+                Logo Image (Optional)
               </Label>
-              <Input
-                id="partnerLogo"
-                placeholder="URL to partner logo"
-                value={partnerLogoUrl}
-                onChange={(e) => setPartnerLogoUrl(e.target.value)}
+              <ImageUpload
+                onImageUploaded={(url) => setPartnerLogoUrl(url)}
+                existingImageUrl={partnerLogoUrl}
+                className="w-full"
               />
             </div>
             
@@ -4332,13 +4331,12 @@ const AdminDashboard: React.FC = () => {
             
             <div>
               <Label htmlFor="editPartnerLogo" className="mb-2 block">
-                Logo URL (Optional)
+                Logo Image (Optional)
               </Label>
-              <Input
-                id="editPartnerLogo"
-                placeholder="URL to partner logo"
-                value={partnerLogoUrl}
-                onChange={(e) => setPartnerLogoUrl(e.target.value)}
+              <ImageUpload
+                onImageUploaded={(url) => setPartnerLogoUrl(url)}
+                existingImageUrl={partnerLogoUrl}
+                className="w-full"
               />
             </div>
             
