@@ -12,7 +12,7 @@ import * as path from "path";
 import Papa from "papaparse";
 import { setupUploadRoutes, setupStaticUploads } from "./uploads";
 import session from "express-session";
-import { generateCaptcha, validateCaptcha, requireCaptcha } from "./captcha";
+import { generateCaptcha, validateCaptcha, requireCaptcha, captchaStore } from "./captcha";
 import crypto from "crypto";
 
 // Set this to true to use Hugging Face (free open-source AI) instead of OpenAI

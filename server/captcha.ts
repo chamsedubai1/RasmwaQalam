@@ -18,7 +18,7 @@ interface CaptchaData {
 }
 
 // In-memory fallback store for sessions without proper session support
-const captchaStore = new Map<string, { text: string; expiry: Date }>();
+export const captchaStore = new Map<string, { text: string; expiry: Date }>();
 
 /**
  * Generates a random string for CAPTCHA
@@ -143,11 +143,8 @@ export function generateCaptcha(sessionId: string): CaptchaData {
  * @returns True if valid, false otherwise
  */
 export function validateCaptcha(sessionId: string, userInput: string): boolean {
-  // For development, always accept CAPTCHA to make testing easier
-  if (process.env.NODE_ENV === 'development') {
-    console.log('DEV MODE: validateCaptcha always returning true');
-    return true;
-  }
+  // For development, we still validate properly
+  console.log('CAPTCHA validation in progress - development mode');
   
   console.log(`validateCaptcha - sessionId: ${sessionId}, userInput: ${userInput}`);
   
@@ -207,11 +204,9 @@ export function requireCaptcha(req: Request, res: Response, next: NextFunction) 
   console.log(`Received CAPTCHA text: ${captchaText}`);
   console.log(`Session ID: ${req.ip}`);
   
-  // In development mode, always accept CAPTCHA
-  if (process.env.NODE_ENV === 'development') {
-    console.log('DEV MODE: Accepting any CAPTCHA');
-    return next();
-  }
+  // In development mode, we validate the CAPTCHA strictly 
+  // but with more detailed logs for debugging
+  console.log('Validating CAPTCHA in development mode - showing more debug info');
   
   // Check session first for CAPTCHA
   if (req.session && req.session.captcha) {
