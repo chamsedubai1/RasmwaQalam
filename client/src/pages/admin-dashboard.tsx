@@ -68,7 +68,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-// Data export function
+// Data export function defined outside component
 const handleExportData = (entity: string, format: string) => {
   // Create a link element to trigger the download
   const link = document.createElement('a');
@@ -77,79 +77,6 @@ const handleExportData = (entity: string, format: string) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-};
-
-// Data import function
-const handleImportClick = (entity: string) => {
-  // Create a hidden file input
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.csv,.json,.xlsx,.txt';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  
-  // Store the entity type as a data attribute
-  input.dataset.entity = entity;
-  
-  // Set up the change event handler
-  input.onchange = (event) => handleFileSelect(event, entity);
-  
-  // Trigger file selection dialog
-  input.click();
-  
-  // Clean up
-  setTimeout(() => {
-    document.body.removeChild(input);
-  }, 5000);
-};
-
-// Handle file selection for import
-const handleFileSelect = async (event: Event, entity: string) => {
-  const fileInput = event.target as HTMLInputElement;
-  const file = fileInput.files?.[0];
-  
-  if (!file || !entity) return;
-  
-  // Create FormData for file upload
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const handleImport = async () => {
-    try {
-      // Determine file format from extension
-      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-      formData.append('format', fileExtension);
-      
-      // Send the file to the import API
-      const response = await fetch(`/api/import/${entity}`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Import failed: ${response.statusText}`);
-      }
-      
-      // Refresh data based on entity type
-      queryClient.invalidateQueries({ queryKey: [`/api/${entity}`] });
-      
-      // Show success message
-      toast({
-        title: "Import Successful",
-        description: `${entity} data has been imported successfully`,
-      });
-    } catch (error) {
-      console.error("Import error:", error);
-      toast({
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import data",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Execute the import
-  handleImport();
 };
 
 const AdminDashboard: React.FC = () => {
@@ -247,6 +174,74 @@ const AdminDashboard: React.FC = () => {
   }
   
   // Calculate dashboard statistics
+  // Data import function - moved inside component to access toast
+  const handleImportClick = (entity: string) => {
+    // Create a hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.json,.xlsx,.txt';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    
+    // Store the entity type as a data attribute
+    input.dataset.entity = entity;
+    
+    // Set up the change event handler using function defined inside component
+    input.onchange = (event) => handleFileSelect(event, entity);
+    
+    // Trigger file selection dialog
+    input.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(input);
+    }, 5000);
+  };
+
+  // Handle file selection for import - moved inside component to access toast and queryClient
+  const handleFileSelect = async (event: Event, entity: string) => {
+    const fileInput = event.target as HTMLInputElement;
+    const file = fileInput.files?.[0];
+    
+    if (!file || !entity) return;
+    
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      // Determine file format from extension
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      formData.append('format', fileExtension);
+      
+      // Send the file to the import API
+      const response = await fetch(`/api/import/${entity}`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.statusText}`);
+      }
+      
+      // Refresh data based on entity type
+      queryClient.invalidateQueries({ queryKey: [`/api/${entity}`] });
+      
+      // Show success message
+      toast({
+        title: "Import Successful",
+        description: `${entity} data has been imported successfully`,
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import data",
+        variant: "destructive",
+      });
+    }
+  };
+
   const totalUsers = (allUsers as any[]).length;
   const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
   const totalTeachers = (allUsers as any[]).filter((user: any) => user.role === 'teacher').length;
