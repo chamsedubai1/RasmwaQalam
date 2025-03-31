@@ -97,51 +97,53 @@ const CreArt: React.FC = () => {
     enabled: !!userId, // Only run the query if userId exists and is not falsy
   });
   
-  // Fetch ALL class stage events (not necessarily registered to them)
-  const { data: classEvents = [] } = useQuery({
-    queryKey: ['/api/events?status=open&stage=class'],
+  // Fetch ALL open events (regardless of stage)
+  const { data: openEvents = [] } = useQuery({
+    queryKey: ['/api/events?status=open'],
   });
   
-  // Find registered events at class stage where students have submitted content
-  // This is a critical change to fix the voting system - we need to find events BOTH students are registered for
-  const registeredClassEvents = Array.isArray(classEvents) && Array.isArray(registrations) 
-    ? classEvents.filter(event => 
+  // Find registered events that the student can vote on
+  const registeredVotableEvents = Array.isArray(openEvents) && Array.isArray(registrations) 
+    ? openEvents.filter(event => 
         registrations.some(r => r.eventId === event.id) &&
         Array.isArray(submissions) && submissions.some(s => s.eventId === event.id)
       )
     : [];
   
-  console.log('Available class events:', classEvents);
-  console.log('Registered class events with submissions:', registeredClassEvents);
+  console.log('Available voting events:', openEvents);
+  console.log('Registered votable events with submissions:', registeredVotableEvents);
   
-  // Use the first registered class event that has a submission as the active event
-  const activeClassEvent = registeredClassEvents.length > 0 ? registeredClassEvents[0] : null;
-  const eventId = activeClassEvent && activeClassEvent.id ? activeClassEvent.id : null;
+  // Use the first registered event that has a submission as the active event
+  const activeVotingEvent = registeredVotableEvents.length > 0 ? registeredVotableEvents[0] : null;
+  const eventId = activeVotingEvent && activeVotingEvent.id ? activeVotingEvent.id : null;
+  
+  // Get the current event's stage for display and filtering
+  const currentEventStage = activeVotingEvent ? activeVotingEvent.stage : 'class';
   
   // Get user's classId from the user context
   const classId = user?.classId;
 
   // Fetch submissions for class voting if there's an active class event
-  const { data: classSubmissions = [], isLoading: isLoadingClassSubmissions } = useQuery({
+  const { data: votableSubmissions = [], isLoading: isLoadingVotableSubmissions } = useQuery({
     queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }],
     queryFn: async () => {
       if (!eventId || !userId || !classId) {
-        console.log('Missing required parameters for class submissions query:', { eventId, userId, classId });
+        console.log('Missing required parameters for voting submissions query:', { eventId, userId, classId });
         return [];
       }
       
       const url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`;
-      console.log('Fetching class submissions with URL:', url);
+      console.log('Fetching voting submissions with URL:', url);
       
       const response = await fetch(url);
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Class submissions fetch error:', errorText);
-        throw new Error(`Failed to fetch class submissions: ${errorText}`);
+        console.error('Voting submissions fetch error:', errorText);
+        throw new Error(`Failed to fetch voting submissions: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log(`Fetched ${data.length} class submissions:`, data);
+      console.log(`Fetched ${data.length} voting submissions:`, data);
       return data;
     },
     enabled: !!eventId && !!userId && !!classId && activeTab === 'voting',
@@ -149,18 +151,18 @@ const CreArt: React.FC = () => {
     refetchOnWindowFocus: true // Refetch when the window regains focus
   });
   
-  // Debug logging for class voting
+  // Debug logging for voting at any stage
   useEffect(() => {
     if (activeTab === 'voting') {
-      console.log('Class voting debug info:', {
+      console.log('Voting debug info:', {
         classId,
         userId,
         eventId,
-        submissionsCount: Array.isArray(classSubmissions) ? classSubmissions.length : 0,
+        submissionsCount: Array.isArray(votableSubmissions) ? votableSubmissions.length : 0,
         allQueryParamsPresent: !!eventId && !!userId && !!classId
       });
     }
-  }, [activeTab, classSubmissions, classId, eventId, userId]);
+  }, [activeTab, votableSubmissions, classId, eventId, userId]);
   
   // Define interface for voting stats
   interface VotingStats {
@@ -374,10 +376,10 @@ const CreArt: React.FC = () => {
           <TabsTrigger 
             value="voting" 
             className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
-            disabled={!activeClassEvent}
+            disabled={!activeVotingEvent}
           >
             <Vote className="h-4 w-4" />
-            <span>Class Voting</span>
+            <span>{currentEventStage.charAt(0).toUpperCase() + currentEventStage.slice(1)} Voting</span>
           </TabsTrigger>
         </TabsList>
         
@@ -540,7 +542,7 @@ const CreArt: React.FC = () => {
                       </div>
                       <div className="text-xs text-blue-500">
                         {submission.eventId === eventId 
-                          ? `Submitted to: ${submission.eventName || activeClassEvent?.name || 'current event'}` 
+                          ? `Submitted to: ${submission.eventName || activeVotingEvent?.name || 'current event'}` 
                           : submission.eventName 
                             ? `Submitted to: ${submission.eventName}` 
                             : `Submitted to event #${submission.eventId}`}
@@ -554,13 +556,13 @@ const CreArt: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="voting" className="mt-4">
-          {activeClassEvent && (
+          {activeVotingEvent && (
             <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <Vote className="h-5 w-5 text-blue-600 mr-2" />
                   <h2 className="text-xl font-semibold font-heading text-blue-800">
-                    Class Voting - {activeClassEvent.name}
+                    {currentEventStage.charAt(0).toUpperCase() + currentEventStage.slice(1)} Voting - {activeVotingEvent.name}
                   </h2>
                 </div>
                 
@@ -592,11 +594,11 @@ const CreArt: React.FC = () => {
                 )}
               </div>
               
-              {isLoadingClassSubmissions ? (
+              {isLoadingVotableSubmissions ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                 </div>
-              ) : !Array.isArray(classSubmissions) || classSubmissions.length === 0 ? (
+              ) : !Array.isArray(votableSubmissions) || votableSubmissions.length === 0 ? (
                 <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
                   <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
                     <Vote className="h-8 w-8 text-blue-400" />
@@ -605,7 +607,7 @@ const CreArt: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {classSubmissions.map((submission: any) => (
+                  {votableSubmissions.map((submission: any) => (
                     <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group">
                       <div className="p-4 bg-blue-50">
                         <div className="flex justify-between items-start">
@@ -635,7 +637,7 @@ const CreArt: React.FC = () => {
                           </span>
                           <span className="text-xs text-blue-500">
                             {submission.eventId === eventId 
-                              ? `Current event: ${submission.eventName || activeClassEvent?.name}` 
+                              ? `Current event: ${submission.eventName || activeVotingEvent?.name}` 
                               : submission.eventName 
                                 ? `Event: ${submission.eventName}` 
                                 : `Event #${submission.eventId}`}

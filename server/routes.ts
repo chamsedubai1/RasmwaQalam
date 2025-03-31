@@ -582,6 +582,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Submissions query params:', { userId, eventId, classId, forVoting, currentUserId });
       
       let submissions;
+      // Get current event to determine voting stage
+      let currentEvent = eventId ? await storage.getEvent(eventId) : null;
+      let currentEventStage = currentEvent ? currentEvent.stage : 'class';
+      
       if (userId && eventId) {
         submissions = await storage.getSubmissionsByUserAndEvent(userId, eventId);
       } else if (userId) {
@@ -598,40 +602,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
           submissions = submissions.filter(sub => sub.userId !== currentUserId);
           console.log(`Filtered out user's own submissions: ${beforeFilter} -> ${submissions.length}`);
           
-          // 2. If we are in class voting mode, only show submissions from students in the same class
-          if (classId) {
-            // Get all users in the class
-            const classUsers = await storage.getUsersByClass(classId);
-            const classUserIds = classUsers.map(user => user.id);
-            console.log(`Users in class ${classId}:`, classUserIds);
-            
-            const beforeClassFilter = submissions.length;
-            // Only keep submissions from users in this class
-            submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
-            console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
-            
-            // Debug: Get student submissions for this event
-            const allStudentSubmissions = await storage.getSubmissionsByEvent(eventId);
-            console.log(`All submissions for event ${eventId}:`, 
-              allStudentSubmissions.map(s => ({ id: s.id, userId: s.userId, title: s.title })));
-          } else if (currentUserId) {
-            // If no class ID was explicitly provided but we have a current user,
-            // try to get their class ID from their user info
-            const currentUser = await storage.getUser(currentUserId);
-            console.log('Current user:', currentUser);
-            
-            if (currentUser && currentUser.classId) {
-              // Get all users in the current user's class
-              const classUsers = await storage.getUsersByClass(currentUser.classId);
-              const classUserIds = classUsers.map(user => user.id);
-              console.log(`Users in current user's class ${currentUser.classId}:`, classUserIds);
-              
-              const beforeClassFilter = submissions.length;
-              // Only keep submissions from users in the same class
-              submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
-              console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
-            }
+          // Get current user information
+          const currentUser = await storage.getUser(currentUserId);
+          console.log('Current user:', currentUser);
+          
+          if (!currentUser) {
+            return res.status(400).json({ message: 'Invalid user ID' });
           }
+          
+          // Apply stage-specific filters
+          switch (currentEventStage) {
+            case 'class':
+              // CLASS STAGE: Only show submissions from students in the same class
+              if (classId) {
+                // Get all users in the class
+                const classUsers = await storage.getUsersByClass(classId);
+                const classUserIds = classUsers.map(user => user.id);
+                console.log(`Users in class ${classId}:`, classUserIds);
+                
+                const beforeClassFilter = submissions.length;
+                // Only keep submissions from users in this class
+                submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+                console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
+              } else if (currentUser.classId) {
+                // If no class ID was explicitly provided, use current user's class
+                const classUsers = await storage.getUsersByClass(currentUser.classId);
+                const classUserIds = classUsers.map(user => user.id);
+                console.log(`Users in current user's class ${currentUser.classId}:`, classUserIds);
+                
+                const beforeClassFilter = submissions.length;
+                // Only keep submissions from users in the same class
+                submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+                console.log(`Filtered to only classmates: ${beforeClassFilter} -> ${submissions.length}`);
+              }
+              break;
+              
+            case 'school':
+              // SCHOOL STAGE: Only show winning submissions from the same grade level within the same school
+              if (currentUser.schoolId) {
+                // Get all users in the same school with the same grade level
+                const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
+                
+                // Get current user's class to determine grade level
+                const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
+                const userGradeLevel = userClass ? userClass.gradeLevel : null;
+                
+                console.log(`User grade level: ${userGradeLevel}`);
+                
+                if (userGradeLevel) {
+                  // Get all classes with the same grade level in this school
+                  const allClasses = await storage.getClassesBySchool(currentUser.schoolId);
+                  const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
+                  const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
+                  
+                  console.log(`Classes with grade level ${userGradeLevel}:`, sameGradeClassIds);
+                  
+                  // Get users from these classes
+                  const sameGradeUsers = allUsers.filter(usr => 
+                    usr.classId && sameGradeClassIds.includes(usr.classId)
+                  );
+                  const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
+                  
+                  console.log(`Users in same grade (${userGradeLevel}):`, sameGradeUserIds);
+                  
+                  // Filter submissions to only include those from same grade/school
+                  const beforeSchoolFilter = submissions.length;
+                  submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
+                  console.log(`Filtered to same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                }
+              }
+              break;
+              
+            case 'country':
+              // COUNTRY STAGE: Only show winning submissions from the same grade level across all schools
+              // Get current user's class to determine grade level
+              const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
+              const userGradeLevel = userClass ? userClass.gradeLevel : null;
+              
+              console.log(`User grade level for country stage: ${userGradeLevel}`);
+              
+              if (userGradeLevel) {
+                // Get all classes with the same grade level across all schools
+                const allClasses = await storage.getAllClasses();
+                const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
+                const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
+                
+                console.log(`All classes with grade level ${userGradeLevel}:`, sameGradeClassIds);
+                
+                // Get all users from these classes
+                const allUsers = await storage.getAllUsers();
+                const sameGradeUsers = allUsers.filter(usr => 
+                  usr.classId && sameGradeClassIds.includes(usr.classId)
+                );
+                const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
+                
+                console.log(`Users in same grade (${userGradeLevel}) across all schools:`, sameGradeUserIds);
+                
+                // Filter submissions to only include those from same grade across all schools
+                const beforeCountryFilter = submissions.length;
+                submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
+                console.log(`Filtered to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
+              }
+              break;
+              
+            case 'global':
+              // GLOBAL STAGE: No filtering needed, all submissions are visible
+              console.log('Global stage: showing all submissions');
+              break;
+              
+            default:
+              console.log(`Unknown event stage: ${currentEventStage}, defaulting to class stage behavior`);
+              // Default to class stage behavior
+              if (currentUser.classId) {
+                const classUsers = await storage.getUsersByClass(currentUser.classId);
+                const classUserIds = classUsers.map(user => user.id);
+                submissions = submissions.filter(sub => classUserIds.includes(sub.userId));
+              }
+          }
+          
+          // Debug: Get student submissions for this event
+          const allStudentSubmissions = await storage.getSubmissionsByEvent(eventId);
+          console.log(`All submissions for event ${eventId}:`, 
+            allStudentSubmissions.map(s => ({ id: s.id, userId: s.userId, title: s.title })));
         }
       } else if (winnerCategory) {
         submissions = await storage.getWinningSubmissions(winnerCategory);
