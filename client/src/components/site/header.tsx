@@ -3,9 +3,10 @@ import { useLocation } from "wouter";
 import NavLink from "@/components/ui/nav-link";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
-import { Menu, LogIn, LogOut, User, Palette } from "lucide-react";
+import { Menu, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { FazaaLogo } from "@/components/site/logo";
 
 const Header: React.FC = () => {
   const { userRole, setUserRole } = useUserRole();
@@ -38,11 +39,12 @@ const Header: React.FC = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center">
-                <Palette className="h-7 w-7 text-yellow-300 mr-2" />
-                <span className="text-white font-bold text-xl font-heading tracking-wider">
-                  <span className="bg-gradient-to-r from-yellow-300 to-blue-200 bg-clip-text text-transparent">FAZAA</span>
-                  <span> - Art</span>
-                </span>
+                <a href="/" className="flex items-center">
+                  <FazaaLogo className="h-10 w-auto mr-2" />
+                  <span className="text-white font-bold text-xl font-heading tracking-wider sr-only">
+                    FAZAA - Art
+                  </span>
+                </a>
               </div>
             </div>
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8 items-center">
@@ -107,6 +109,9 @@ const Header: React.FC = () => {
       {/* Mobile menu */}
       <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="flex justify-center pb-3">
+            <FazaaLogo className="h-10 w-auto" />
+          </div>
           <NavLink href="/" className="block" role="all">Home</NavLink>
           <NavLink href="/about" className="block" role="all">About Us</NavLink>
           <NavLink href="/events" className="block" role="all">Events</NavLink>

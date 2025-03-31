@@ -1,0 +1,91 @@
+import React from "react";
+
+interface LogoProps {
+  className?: string;
+}
+
+export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      className={className}
+      role="img"
+      aria-label="FAZAA Art Logo"
+    >
+      {/* Logo Background */}
+      <defs>
+        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#4338ca" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+        <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#fcd34d" />
+          <stop offset="100%" stopColor="#93c5fd" />
+        </linearGradient>
+        <linearGradient id="brushGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ec4899" />
+          <stop offset="50%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+      </defs>
+      
+      {/* Circle Background */}
+      <circle cx="256" cy="256" r="200" fill="url(#logoGradient)" opacity="0.9" />
+      
+      {/* Artistic Elements */}
+      <g transform="translate(100, 120) scale(0.6)">
+        {/* Palette */}
+        <path
+          d="M120,120 C60,150 60,250 120,280 C180,310 280,310 340,280 C400,250 400,150 340,120 C280,90 180,90 120,120 Z"
+          fill="#1e3a8a"
+          stroke="#fff"
+          strokeWidth="8"
+        />
+        
+        {/* Color Dots */}
+        <circle cx="140" cy="170" r="20" fill="#ef4444" />
+        <circle cx="200" cy="140" r="20" fill="#f59e0b" />
+        <circle cx="260" cy="140" r="20" fill="#10b981" />
+        <circle cx="320" cy="170" r="20" fill="#3b82f6" />
+        <circle cx="230" cy="220" r="20" fill="#8b5cf6" />
+        
+        {/* Paintbrush */}
+        <path
+          d="M370,250 C390,230 410,170 390,150 C370,130 350,150 340,170 C330,190 340,220 350,240 L310,280 C300,290 340,330 350,320 L390,280 C410,260 380,240 370,250 Z"
+          fill="url(#brushGradient)"
+          stroke="#fff"
+          strokeWidth="5"
+        />
+      </g>
+      
+      {/* FAZAA Text */}
+      <text
+        x="256"
+        y="350"
+        fontSize="50"
+        fontWeight="bold"
+        textAnchor="middle"
+        fill="url(#textGradient)"
+        style={{ fontFamily: "Arial, sans-serif" }}
+      >
+        FAZAA
+      </text>
+      
+      {/* Art Text */}
+      <text
+        x="256"
+        y="390"
+        fontSize="32"
+        fontWeight="bold"
+        textAnchor="middle"
+        fill="#ffffff"
+        style={{ fontFamily: "Arial, sans-serif" }}
+      >
+        ART
+      </text>
+    </svg>
+  );
+};
+
+export default FazaaLogo;
