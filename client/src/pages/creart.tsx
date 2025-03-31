@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -94,6 +94,15 @@ const CreArt: React.FC = () => {
     queryKey: eventId ? [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`] : [`/api/submissions`],
     enabled: !!eventId && !!userId && !!classId,
   });
+  
+  // Debug logging for class voting
+  useEffect(() => {
+    if (activeTab === 'voting' && classSubmissions) {
+      console.log('Class ID:', classId);
+      console.log('Class Submissions:', classSubmissions);
+      console.log('Query URL:', `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`);
+    }
+  }, [activeTab, classSubmissions, classId, eventId, userId]);
   
   // Define interface for voting stats
   interface VotingStats {
