@@ -31,6 +31,18 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const [selectedSchool, setSelectedSchool] = useState("");
   const [subject, setSubject] = useState("");
   
+  // Field-specific error states
+  const [formErrors, setFormErrors] = useState<{
+    username?: string;
+    password?: string;
+    confirmPassword?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    selectedSchool?: string;
+    subject?: string;
+  }>({});
+  
   const { toast } = useToast();
   
   // Fetch schools data
@@ -43,21 +55,64 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!username || !password || !confirmPassword || 
-        !firstName || !lastName || !email || !selectedSchool) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
+    // Reset previous errors
+    setFormErrors({});
+    
+    // Field-specific validation with detailed error messages
+    const errors: {
+      username?: string;
+      password?: string;
+      confirmPassword?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      selectedSchool?: string;
+      subject?: string;
+    } = {};
+    
+    if (!firstName) {
+      errors.firstName = "First name is required";
     }
     
-    if (password !== confirmPassword) {
+    if (!lastName) {
+      errors.lastName = "Last name is required";
+    }
+    
+    if (!username) {
+      errors.username = "Username is required";
+    } else if (username.length < 4) {
+      errors.username = "Username must be at least 4 characters";
+    }
+    
+    if (!email) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Email format is invalid";
+    }
+    
+    if (!selectedSchool) {
+      errors.selectedSchool = "School selection is required";
+    }
+    
+    if (!password) {
+      errors.password = "Password is required";
+    } else if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+    
+    if (!confirmPassword) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+    
+    // Check if there are any errors
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Validation Error",
+        description: "Please correct the highlighted fields",
         variant: "destructive"
       });
       return;
@@ -95,57 +150,74 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="teacher-firstName">First Name</Label>
+          <Label htmlFor="teacher-firstName" className={formErrors.firstName ? "text-red-500" : ""}>
+            First Name {formErrors.firstName && <span className="text-xs font-normal">- {formErrors.firstName}</span>}
+          </Label>
           <Input 
             id="teacher-firstName" 
             placeholder="First name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
+            className={formErrors.firstName ? "border-red-500 focus-visible:ring-red-500" : ""}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="teacher-lastName">Last Name</Label>
+          <Label htmlFor="teacher-lastName" className={formErrors.lastName ? "text-red-500" : ""}>
+            Last Name {formErrors.lastName && <span className="text-xs font-normal">- {formErrors.lastName}</span>}
+          </Label>
           <Input 
             id="teacher-lastName" 
             placeholder="Last name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
+            className={formErrors.lastName ? "border-red-500 focus-visible:ring-red-500" : ""}
             required
           />
         </div>
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-username">Username</Label>
+        <Label htmlFor="teacher-username" className={formErrors.username ? "text-red-500" : ""}>
+          Username {formErrors.username && <span className="text-xs font-normal">- {formErrors.username}</span>}
+        </Label>
         <Input 
           id="teacher-username" 
           placeholder="Choose a username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          className={formErrors.username ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-email">Email</Label>
+        <Label htmlFor="teacher-email" className={formErrors.email ? "text-red-500" : ""}>
+          Email {formErrors.email && <span className="text-xs font-normal">- {formErrors.email}</span>}
+        </Label>
         <Input 
           id="teacher-email" 
           type="email" 
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className={formErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-school">School</Label>
+        <Label htmlFor="teacher-school" className={formErrors.selectedSchool ? "text-red-500" : ""}>
+          School {formErrors.selectedSchool && <span className="text-xs font-normal">- {formErrors.selectedSchool}</span>}
+        </Label>
         <Select 
           value={selectedSchool} 
           onValueChange={setSelectedSchool}
         >
-          <SelectTrigger id="teacher-school">
+          <SelectTrigger 
+            id="teacher-school"
+            className={formErrors.selectedSchool ? "border-red-500 focus-visible:ring-red-500" : ""}
+          >
             <SelectValue placeholder="Select your school" />
           </SelectTrigger>
           <SelectContent>
@@ -165,35 +237,44 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-subject">Subject (Optional)</Label>
+        <Label htmlFor="teacher-subject" className={formErrors.subject ? "text-red-500" : ""}>
+          Subject (Optional) {formErrors.subject && <span className="text-xs font-normal">- {formErrors.subject}</span>}
+        </Label>
         <Input 
           id="teacher-subject" 
           placeholder="What subject do you teach?"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
+          className={formErrors.subject ? "border-red-500 focus-visible:ring-red-500" : ""}
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-password">Password</Label>
+        <Label htmlFor="teacher-password" className={formErrors.password ? "text-red-500" : ""}>
+          Password {formErrors.password && <span className="text-xs font-normal">- {formErrors.password}</span>}
+        </Label>
         <Input 
           id="teacher-password" 
           type="password" 
           placeholder="Create a password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className={formErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="teacher-confirm-password">Confirm Password</Label>
+        <Label htmlFor="teacher-confirm-password" className={formErrors.confirmPassword ? "text-red-500" : ""}>
+          Confirm Password {formErrors.confirmPassword && <span className="text-xs font-normal">- {formErrors.confirmPassword}</span>}
+        </Label>
         <Input 
           id="teacher-confirm-password" 
           type="password" 
           placeholder="Confirm your password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          className={formErrors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
         />
       </div>
