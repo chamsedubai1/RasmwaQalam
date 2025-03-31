@@ -19,6 +19,7 @@ import { useUserRole } from "@/hooks/use-user-role";
 import { useLanguage } from "@/hooks/use-language";
 import SubmissionModal from "@/components/site/submission-modal";
 import type { Event } from "@shared/schema";
+import aiRobotImage from "../assets/ai-robot-art.png";
 
 const Home: React.FC = () => {
   const { userRole } = useUserRole();
@@ -75,6 +76,36 @@ const Home: React.FC = () => {
                     </Button>
                   </Link>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Robot Art Section */}
+      <div className="w-full my-16 px-4 md:px-0">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl overflow-hidden shadow-lg">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row">
+              <div className="w-full md:w-2/3 overflow-hidden">
+                <img 
+                  src={aiRobotImage} 
+                  alt={t("home.airobot.alt")} 
+                  className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-500" 
+                />
+              </div>
+              <div className="w-full md:w-1/3 p-8 md:p-12 flex flex-col justify-center">
+                <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4 bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+                  {t("home.airobot.title")}
+                </h2>
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  {t("home.airobot.description")}
+                </p>
+                <Link href="/creart">
+                  <Button className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+                    {t("home.airobot.button")}
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
