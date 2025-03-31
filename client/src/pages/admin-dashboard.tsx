@@ -732,9 +732,17 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
-  // Fetch all partners for partner management
+  // Fetch all partners for partner management (including inactive ones)
   const { data: partners = [], isLoading: isLoadingPartners, refetch: refetchPartners } = useQuery({
     queryKey: ['/api/partners'],
+    queryFn: async () => {
+      // Add showInactive=true parameter to fetch all partners regardless of status
+      const response = await fetch('/api/partners?showInactive=true');
+      if (!response.ok) {
+        throw new Error('Failed to fetch partners');
+      }
+      return response.json();
+    },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 1000, // Consider data stale after 1 second

@@ -22,9 +22,10 @@ const Partners: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [partnerTypeFilter, setPartnerTypeFilter] = useState("all");
   
-  // Fetch partners
+  // Fetch partners (active only for public page)
   const { data: partners = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/partners'],
+    // Don't set showInactive=true here as we only want to show active partners on the public page
   });
   
   // Filter partners by search query and type
