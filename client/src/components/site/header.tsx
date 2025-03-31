@@ -3,14 +3,17 @@ import { useLocation } from "wouter";
 import NavLink from "@/components/ui/nav-link";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
+import { useLanguage } from "@/hooks/use-language";
 import { Menu, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FazaaLogo } from "@/components/site/logo";
+import LanguageSwitcher from "@/components/site/language-switcher";
 
 const Header: React.FC = () => {
   const { userRole, setUserRole } = useUserRole();
   const { user, clearUser } = useUser();
+  const { t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -25,8 +28,8 @@ const Header: React.FC = () => {
     clearUser();
     
     toast({
-      title: "Logged out",
-      description: "You have been logged out successfully"
+      title: t("message.success"),
+      description: t("nav.logout") + " " + t("message.success").toLowerCase()
     });
     
     setLocation("/");
@@ -48,24 +51,26 @@ const Header: React.FC = () => {
               </div>
             </div>
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8 items-center">
-              <NavLink href="/" role="all">Home</NavLink>
-              <NavLink href="/about" role="all">About Us</NavLink>
-              <NavLink href="/events" role="all">Events</NavLink>
-              <NavLink href="/gallery" role="all">Gallery</NavLink>
-              <NavLink href="/schools" role="all">Schools</NavLink>
-              <NavLink href="/partners" role="all">Partners</NavLink>
+              <NavLink href="/" role="all">{t("nav.home")}</NavLink>
+              <NavLink href="/about" role="all">{t("nav.about")}</NavLink>
+              <NavLink href="/events" role="all">{t("nav.events")}</NavLink>
+              <NavLink href="/gallery" role="all">{t("nav.gallery")}</NavLink>
+              <NavLink href="/schools" role="all">{t("nav.schools")}</NavLink>
+              <NavLink href="/partners" role="all">{t("nav.partners")}</NavLink>
               {userRole === "student" && (
-                <NavLink href="/creart" role="student">CreArt</NavLink>
+                <NavLink href="/creart" role="student">{t("nav.creart")}</NavLink>
               )}
               {userRole === "teacher" && (
-                <NavLink href="/teacher" role="teacher">Teacher Dashboard</NavLink>
+                <NavLink href="/teacher" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
               )}
               {userRole === "admin" && (
-                <NavLink href="/admin" role="admin">Admin Dashboard</NavLink>
+                <NavLink href="/admin" role="admin">{t("nav.admin_dashboard")}</NavLink>
               )}
             </nav>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-2">
+            <LanguageSwitcher className="text-white" />
+            
             {userRole ? (
               <>
                 <div className="text-white flex items-center mr-2">
@@ -80,7 +85,7 @@ const Header: React.FC = () => {
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4 mr-1" />
-                  Logout
+                  {t("nav.logout")}
                 </Button>
               </>
             ) : (
@@ -90,7 +95,7 @@ const Header: React.FC = () => {
                 onClick={() => setLocation("/login")}
               >
                 <LogIn className="h-4 w-4 mr-1" />
-                Login / Register
+                {t("nav.login_register")}
               </Button>
             )}
           </div>
@@ -112,22 +117,28 @@ const Header: React.FC = () => {
           <div className="flex justify-center py-4">
             <FazaaLogo className="h-32 w-auto" />
           </div>
-          <NavLink href="/" className="block" role="all">Home</NavLink>
-          <NavLink href="/about" className="block" role="all">About Us</NavLink>
-          <NavLink href="/events" className="block" role="all">Events</NavLink>
-          <NavLink href="/gallery" className="block" role="all">Gallery</NavLink>
-          <NavLink href="/schools" className="block" role="all">Schools</NavLink>
-          <NavLink href="/partners" className="block" role="all">Partners</NavLink>
+          <NavLink href="/" className="block" role="all">{t("nav.home")}</NavLink>
+          <NavLink href="/about" className="block" role="all">{t("nav.about")}</NavLink>
+          <NavLink href="/events" className="block" role="all">{t("nav.events")}</NavLink>
+          <NavLink href="/gallery" className="block" role="all">{t("nav.gallery")}</NavLink>
+          <NavLink href="/schools" className="block" role="all">{t("nav.schools")}</NavLink>
+          <NavLink href="/partners" className="block" role="all">{t("nav.partners")}</NavLink>
           {userRole === "student" && (
-            <NavLink href="/creart" className="block" role="student">CreArt</NavLink>
+            <NavLink href="/creart" className="block" role="student">{t("nav.creart")}</NavLink>
           )}
           {userRole === "teacher" && (
-            <NavLink href="/teacher" className="block" role="teacher">Teacher Dashboard</NavLink>
+            <NavLink href="/teacher" className="block" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
           )}
           {userRole === "admin" && (
-            <NavLink href="/admin" className="block" role="admin">Admin Dashboard</NavLink>
+            <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>
           )}
+          
           <div className="border-t border-blue-700 my-3"></div>
+          
+          <div className="flex justify-center mb-3">
+            <LanguageSwitcher className="text-white" />
+          </div>
+          
           {userRole ? (
             <Button 
               variant="ghost"
@@ -135,7 +146,7 @@ const Header: React.FC = () => {
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              {t("nav.logout")}
             </Button>
           ) : (
             <Button
@@ -144,7 +155,7 @@ const Header: React.FC = () => {
               onClick={() => setLocation("/login")}
             >
               <LogIn className="h-4 w-4 mr-2" />
-              Login / Register
+              {t("nav.login_register")}
             </Button>
           )}
         </div>

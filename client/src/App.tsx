@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { UserRoleProvider, useUserRole } from "@/hooks/use-user-role";
 import { UserProvider } from "@/hooks/use-user";
+import { LanguageProvider, useLanguage } from "@/hooks/use-language";
 import Header from "@/components/site/header";
 import Footer from "@/components/site/footer";
 import Home from "@/pages/home";
@@ -25,12 +26,14 @@ import { useEffect } from "react";
 function Router() {
   const [location] = useLocation();
   const { userRole } = useUserRole();
+  const { language } = useLanguage();
   
   // Log for debugging navigation and auth state
   useEffect(() => {
     console.log("Current path:", location);
     console.log("User role:", userRole);
-  }, [location, userRole]);
+    console.log("Current language:", language);
+  }, [location, userRole, language]);
   
   return (
     <>
@@ -79,8 +82,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <UserProvider>
         <UserRoleProvider>
-          <Router />
-          <Toaster />
+          <LanguageProvider>
+            <Router />
+            <Toaster />
+          </LanguageProvider>
         </UserRoleProvider>
       </UserProvider>
     </QueryClientProvider>
