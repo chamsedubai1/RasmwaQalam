@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from "express";
@@ -11,6 +11,9 @@ import * as fs from "fs";
 import * as path from "path";
 import Papa from "papaparse";
 import { setupUploadRoutes, setupStaticUploads } from "./uploads";
+import session from "express-session";
+import { generateCaptcha, validateCaptcha, requireCaptcha } from "./captcha";
+import crypto from "crypto";
 
 // Set this to true to use Hugging Face (free open-source AI) instead of OpenAI
 const USE_HUGGING_FACE = true;
@@ -56,8 +59,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Registration endpoint
-  apiRouter.post('/auth/register', async (req, res) => {
+  // CAPTCHA endpoints
+  apiRouter.get('/captcha', (req, res) => {
+    try {
+      // Get session ID
+      const sessionId = req.sessionID || req.ip || crypto.randomBytes(16).toString('hex');
+      
+      // Generate new CAPTCHA
+      const captcha = generateCaptcha(sessionId);
+      
+      // Return the SVG image (without the actual text)
+      res.json({
+        image: captcha.svgImage,
+        expires: captcha.expiry
+      });
+    } catch (error) {
+      console.error('CAPTCHA generation error:', error);
+      res.status(500).json({ message: 'Failed to generate CAPTCHA' });
+    }
+  });
+  
+  // Verify CAPTCHA without proceeding further
+  apiRouter.post('/verify-captcha', (req, res) => {
+    const { captchaText } = req.body;
+    
+    if (!captchaText) {
+      return res.status(400).json({ 
+        message: 'CAPTCHA text is required', 
+        field: 'captchaText',
+        valid: false 
+      });
+    }
+    
+    // Get session ID
+    const sessionId = req.sessionID || req.ip || crypto.randomBytes(16).toString('hex');
+    
+    // Validate CAPTCHA
+    const isValid = validateCaptcha(sessionId, captchaText);
+    
+    if (!isValid) {
+      return res.status(400).json({ 
+        message: 'Invalid or expired CAPTCHA', 
+        field: 'captchaText',
+        valid: false 
+      });
+    }
+    
+    res.json({ valid: true });
+  });
+
+  // Registration endpoint with CAPTCHA verification
+  apiRouter.post('/auth/register', requireCaptcha, async (req, res) => {
     try {
       // Validate the user data
       const userData = insertUserSchema.parse({

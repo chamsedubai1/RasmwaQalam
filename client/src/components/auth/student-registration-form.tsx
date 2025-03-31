@@ -12,6 +12,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { CaptchaField } from "./captcha-field";
 
 interface StudentRegistrationFormProps {
   onSubmit: (data: any) => Promise<void>;
@@ -44,7 +46,15 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
     selectedSchool?: string;
     selectedGrade?: string;
     selectedClass?: string;
+    captchaText?: string;
   }>({});
+  
+  // Initialize react-hook-form for CAPTCHA
+  const form = useForm({
+    defaultValues: {
+      captchaText: "",
+    }
+  });
   
   const { toast } = useToast();
   
@@ -81,6 +91,9 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
     // Reset previous errors
     setFormErrors({});
     
+    // Get CAPTCHA text from react-hook-form
+    const captchaText = form.getValues("captchaText");
+    
     // Field-specific validation with detailed error messages
     const errors: {
       username?: string;
@@ -92,6 +105,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
       selectedSchool?: string;
       selectedGrade?: string;
       selectedClass?: string;
+      captchaText?: string;
     } = {};
     
     if (!firstName) {
@@ -138,6 +152,10 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
       errors.confirmPassword = "Passwords do not match";
     }
     
+    if (!captchaText) {
+      errors.captchaText = "Please enter the security verification code";
+    }
+    
     // Check if there are any errors
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -159,7 +177,8 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
       role: "student",
       schoolId: parseInt(selectedSchool),
       classId: parseInt(selectedClass),
-      gradeLevel: selectedGrade
+      gradeLevel: selectedGrade,
+      captchaText  // Include CAPTCHA text for validation on the server
     };
     
     try {
@@ -356,6 +375,15 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
           onChange={(e) => setConfirmPassword(e.target.value)}
           className={formErrors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
           required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <CaptchaField 
+          control={form.control} 
+          name="captchaText"
+          label="Security Verification"
+          description="Please enter the text shown in the image to verify you're not a robot"
         />
       </div>
       

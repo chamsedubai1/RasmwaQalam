@@ -1,8 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import crypto from "crypto";
 
 const app = express();
+
+// Set up session middleware for CAPTCHA
+app.use(session({
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 30 * 60 * 1000 // 30 minutes
+  }
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
