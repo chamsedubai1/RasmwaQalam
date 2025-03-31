@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
@@ -64,9 +64,219 @@ import {
   Library,
   BookOpen,
   PieChart,
-  Loader2
+  Loader2,
+  Eye,
+  Mail
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+
+// ParticipantsTable component for showing event participants
+const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    if (!eventId) return;
+    
+    const fetchParticipants = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/events/${eventId}/participants`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch participants');
+        }
+        
+        const data = await response.json();
+        setParticipants(data);
+      } catch (err) {
+        console.error('Error fetching participants:', err);
+        setError('Failed to load participants data');
+        toast({
+          title: 'Error',
+          description: 'Failed to load participants data',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchParticipants();
+  }, [eventId, toast]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md text-red-800">
+        <p>{error}</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-2"
+          onClick={() => {
+            if (eventId) {
+              setIsLoading(true);
+              fetch(`/api/events/${eventId}/participants`)
+                .then(res => res.json())
+                .then(data => {
+                  setParticipants(data);
+                  setError(null);
+                })
+                .catch(err => {
+                  console.error(err);
+                  setError('Failed to load participants data');
+                })
+                .finally(() => setIsLoading(false));
+            }
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  if (!participants.length) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No participants found for this event.
+      </div>
+    );
+  }
+  
+  return (
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Name
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            School
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Class
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Grade
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Registration Date
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Submission
+          </th>
+          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {participants.map((participant) => (
+          <tr key={participant.id}>
+            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              {participant.name}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              {participant.schoolName}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              {participant.className}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              {participant.gradeLevel}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              {participant.registrationDate 
+                ? new Date(participant.registrationDate).toLocaleDateString() 
+                : 'N/A'}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              {participant.hasSubmitted ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Submitted
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Not Submitted
+                </span>
+              )}
+            </td>
+            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+              <div className="flex space-x-2">
+                {participant.hasSubmitted && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // View submission
+                      toast({
+                        title: "View Submission",
+                        description: `Viewing submission for ${participant.name}`,
+                      });
+                      // In a real implementation, you would navigate to the submission
+                      window.open(`/api/submissions/${participant.submissionId}/view`, '_blank');
+                    }}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    View
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Send reminder email
+                    if (!participant.hasSubmitted && eventId) {
+                      fetch(`/api/events/${eventId}/reminder`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ userId: participant.id }),
+                      })
+                        .then((res) => {
+                          if (res.ok) {
+                            toast({
+                              title: "Reminder Sent",
+                              description: `Email reminder sent to ${participant.name}`,
+                            });
+                          } else {
+                            throw new Error('Failed to send reminder');
+                          }
+                        })
+                        .catch((error) => {
+                          toast({
+                            title: "Error",
+                            description: "Failed to send reminder",
+                            variant: "destructive",
+                          });
+                        });
+                    }
+                  }}
+                >
+                  <Mail className="h-3.5 w-3.5 mr-1" />
+                  Remind
+                </Button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
 // Data export function defined outside component
 const handleExportData = (entity: string, format: string) => {
@@ -91,6 +301,10 @@ const AdminDashboard: React.FC = () => {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReportEventId, setSelectedReportEventId] = useState<number | null>(null);
+  // State for managing submissions for an event
+  const [eventSubmissions, setEventSubmissions] = useState<any[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<number[]>([]);
   
   // Create dialogs
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
@@ -133,6 +347,9 @@ const AdminDashboard: React.FC = () => {
   
   // Student management dialog
   const [showStudentsDialog, setShowStudentsDialog] = useState(false);
+  
+  // Participants management dialog
+  const [showParticipantsDialog, setShowParticipantsDialog] = useState(false);
   
   // Always include hooks before any early returns to avoid React errors
   
@@ -501,6 +718,11 @@ const AdminDashboard: React.FC = () => {
     
     // Open edit dialog
     setShowEditEventDialog(true);
+  };
+  
+  const handleManageParticipants = (eventId: number) => {
+    setSelectedEventId(eventId);
+    setShowParticipantsDialog(true);
   };
   
   // Update event mutation
@@ -1850,6 +2072,33 @@ const AdminDashboard: React.FC = () => {
                             })}
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+                    
+                    {/* Participants */}
+                    <div className="bg-white rounded-lg border shadow-sm p-5 mb-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold text-lg text-blue-700">Participants</h4>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedReportEventId) {
+                              // Handle export of participants list
+                              const link = document.createElement('a');
+                              link.href = `/api/events/${selectedReportEventId}/participants/export/csv`;
+                              link.download = `event_${selectedReportEventId}_participants.csv`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" /> Export
+                        </Button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <ParticipantsTable eventId={selectedReportEventId} />
                       </div>
                     </div>
                     

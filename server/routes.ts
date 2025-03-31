@@ -570,6 +570,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get detailed participant information for an event
+  apiRouter.get('/events/:eventId/participants', async (req, res) => {
+    try {
+      const eventId = Number(req.params.eventId);
+      
+      // Get all registrations for this event
+      const registrations = await storage.getRegistrationsByEvent(eventId);
+      
+      if (!registrations || registrations.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get user IDs from registrations
+      const userIds = registrations.map(r => r.userId);
+      
+      // Get all users, schools, and classes for efficiency
+      const allUsers = await storage.getAllUsers();
+      const allSchools = await storage.getAllSchools();
+      const allClasses = await storage.getAllClasses();
+      
+      // Get all submissions for this event
+      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
+      
+      // Filter and map users
+      const participants = userIds.map(userId => {
+        const user = allUsers.find(u => u.id === userId);
+        if (!user) return null;
+        
+        // Find user's school and class
+        const school = allSchools.find(s => s.id === user.schoolId);
+        const classInfo = allClasses.find(c => c.id === user.classId);
+        
+        // Check if user has submitted
+        const hasSubmission = eventSubmissions.some(s => s.userId === userId);
+        
+        // Count votes the user has cast for this event
+        const userSubmission = eventSubmissions.find(s => s.userId === userId);
+        
+        return {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          role: user.role,
+          email: user.email,
+          schoolId: user.schoolId,
+          schoolName: school ? school.name : 'Unknown',
+          classId: user.classId,
+          className: classInfo ? classInfo.name : 'Unknown',
+          gradeLevel: classInfo ? classInfo.gradeLevel : 'Unknown',
+          hasSubmitted: hasSubmission,
+          submissionId: userSubmission ? userSubmission.id : null,
+          registrationDate: registrations.find(r => r.userId === userId)?.createdAt || null
+        };
+      }).filter(Boolean);
+      
+      res.json(participants);
+    } catch (error) {
+      console.error('Error fetching participants:', error);
+      res.status(500).json({ message: 'Failed to fetch participants' });
+    }
+  });
+  
   apiRouter.post('/registrations', async (req, res) => {
     try {
       const registrationData = insertRegistrationSchema.parse(req.body);
@@ -689,16 +751,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
               
             case 'school':
-              // SCHOOL STAGE: Only show winning submissions from the same grade level within the same school
+              // SCHOOL STAGE: Only show WINNING submissions from the class stage
+              // from the same grade level within the same school
               if (currentUser.schoolId) {
-                // Get all users in the same school with the same grade level
-                const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
-                
                 // Get current user's class to determine grade level
                 const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
                 const userGradeLevel = userClass ? userClass.gradeLevel : null;
                 
-                console.log(`User grade level: ${userGradeLevel}`);
+                console.log(`User grade level for school stage: ${userGradeLevel}`);
                 
                 if (userGradeLevel) {
                   // Get all classes with the same grade level in this school
@@ -709,6 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   console.log(`Classes with grade level ${userGradeLevel}:`, sameGradeClassIds);
                   
                   // Get users from these classes
+                  const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
                   const sameGradeUsers = allUsers.filter(usr => 
                     usr.classId && sameGradeClassIds.includes(usr.classId)
                   );
@@ -716,16 +777,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   console.log(`Users in same grade (${userGradeLevel}):`, sameGradeUserIds);
                   
-                  // Filter submissions to only include those from same grade/school
+                  // Filter submissions to only include:
+                  // 1. Submissions from the same grade/school
+                  // 2. Only ones marked as class winners
                   const beforeSchoolFilter = submissions.length;
-                  submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
-                  console.log(`Filtered to same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                  submissions = submissions.filter(sub => 
+                    sameGradeUserIds.includes(sub.userId) && sub.classWinner === true
+                  );
+                  console.log(`Filtered to class winners from same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
                 }
               }
               break;
               
             case 'country':
-              // COUNTRY STAGE: Only show winning submissions from the same grade level across all schools
+              // COUNTRY STAGE: Only show WINNING submissions from the school stage
+              // from the same grade level across all schools
               // Get current user's class to determine grade level
               const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
               const userGradeLevel = userClass ? userClass.gradeLevel : null;
@@ -749,16 +815,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 console.log(`Users in same grade (${userGradeLevel}) across all schools:`, sameGradeUserIds);
                 
-                // Filter submissions to only include those from same grade across all schools
+                // Filter submissions to only include:
+                // 1. Submissions from the same grade across all schools
+                // 2. Only ones marked as school winners
                 const beforeCountryFilter = submissions.length;
-                submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
-                console.log(`Filtered to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
+                submissions = submissions.filter(sub => 
+                  sameGradeUserIds.includes(sub.userId) && sub.schoolWinner === true
+                );
+                console.log(`Filtered to school winners from same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
               }
               break;
               
             case 'global':
-              // GLOBAL STAGE: No filtering needed, all submissions are visible
-              console.log('Global stage: showing all submissions');
+              // GLOBAL STAGE: Only show WINNING submissions from the country stage
+              console.log('Global stage: showing only country winners');
+              const beforeGlobalFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.countryWinner === true);
+              console.log(`Filtered to country winners: ${beforeGlobalFilter} -> ${submissions.length}`);
               break;
               
             default:
@@ -889,6 +962,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...updatedSubmission, voteCount });
     } catch (error) {
       res.status(500).json({ message: 'Failed to update submission' });
+    }
+  });
+  
+  // Mark submissions as winners for different competition stages
+  apiRouter.post('/submissions/mark-winners', async (req, res) => {
+    try {
+      const { eventId, stage, winnerIds } = req.body;
+      
+      if (!eventId || !stage || !Array.isArray(winnerIds)) {
+        return res.status(400).json({ 
+          message: 'Invalid request data. Required: eventId, stage, and winnerIds array' 
+        });
+      }
+      
+      // Get all submissions for this event
+      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
+      
+      // Validate that all winnerIds exist and belong to this event
+      const eventSubmissionIds = eventSubmissions.map(s => s.id);
+      const invalidIds = winnerIds.filter(id => !eventSubmissionIds.includes(id));
+      
+      if (invalidIds.length > 0) {
+        return res.status(400).json({ 
+          message: `Some submissions don't exist or don't belong to this event: ${invalidIds.join(', ')}` 
+        });
+      }
+      
+      // Update submissions based on the stage
+      const winnerField = 
+        stage === 'class' ? 'classWinner' : 
+        stage === 'school' ? 'schoolWinner' : 
+        stage === 'country' ? 'countryWinner' : 'globalWinner';
+      
+      // Mark the selected submissions as winners for this stage
+      const updatePromises = winnerIds.map(id => 
+        storage.updateSubmission(id, { [winnerField]: true })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      res.json({ 
+        message: `Successfully marked ${winnerIds.length} submissions as winners for ${stage} stage`,
+        eventId,
+        stage,
+        winnerIds
+      });
+    } catch (error) {
+      console.error('Error marking winners:', error);
+      res.status(500).json({ message: 'Failed to mark winners' });
+    }
+  });
+  
+  // Promote an event to the next stage
+  apiRouter.post('/events/:id/promote', async (req, res) => {
+    try {
+      const eventId = Number(req.params.id);
+      const event = await storage.getEvent(eventId);
+      
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Determine the next stage based on current stage
+      let nextStage;
+      switch (event.stage) {
+        case 'class':
+          nextStage = 'school';
+          break;
+        case 'school':
+          nextStage = 'country';
+          break;
+        case 'country':
+          nextStage = 'global';
+          break;
+        case 'global':
+          return res.status(400).json({ message: 'Event is already at the final stage' });
+        default:
+          return res.status(400).json({ message: 'Invalid current stage' });
+      }
+      
+      // Update the event stage
+      const updatedEvent = await storage.updateEvent(eventId, { stage: nextStage });
+      
+      res.json({ 
+        message: `Event promoted from ${event.stage} to ${nextStage} stage`,
+        event: updatedEvent
+      });
+    } catch (error) {
+      console.error('Error promoting event:', error);
+      res.status(500).json({ message: 'Failed to promote event' });
     }
   });
   
@@ -1913,6 +2076,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+
+  // API endpoint to get participants for a specific event
+  apiRouter.get('/events/:eventId/participants', async (req, res) => {
+    try {
+      const eventId = Number(req.params.eventId);
+      
+      // Get event details first
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Get all registrations for this event
+      const registrations = await storage.getRegistrationsByEvent(eventId);
+      
+      if (!registrations || registrations.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get user IDs from registrations
+      const userIds = registrations.map(r => r.userId);
+      
+      // Get all users, schools, and classes for efficiency
+      const allUsers = await storage.getAllUsers();
+      const allSchools = await storage.getAllSchools();
+      const allClasses = await storage.getAllClasses();
+      
+      // Get all submissions for this event
+      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
+      
+      // Format participant data
+      const participants = userIds.map(userId => {
+        const user = allUsers.find(u => u.id === userId);
+        if (!user) return null;
+        
+        // Find user's school and class
+        const school = allSchools.find(s => s.id === user.schoolId);
+        const classInfo = allClasses.find(c => c.id === user.classId);
+        
+        // Find registration for this user
+        const registration = registrations.find(r => r.userId === userId);
+        
+        // Check if user has submitted
+        const submission = eventSubmissions.find(s => s.userId === userId);
+        const hasSubmitted = !!submission;
+        
+        return {
+          id: user.id,
+          name: user.fullName,
+          email: user.email,
+          schoolId: user.schoolId,
+          schoolName: school ? school.name : 'Unknown',
+          classId: user.classId,
+          className: classInfo ? classInfo.name : 'Unknown',
+          gradeLevel: user.gradeLevel || classInfo?.gradeLevel || 'Unknown',
+          registrationDate: registration?.registeredAt,
+          hasSubmitted,
+          submissionId: submission?.id || null
+        };
+      }).filter(Boolean);
+      
+      res.json(participants);
+    } catch (error) {
+      console.error('Error fetching participants:', error);
+      res.status(500).json({ message: 'Failed to fetch participants' });
+    }
+  });
+  
+  // Send reminder email to a participant who hasn't submitted yet
+  apiRouter.post('/events/:eventId/reminder', async (req, res) => {
+    try {
+      const eventId = Number(req.params.eventId);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: 'User ID is required' });
+      }
+      
+      // Get event details
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Check if user has a submission for this event
+      const userSubmissions = await storage.getSubmissionsByUserAndEvent(userId, eventId);
+      if (userSubmissions.length > 0) {
+        return res.status(400).json({ message: 'User has already submitted for this event' });
+      }
+      
+      // In a real application, this would send an email
+      // For this example, we'll just log it and return success
+      console.log(`Sending reminder email to ${user.fullName} (${user.email}) for event "${event.name}"`);
+      
+      // If the application had actual email sending, it would be implemented here
+      
+      res.status(200).json({ 
+        message: 'Reminder sent successfully',
+        details: {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.fullName
+          },
+          event: {
+            id: event.id,
+            name: event.name
+          },
+          sentAt: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      res.status(500).json({ message: 'Failed to send reminder' });
+    }
+  });
 
   // Register API routes
   app.use('/api', apiRouter);

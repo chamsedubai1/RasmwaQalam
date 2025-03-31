@@ -11,19 +11,22 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Users } from "lucide-react";
 
 interface EventTableProps {
   events: any[];
   isLoading: boolean;
   isAdmin?: boolean;
   onEdit?: (eventData: any) => void;
+  onManageParticipants?: (eventId: number) => void;
 }
 
 const EventTable: React.FC<EventTableProps> = ({ 
   events = [],
   isLoading,
   isAdmin = false,
-  onEdit
+  onEdit,
+  onManageParticipants
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -196,25 +199,46 @@ const EventTable: React.FC<EventTableProps> = ({
                       {isAdmin ? "Edit" : "View"}
                     </Button>
                     
-                    {isAdmin && event.status === 'open' && (
+                    {isAdmin && (
                       <>
+                        {event.status === 'open' && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-purple-300 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                              onClick={() => handlePromoteStage(event.id, event.stage)}
+                              disabled={promoteEventStageMutation.isPending}
+                            >
+                              Promote Stage
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleCloseEvent(event.id)}
+                              disabled={closeEventMutation.isPending}
+                            >
+                              Close
+                            </Button>
+                          </>
+                        )}
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="border-purple-300 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                          onClick={() => handlePromoteStage(event.id, event.stage)}
-                          disabled={promoteEventStageMutation.isPending}
+                          className="border-green-300 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => {
+                            if (onManageParticipants) {
+                              onManageParticipants(event.id);
+                            } else {
+                              toast({
+                                description: "Participants management not implemented",
+                              });
+                            }
+                          }}
                         >
-                          Promote Stage
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleCloseEvent(event.id)}
-                          disabled={closeEventMutation.isPending}
-                        >
-                          Close
+                          <Users className="h-3.5 w-3.5 mr-1" />
+                          Manage Participants
                         </Button>
                       </>
                     )}
