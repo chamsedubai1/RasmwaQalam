@@ -1,5 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 interface PartnerCardProps {
   id: number;
@@ -18,6 +19,7 @@ const PartnerCard: React.FC<PartnerCardProps> = ({
   websiteUrl,
   partnerType
 }) => {
+  const { t } = useLanguage();
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
       <div className="h-48 bg-gray-200 relative">
@@ -40,7 +42,7 @@ const PartnerCard: React.FC<PartnerCardProps> = ({
             rel="noopener noreferrer" 
             className="text-primary hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
           >
-            Visit Website <ExternalLink size={14} />
+            {t("partners.card.view_website")} <ExternalLink size={14} />
           </a>
         </div>
       </div>

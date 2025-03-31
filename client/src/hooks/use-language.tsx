@@ -229,6 +229,21 @@ const translations: Record<Language, Record<string, string>> = {
     "schools.empty.description": "We couldn't find any schools matching your search",
     "schools.card.student_count": "Active Students",
     "schools.card.view_details": "View Details",
+    
+    // Partners page
+    "partners.hero.title": "Our Partners",
+    "partners.hero.description": "We collaborate with leading organizations to bring the best creative opportunities to our students",
+    "partners.search.placeholder": "Search partners...",
+    "partners.search.clear": "Clear search",
+    "partners.filter.all": "All Partners",
+    "partners.stats.active": "Active Partners",
+    "partners.stats.tech": "Tech Partners",
+    "partners.stats.education": "Education Partners",
+    "partners.stats.corporate": "Corporate Partners",
+    "partners.empty.title": "No partners found",
+    "partners.empty.description": "No partners found matching your search criteria.",
+    "partners.empty.reset": "Reset All Filters",
+    "partners.card.view_website": "Visit Website",
   },
   ar: {
     // Navigation
@@ -440,6 +455,21 @@ const translations: Record<Language, Record<string, string>> = {
     "schools.empty.description": "لم نتمكن من العثور على أي مدارس تطابق بحثك",
     "schools.card.student_count": "الطلاب النشطون",
     "schools.card.view_details": "عرض التفاصيل",
+    
+    // Partners page
+    "partners.hero.title": "شركاؤنا",
+    "partners.hero.description": "نتعاون مع المنظمات الرائدة لتقديم أفضل الفرص الإبداعية لطلابنا",
+    "partners.search.placeholder": "البحث عن الشركاء...",
+    "partners.search.clear": "مسح البحث",
+    "partners.filter.all": "جميع الشركاء",
+    "partners.stats.active": "الشركاء النشطون",
+    "partners.stats.tech": "شركاء التكنولوجيا",
+    "partners.stats.education": "شركاء التعليم",
+    "partners.stats.corporate": "الشركاء المؤسسيون",
+    "partners.empty.title": "لم يتم العثور على شركاء",
+    "partners.empty.description": "لم يتم العثور على شركاء تطابق معايير البحث.",
+    "partners.empty.reset": "إعادة تعيين جميع المرشحات",
+    "partners.card.view_website": "زيارة الموقع",
   }
 };
 
