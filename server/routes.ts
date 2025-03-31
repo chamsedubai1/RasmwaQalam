@@ -834,10 +834,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Submission not found' });
       }
       
+      // Get additional data needed for the view
       const voteCount = await storage.getVoteCountForSubmission(submission.id);
+      const user = await storage.getUser(submission.userId);
+      const event = await storage.getEvent(submission.eventId);
       
-      res.json({ ...submission, voteCount });
+      // Format the data to match the frontend expectations
+      const extendedSubmission = {
+        ...submission,
+        voteCount,
+        userFullName: user ? user.fullName : 'Unknown User',
+        eventName: event ? event.name : 'Unknown Event',
+        type: event ? event.type : undefined,
+        imageUrl: submission.content.startsWith('data:image') ? submission.content : undefined
+      };
+      
+      res.json(extendedSubmission);
     } catch (error) {
+      console.error('Error fetching submission:', error);
       res.status(500).json({ message: 'Failed to fetch submission' });
     }
   });
@@ -984,7 +998,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update the event stage
-      const updatedEvent = await storage.updateEvent(eventId, { stage: nextStage });
+      // Type-safe stage update
+      const updatedEvent = await storage.updateEvent(eventId, { 
+        stage: nextStage as "class" | "school" | "country" | "global" 
+      });
       
       res.json({ 
         message: `Event promoted from ${event.stage} to ${nextStage} stage`,
