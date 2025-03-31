@@ -422,10 +422,10 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
 
   // Container with expanded width
   return (
-    <div className="max-w-[1800px] mx-auto">
+    <div className="w-full mx-auto">
       {filterFields}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <SortableHeader label="Name" field="name" />
@@ -3840,7 +3840,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* Participants Management Dialog */}
       <Dialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh]">
+        <DialogContent className="w-[98vw] max-h-[95vh]" style={{maxWidth: "98vw"}}>
           <DialogHeader>
             <DialogTitle>Manage Event Participants</DialogTitle>
             <DialogDescription>
