@@ -79,6 +79,79 @@ const handleExportData = (entity: string, format: string) => {
   document.body.removeChild(link);
 };
 
+// Data import function
+const handleImportClick = (entity: string) => {
+  // Create a hidden file input
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,.json,.xlsx,.txt';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  
+  // Store the entity type as a data attribute
+  input.dataset.entity = entity;
+  
+  // Set up the change event handler
+  input.onchange = (event) => handleFileSelect(event, entity);
+  
+  // Trigger file selection dialog
+  input.click();
+  
+  // Clean up
+  setTimeout(() => {
+    document.body.removeChild(input);
+  }, 5000);
+};
+
+// Handle file selection for import
+const handleFileSelect = async (event: Event, entity: string) => {
+  const fileInput = event.target as HTMLInputElement;
+  const file = fileInput.files?.[0];
+  
+  if (!file || !entity) return;
+  
+  // Create FormData for file upload
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const handleImport = async () => {
+    try {
+      // Determine file format from extension
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      formData.append('format', fileExtension);
+      
+      // Send the file to the import API
+      const response = await fetch(`/api/import/${entity}`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.statusText}`);
+      }
+      
+      // Refresh data based on entity type
+      queryClient.invalidateQueries({ queryKey: [`/api/${entity}`] });
+      
+      // Show success message
+      toast({
+        title: "Import Successful",
+        description: `${entity} data has been imported successfully`,
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import data",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Execute the import
+  handleImport();
+};
+
 const AdminDashboard: React.FC = () => {
   const { userRole } = useUserRole();
   const { toast } = useToast();
@@ -858,25 +931,10 @@ const AdminDashboard: React.FC = () => {
                 </Button>
                 
                 {/* Import Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                      Import
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleExportData("users", "csv")}>
-                      CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("users", "json")}>
-                      JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("users", "xlsx")}>
-                      Excel
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" onClick={() => handleImportClick("users")}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Import
+                </Button>
                 
                 {/* Export Button */}
                 <DropdownMenu>
@@ -1004,25 +1062,10 @@ const AdminDashboard: React.FC = () => {
                 </Button>
                 
                 {/* Import Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                      Import
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleExportData("events", "csv")}>
-                      CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("events", "json")}>
-                      JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("events", "xlsx")}>
-                      Excel
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" onClick={() => handleImportClick("events")}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Import
+                </Button>
                 
                 {/* Export Button */}
                 <DropdownMenu>
@@ -1067,25 +1110,10 @@ const AdminDashboard: React.FC = () => {
               <CardTitle>Manage Schools</CardTitle>
               <div className="flex space-x-2">
                 {/* Import Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                      Import
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleExportData("schools", "csv")}>
-                      CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("schools", "json")}>
-                      JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("schools", "xlsx")}>
-                      Excel
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" onClick={() => handleImportClick("schools")}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Import
+                </Button>
                 
                 {/* Export Button */}
                 <DropdownMenu>
@@ -1214,25 +1242,10 @@ const AdminDashboard: React.FC = () => {
               <CardTitle>Manage Classes</CardTitle>
               <div className="flex space-x-2">
                 {/* Import Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                      Import
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleExportData("classes", "csv")}>
-                      CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("classes", "json")}>
-                      JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExportData("classes", "xlsx")}>
-                      Excel
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" onClick={() => handleImportClick("classes")}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Import
+                </Button>
                 
                 {/* Export Button */}
                 <DropdownMenu>
