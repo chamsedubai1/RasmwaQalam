@@ -10,6 +10,7 @@ import * as XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
 import Papa from "papaparse";
+import { setupUploadRoutes, setupStaticUploads } from "./uploads";
 
 // Set this to true to use Hugging Face (free open-source AI) instead of OpenAI
 const USE_HUGGING_FACE = true;
@@ -216,8 +217,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // School routes
   apiRouter.get('/schools', async (req, res) => {
     try {
-      const schools = await storage.getAllSchools();
-      res.json(schools);
+      // Get the showInactive parameter, default to false if not provided
+      const showInactive = req.query.showInactive === 'true';
+      
+      // Get all schools
+      let schools = await storage.getAllSchools();
+      
+      // Filter out inactive schools if showInactive is false
+      if (!showInactive) {
+        schools = schools.filter(school => school.isActive);
+      }
+      
+      // Get all users to calculate student counts
+      const allUsers = await storage.getAllUsers();
+      
+      // Calculate active student count for each school
+      const schoolsWithCounts = schools.map(school => {
+        const activeStudentCount = allUsers.filter(user => 
+          user.role === 'student' && 
+          user.schoolId === school.id && 
+          user.isActive
+        ).length;
+        
+        return {
+          ...school,
+          activeStudentCount
+        };
+      });
+      
+      res.json(schoolsWithCounts);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch schools' });
     }
@@ -368,7 +396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Partner routes
   apiRouter.get('/partners', async (req, res) => {
     try {
-      const partners = await storage.getAllPartners();
+      // Get the showInactive parameter, default to false if not provided
+      const showInactive = req.query.showInactive === 'true';
+      
+      // Get all partners
+      let partners = await storage.getAllPartners();
+      
+      // Filter out inactive partners if showInactive is false
+      if (!showInactive) {
+        partners = partners.filter(partner => partner.isActive);
+      }
+      
       res.json(partners);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch partners' });
@@ -2157,8 +2195,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Setup upload routes
+  setupUploadRoutes(apiRouter);
+
   // Register API routes
   app.use('/api', apiRouter);
+
+  // Setup static file serving for uploads
+  setupStaticUploads(app);
 
   const httpServer = createServer(app);
   return httpServer;

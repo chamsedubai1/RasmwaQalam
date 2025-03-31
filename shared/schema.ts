@@ -50,6 +50,7 @@ export const partners = pgTable("partners", {
   websiteUrl: text("website_url"),
   imageUrl: text("image_url"),
   partnerType: text("partner_type").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 // Events table

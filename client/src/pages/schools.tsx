@@ -21,16 +21,10 @@ const Schools: React.FC = () => {
     queryKey: ['/api/schools'],
   });
   
-  // Get mock student counts (in a real app, this would come from the API)
-  const getActiveStudentCount = (schoolId: number) => {
-    // This is mock data for demonstration
-    const studentCounts: Record<number, number> = {
-      1: 24,
-      2: 18,
-      3: 32
-    };
-    
-    return studentCounts[schoolId] || Math.floor(Math.random() * 30) + 10;
+  // Get active student count from the school data provided by the API
+  const getActiveStudentCount = (school: any) => {
+    // Our backend now returns the activeStudentCount property
+    return school.activeStudentCount || 0;
   };
   
   // Filter schools by search query
@@ -104,7 +98,7 @@ const Schools: React.FC = () => {
             <Users className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="text-2xl font-bold text-gray-800">
-            {schools.reduce((total: number, school: any) => total + getActiveStudentCount(school.id), 0)}
+            {schools.reduce((total: number, school: any) => total + getActiveStudentCount(school), 0)}
           </div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">Active Students</div>
         </div>
@@ -147,7 +141,7 @@ const Schools: React.FC = () => {
               description={school.description}
               imageUrl={school.imageUrl || "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=200&q=80"}
               websiteUrl={school.websiteUrl}
-              activeStudents={getActiveStudentCount(school.id)}
+              activeStudents={getActiveStudentCount(school)}
             />
           ))}
         </div>
