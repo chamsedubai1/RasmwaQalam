@@ -59,8 +59,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // CAPTCHA endpoints
-  apiRouter.get('/api/captcha', (req, res) => {
+  // Helper function to generate and return CAPTCHA
+  const handleCaptchaRequest = (req: Request, res: Response) => {
     try {
       // Get session ID - use IP address as fallback if session not available
       const sessionId = req.ip || crypto.randomBytes(16).toString('hex');
@@ -85,12 +85,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('CAPTCHA generation error:', error);
       res.status(500).json({ message: 'Failed to generate CAPTCHA' });
     }
-  });
+  };
+  
+  // CAPTCHA endpoints
+  apiRouter.get('/api/captcha', handleCaptchaRequest);
   
   // Keep old endpoint for backward compatibility
-  apiRouter.get('/captcha', (req, res) => {
-    res.redirect('/api/captcha');
-  });
+  apiRouter.get('/captcha', handleCaptchaRequest);
   
   // Verify CAPTCHA without proceeding further
   apiRouter.post('/verify-captcha', (req, res) => {
@@ -150,13 +151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For teachers, check if teacher is already assigned to a class
       if (userData.role === 'teacher' && userData.classId) {
-        const teacherClasses = await storage.getClassesByTeacher(userData.id);
-        if (teacherClasses.length > 0) {
-          return res.status(409).json({
-            message: 'This teacher is already assigned to a class. Teachers can only be assigned to one class.',
-            field: 'classId'
-          });
-        }
+        // We can't check teacher classes here since user doesn't have an ID yet
+        // This check is handled after the user is created when updating the class
       }
       
       // Create the user
