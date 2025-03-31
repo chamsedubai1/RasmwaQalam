@@ -537,7 +537,7 @@ const CreArt: React.FC = () => {
                     <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
                       <div>
                         <span className="text-sm font-medium text-blue-700">
-                          {submission.voteCount || 0} votes
+                          {submission.voteCount || 0} votes received
                         </span>
                       </div>
                       <div className="text-xs text-blue-500">
@@ -570,7 +570,7 @@ const CreArt: React.FC = () => {
                 {!isLoadingVotingStats && votingStats && (
                   <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 flex items-center space-x-3">
                     <div className="text-sm text-blue-700">
-                      <span className="font-bold">{votingStats.remaining}</span> of <span className="font-bold">{votingStats.maxVotes}</span> votes remaining
+                      <span className="font-bold">{votingStats.remaining}</span> of <span className="font-bold">{votingStats.maxVotes}</span> votes remaining (you can cast {votingStats.maxVotes} votes total)
                     </div>
                     <div className="h-2 w-20 bg-blue-200 rounded-full overflow-hidden">
                       <div 
@@ -633,7 +633,7 @@ const CreArt: React.FC = () => {
                       <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
                         <div className="flex flex-col">
                           <span className="text-sm font-medium text-blue-700">
-                            {submission.voteCount || 0} votes
+                            {submission.voteCount || 0} votes received
                           </span>
                           <span className="text-xs text-blue-500">
                             {submission.eventId === eventId 

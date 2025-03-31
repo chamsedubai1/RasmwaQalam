@@ -782,9 +782,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Query parameters are required' });
       }
       
-      // For each submission, get the vote count and whether current user voted
+      // For each submission, get the vote count (votes received by this submission) and whether current user voted
       const submissionsWithVotes = await Promise.all(
         submissions.map(async (sub) => {
+          // Get votes received by this submission
           const voteCount = await storage.getVoteCountForSubmission(sub.id);
           
           // Check if current user has voted for this submission
@@ -962,9 +963,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get the count of votes RECEIVED by a submission (not votes cast by a user)
   apiRouter.get('/votes/count/:submissionId', async (req, res) => {
     try {
       const submissionId = Number(req.params.submissionId);
+      // This counts votes received by the submission (votes where this submission was voted for)
       const count = await storage.getVoteCountForSubmission(submissionId);
       res.json({ count });
     } catch (error) {
@@ -988,6 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get the count of votes CAST by a user (not votes received by their submissions)
   apiRouter.get('/votes/count-by-voter', async (req, res) => {
     try {
       const voterId = req.query.voterId ? Number(req.query.voterId) : undefined;
@@ -1001,7 +1005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
       const eventSubmissionIds = eventSubmissions.map(s => s.id);
       
-      // Get all votes from this voter
+      // Get all votes CAST BY this voter (not votes received by their submissions)
       const userVotes = await storage.getVotesByVoter(voterId);
       
       // Filter votes to only include those for submissions in this event

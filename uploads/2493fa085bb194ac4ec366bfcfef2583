@@ -1,0 +1,5 @@
+name,gradeLevel,schoolId,teacherId,isLocked,id
+AAA,Grade 4,1,1,FALSE,1
+AAB,Grade 4,1,1,FALSE,2
+AAC,Grade 5,1,1,FALSE,3
+BAAA,Grade 4,2,1,FALSE,4
