@@ -28,8 +28,11 @@ const Partners: React.FC = () => {
     // Don't set showInactive=true here as we only want to show active partners on the public page
   });
   
-  // Filter partners by search query and type
+  // Filter partners by search query, type, and active status
   const filteredPartners = partners.filter((partner: any) => {
+    // Always filter out inactive partners on public page
+    if (!partner.isActive) return false;
+    
     const matchesSearch = partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (partner.description && partner.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
@@ -137,28 +140,28 @@ const Partners: React.FC = () => {
           <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Building2 className="h-5 w-5 text-purple-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{partners.length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Total Partners</div>
+          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.isActive).length}</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Active Partners</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-purple-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Globe className="h-5 w-5 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.partnerType === 'technology').length}</div>
+          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.isActive && p.partnerType === 'technology').length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">Tech Partners</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-purple-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <School2 className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.partnerType === 'education').length}</div>
+          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.isActive && p.partnerType === 'education').length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">Education Partners</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-purple-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Briefcase className="h-5 w-5 text-green-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.partnerType === 'corporate').length}</div>
+          <div className="text-2xl font-bold text-gray-800">{partners.filter((p: any) => p.isActive && p.partnerType === 'corporate').length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">Corporate Partners</div>
         </div>
       </div>
