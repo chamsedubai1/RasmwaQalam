@@ -41,6 +41,15 @@ import {
   DialogClose,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  WideDialog,
+  WideDialogContent,
+  WideDialogHeader,
+  WideDialogTitle,
+  WideDialogFooter,
+  WideDialogClose,
+  WideDialogDescription,
+} from "@/components/ui/wide-dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -3839,14 +3848,14 @@ const AdminDashboard: React.FC = () => {
       </Dialog>
 
       {/* Participants Management Dialog */}
-      <Dialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
-        <DialogContent className="w-[98vw] max-h-[95vh]" style={{maxWidth: "98vw"}}>
-          <DialogHeader>
-            <DialogTitle>Manage Event Participants</DialogTitle>
-            <DialogDescription>
+      <WideDialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
+        <WideDialogContent>
+          <WideDialogHeader>
+            <WideDialogTitle>Manage Event Participants</WideDialogTitle>
+            <WideDialogDescription>
               View and manage participants for this event
-            </DialogDescription>
-          </DialogHeader>
+            </WideDialogDescription>
+          </WideDialogHeader>
           
           {selectedEventId && (
             <>
@@ -3860,19 +3869,19 @@ const AdminDashboard: React.FC = () => {
               </div>
               
               {/* Participants table */}
-              <div className="overflow-y-auto max-h-[70vh]">
+              <div className="overflow-y-auto h-[calc(100%-120px)]">
                 <ParticipantsTable eventId={selectedEventId} />
               </div>
               
-              <DialogFooter className="mt-6">
+              <WideDialogFooter className="mt-6">
                 <Button variant="outline" onClick={() => setShowParticipantsDialog(false)}>
                   Close
                 </Button>
-              </DialogFooter>
+              </WideDialogFooter>
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </WideDialogContent>
+      </WideDialog>
     </div>
   );
 };
