@@ -108,16 +108,42 @@ const CreArt: React.FC = () => {
 
   // Fetch submissions for class voting if there's an active class event
   const { data: classSubmissions = [], isLoading: isLoadingClassSubmissions } = useQuery({
-    queryKey: eventId ? [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`] : [`/api/submissions`],
-    enabled: !!eventId && !!userId && !!classId,
+    queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }],
+    queryFn: async () => {
+      if (!eventId || !userId || !classId) {
+        console.log('Missing required parameters for class submissions query:', { eventId, userId, classId });
+        return [];
+      }
+      
+      const url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`;
+      console.log('Fetching class submissions with URL:', url);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Class submissions fetch error:', errorText);
+        throw new Error(`Failed to fetch class submissions: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Fetched ${data.length} class submissions:`, data);
+      return data;
+    },
+    enabled: !!eventId && !!userId && !!classId && activeTab === 'voting',
+    staleTime: 0, // Don't cache the results
+    refetchOnWindowFocus: true // Refetch when the window regains focus
   });
   
   // Debug logging for class voting
   useEffect(() => {
-    if (activeTab === 'voting' && classSubmissions) {
-      console.log('Class ID:', classId);
-      console.log('Class Submissions:', classSubmissions);
-      console.log('Query URL:', `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`);
+    if (activeTab === 'voting') {
+      console.log('Class voting debug info:', {
+        classId,
+        userId,
+        eventId,
+        submissionsCount: Array.isArray(classSubmissions) ? classSubmissions.length : 0,
+        allQueryParamsPresent: !!eventId && !!userId && !!classId
+      });
     }
   }, [activeTab, classSubmissions, classId, eventId, userId]);
   
@@ -130,8 +156,30 @@ const CreArt: React.FC = () => {
   
   // Fetch voting stats to know how many votes are remaining
   const { data: votingStats, isLoading: isLoadingVotingStats } = useQuery<VotingStats>({
-    queryKey: eventId && userId ? [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`] : [`/api/votes/count-by-voter`],
-    enabled: !!eventId && !!userId,
+    queryKey: ['/api/votes/count-by-voter', { voterId: userId, eventId }],
+    queryFn: async () => {
+      if (!eventId || !userId) {
+        console.log('Missing required parameters for voting stats query:', { eventId, userId });
+        return { votesUsed: 0, maxVotes: 3, remaining: 3 };
+      }
+      
+      const url = `/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`;
+      console.log('Fetching voting stats with URL:', url);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voting stats fetch error:', errorText);
+        throw new Error(`Failed to fetch voting stats: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched voting stats:', data);
+      return data;
+    },
+    enabled: !!eventId && !!userId && activeTab === 'voting',
+    staleTime: 0, // Don't cache the results
+    refetchOnWindowFocus: true // Refetch when the window regains focus
   });
   
   // Vote mutation
@@ -154,14 +202,14 @@ const CreArt: React.FC = () => {
       });
       // Invalidate queries to refresh data
       if (eventId && userId) {
-        // Invalidate both submissions and voting stats
+        // Invalidate both submissions and voting stats using the proper array format
         queryClient.invalidateQueries({ 
-          queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`] 
+          queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }] 
         });
         
         // Also invalidate voting stats to update the vote counter
         queryClient.invalidateQueries({
-          queryKey: [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`]
+          queryKey: ['/api/votes/count-by-voter', { voterId: userId, eventId }]
         });
       }
     },
@@ -176,14 +224,14 @@ const CreArt: React.FC = () => {
         
         // Force refresh the voting stats
         if (eventId && userId) {
-          // Refresh submissions to update UI
+          // Refresh submissions to update UI using proper array format
           queryClient.invalidateQueries({
-            queryKey: [`/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`]
+            queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }]
           });
           
-          // Refresh voting stats
+          // Refresh voting stats using proper array format
           queryClient.invalidateQueries({
-            queryKey: [`/api/votes/count-by-voter?voterId=${userId}&eventId=${eventId}`]
+            queryKey: ['/api/votes/count-by-voter', { voterId: userId, eventId }]
           });
         }
       } else {
