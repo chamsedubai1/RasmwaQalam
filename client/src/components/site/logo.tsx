@@ -31,10 +31,10 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
       </defs>
       
       {/* Circle Background */}
-      <circle cx="256" cy="256" r="200" fill="url(#logoGradient)" opacity="0.9" />
+      <circle cx="256" cy="256" r="200" fill="url(#logoGradient)" opacity="0.95" />
       
       {/* Artistic Elements */}
-      <g transform="translate(100, 120) scale(0.6)">
+      <g transform="translate(80, 100) scale(0.7)">
         {/* Palette */}
         <path
           d="M120,120 C60,150 60,250 120,280 C180,310 280,310 340,280 C400,250 400,150 340,120 C280,90 180,90 120,120 Z"
@@ -44,11 +44,11 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
         />
         
         {/* Color Dots */}
-        <circle cx="140" cy="170" r="20" fill="#ef4444" />
-        <circle cx="200" cy="140" r="20" fill="#f59e0b" />
-        <circle cx="260" cy="140" r="20" fill="#10b981" />
-        <circle cx="320" cy="170" r="20" fill="#3b82f6" />
-        <circle cx="230" cy="220" r="20" fill="#8b5cf6" />
+        <circle cx="140" cy="170" r="22" fill="#ef4444" stroke="#fff" strokeWidth="2" />
+        <circle cx="200" cy="140" r="22" fill="#f59e0b" stroke="#fff" strokeWidth="2" />
+        <circle cx="260" cy="140" r="22" fill="#10b981" stroke="#fff" strokeWidth="2" />
+        <circle cx="320" cy="170" r="22" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+        <circle cx="230" cy="220" r="22" fill="#8b5cf6" stroke="#fff" strokeWidth="2" />
         
         {/* Paintbrush */}
         <path
@@ -62,12 +62,14 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
       {/* FAZAA Text */}
       <text
         x="256"
-        y="350"
-        fontSize="50"
+        y="360"
+        fontSize="65"
         fontWeight="bold"
         textAnchor="middle"
         fill="url(#textGradient)"
         style={{ fontFamily: "Arial, sans-serif" }}
+        stroke="#ffffff"
+        strokeWidth="1"
       >
         FAZAA
       </text>
@@ -75,8 +77,8 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
       {/* Art Text */}
       <text
         x="256"
-        y="390"
-        fontSize="32"
+        y="410"
+        fontSize="40"
         fontWeight="bold"
         textAnchor="middle"
         fill="#ffffff"

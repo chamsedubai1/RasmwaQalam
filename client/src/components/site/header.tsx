@@ -40,7 +40,7 @@ const Header: React.FC = () => {
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center">
                 <a href="/" className="flex items-center">
-                  <FazaaLogo className="h-10 w-auto mr-2" />
+                  <FazaaLogo className="h-16 w-auto mr-2" />
                   <span className="text-white font-bold text-xl font-heading tracking-wider sr-only">
                     FAZAA - Art
                   </span>
@@ -109,8 +109,8 @@ const Header: React.FC = () => {
       {/* Mobile menu */}
       <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
-          <div className="flex justify-center pb-3">
-            <FazaaLogo className="h-10 w-auto" />
+          <div className="flex justify-center py-3">
+            <FazaaLogo className="h-20 w-auto" />
           </div>
           <NavLink href="/" className="block" role="all">Home</NavLink>
           <NavLink href="/about" className="block" role="all">About Us</NavLink>

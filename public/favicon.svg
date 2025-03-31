@@ -6,6 +6,10 @@
       <stop offset="0%" stopColor="#4338ca" />
       <stop offset="100%" stopColor="#3b82f6" />
     </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#fcd34d" />
+      <stop offset="100%" stopColor="#93c5fd" />
+    </linearGradient>
     <linearGradient id="brushGradient" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stopColor="#ec4899" />
       <stop offset="50%" stopColor="#8b5cf6" />
@@ -14,10 +18,10 @@
   </defs>
   
   <!-- Circle Background -->
-  <circle cx="256" cy="256" r="200" fill="url(#logoGradient)" opacity="0.9" />
+  <circle cx="256" cy="256" r="220" fill="url(#logoGradient)" opacity="0.95" />
   
   <!-- Artistic Elements -->
-  <g transform="translate(100, 120) scale(0.6)">
+  <g transform="translate(80, 80) scale(0.7)">
     <!-- Palette -->
     <path
       d="M120,120 C60,150 60,250 120,280 C180,310 280,310 340,280 C400,250 400,150 340,120 C280,90 180,90 120,120 Z"
@@ -27,11 +31,11 @@
     />
     
     <!-- Color Dots -->
-    <circle cx="140" cy="170" r="20" fill="#ef4444" />
-    <circle cx="200" cy="140" r="20" fill="#f59e0b" />
-    <circle cx="260" cy="140" r="20" fill="#10b981" />
-    <circle cx="320" cy="170" r="20" fill="#3b82f6" />
-    <circle cx="230" cy="220" r="20" fill="#8b5cf6" />
+    <circle cx="140" cy="170" r="22" fill="#ef4444" stroke="#fff" strokeWidth="2" />
+    <circle cx="200" cy="140" r="22" fill="#f59e0b" stroke="#fff" strokeWidth="2" />
+    <circle cx="260" cy="140" r="22" fill="#10b981" stroke="#fff" strokeWidth="2" />
+    <circle cx="320" cy="170" r="22" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+    <circle cx="230" cy="220" r="22" fill="#8b5cf6" stroke="#fff" strokeWidth="2" />
     
     <!-- Paintbrush -->
     <path
@@ -46,10 +50,12 @@
   <text
     x="256"
     y="380"
-    fontSize="100"
+    fontSize="130"
     fontWeight="bold"
     textAnchor="middle"
-    fill="#ffffff"
+    fill="url(#textGradient)"
+    stroke="#ffffff"
+    strokeWidth="2"
     style="font-family: Arial, sans-serif"
   >
     F
