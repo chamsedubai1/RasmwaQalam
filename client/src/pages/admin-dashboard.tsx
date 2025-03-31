@@ -227,7 +227,7 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
                         description: `Viewing submission for ${participant.name}`,
                       });
                       // In a real implementation, you would navigate to the submission
-                      window.open(`/api/submissions/${participant.submissionId}/view`, '_blank');
+                      window.open(`/submission/${participant.submissionId}`, '_blank');
                     }}
                   >
                     <Eye className="h-3.5 w-3.5 mr-1" />

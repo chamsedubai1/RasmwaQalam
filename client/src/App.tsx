@@ -16,6 +16,7 @@ import Partners from "@/pages/partners";
 import CreArt from "@/pages/creart";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import SubmissionView from "@/pages/submission-view";
 import Login from "@/pages/login";
 import ProtectedRoute from "@/components/auth/protected-route";
 import { useEffect } from "react";
@@ -42,6 +43,7 @@ function Router() {
           <Route path="/schools" component={Schools} />
           <Route path="/partners" component={Partners} />
           <Route path="/login" component={Login} />
+          <Route path="/submission/:id" component={SubmissionView} />
           
           {/* Protected routes */}
           <Route path="/creart">
