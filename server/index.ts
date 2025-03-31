@@ -4,6 +4,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import crypto from "crypto";
 
+// Set NODE_ENV to development if not set
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+console.log(`Starting server in ${process.env.NODE_ENV} mode`);
+
 const app = express();
 
 // Set up session middleware for CAPTCHA

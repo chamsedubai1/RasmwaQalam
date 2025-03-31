@@ -58,7 +58,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   // Fetch schools data
   const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
     queryKey: ['/api/schools'],
-    select: (data) => data.filter((school: any) => school.isActive)
+    select: (data: any) => data.filter((school: any) => school.isActive)
   });
   
   // Handle form submission
@@ -245,7 +245,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             ) : schools.length === 0 ? (
               <SelectItem value="none" disabled>No schools available</SelectItem>
             ) : (
-              schools.map((school: any) => (
+              schools.map((school) => (
                 <SelectItem key={school.id} value={school.id.toString()}>
                   {school.name}
                 </SelectItem>

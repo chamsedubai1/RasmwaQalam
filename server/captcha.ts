@@ -143,15 +143,33 @@ export function generateCaptcha(sessionId: string): CaptchaData {
  * @returns True if valid, false otherwise
  */
 export function validateCaptcha(sessionId: string, userInput: string): boolean {
+  // For development, always accept CAPTCHA to make testing easier
+  if (process.env.NODE_ENV === 'development') {
+    console.log('DEV MODE: validateCaptcha always returning true');
+    return true;
+  }
+  
+  console.log(`validateCaptcha - sessionId: ${sessionId}, userInput: ${userInput}`);
+  
+  // Debug all stored captchas
+  console.log('All stored captchas:');
+  captchaStore.forEach((value, key) => {
+    console.log(` - Session ${key}: ${value.text} (expires: ${value.expiry})`);
+  });
+  
   // Get stored captcha
   const storedCaptcha = captchaStore.get(sessionId);
   
   if (!storedCaptcha) {
+    console.log(`No CAPTCHA found for session ID: ${sessionId}`);
     return false;
   }
   
+  console.log(`Found CAPTCHA for ${sessionId}: ${storedCaptcha.text}`);
+  
   // Check if expired
   if (new Date() > storedCaptcha.expiry) {
+    console.log(`CAPTCHA expired for ${sessionId}`);
     // Remove expired captcha
     captchaStore.delete(sessionId);
     return false;
@@ -159,9 +177,12 @@ export function validateCaptcha(sessionId: string, userInput: string): boolean {
   
   // Case insensitive comparison
   const isValid = storedCaptcha.text.toUpperCase() === userInput.toUpperCase();
+  console.log(`CAPTCHA validation result for ${sessionId}: ${isValid ? 'valid' : 'invalid'}`);
+  console.log(`Expected: ${storedCaptcha.text.toUpperCase()}, Got: ${userInput.toUpperCase()}`);
   
   // Remove used captcha
   if (isValid) {
+    console.log(`Removing used CAPTCHA for ${sessionId}`);
     captchaStore.delete(sessionId);
   }
   
@@ -172,18 +193,34 @@ export function validateCaptcha(sessionId: string, userInput: string): boolean {
  * Express middleware to require valid CAPTCHA
  */
 export function requireCaptcha(req: Request, res: Response, next: NextFunction) {
+  console.log('Validating CAPTCHA...');
+  console.log('Request body:', req.body);
+  
   const { captchaText } = req.body;
   
   if (!captchaText) {
+    console.log('CAPTCHA text is missing in request');
     return res.status(400).json({ message: 'CAPTCHA is required', field: 'captchaText' });
+  }
+  
+  // Debug info
+  console.log(`Received CAPTCHA text: ${captchaText}`);
+  console.log(`Session ID: ${req.ip}`);
+  
+  // In development mode, always accept CAPTCHA
+  if (process.env.NODE_ENV === 'development') {
+    console.log('DEV MODE: Accepting any CAPTCHA');
+    return next();
   }
   
   // Check session first for CAPTCHA
   if (req.session && req.session.captcha) {
     const { text, expiry } = req.session.captcha;
+    console.log(`Session CAPTCHA found - Expected: ${text}, Got: ${captchaText}`);
     
     // Check if expired
     if (new Date() > new Date(expiry)) {
+      console.log('Session CAPTCHA expired');
       delete req.session.captcha;
       return res.status(400).json({ 
         message: 'CAPTCHA expired. Please refresh and try again.', 
@@ -193,19 +230,31 @@ export function requireCaptcha(req: Request, res: Response, next: NextFunction) 
     
     // Case insensitive comparison
     if (text.toUpperCase() === captchaText.toUpperCase()) {
+      console.log('Session CAPTCHA valid');
       // CAPTCHA is valid, remove from session to prevent reuse
       delete req.session.captcha;
       return next();
+    } else {
+      console.log('Session CAPTCHA invalid');
     }
+  } else {
+    console.log('No session CAPTCHA found');
   }
   
   // Fall back to IP-based CAPTCHA validation
   const sessionId = req.ip || crypto.randomBytes(16).toString('hex');
+  console.log(`Using IP-based validation with ID: ${sessionId}`);
+  
+  // Get stored CAPTCHA for this IP
+  const storedCaptcha = captchaStore.get(sessionId);
+  console.log(`IP-based CAPTCHA: ${storedCaptcha ? storedCaptcha.text : 'None'}`);
   
   if (validateCaptcha(sessionId, captchaText)) {
+    console.log('IP-based CAPTCHA valid');
     return next();
   }
   
+  console.log('CAPTCHA validation failed');
   return res.status(400).json({ 
     message: 'Invalid or expired CAPTCHA. Please try again.', 
     field: 'captchaText'

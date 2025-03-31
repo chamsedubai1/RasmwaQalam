@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { useForm, FormProvider } from "react-hook-form";
+import { School, Class } from "@shared/schema";
 import { CaptchaField } from "./captcha-field";
 
 interface StudentRegistrationFormProps {
@@ -61,14 +62,14 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
   // Fetch schools data
   const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
     queryKey: ['/api/schools'],
-    select: (data) => data.filter((school: any) => school.isActive)
+    select: (data: any) => data.filter((school: any) => school.isActive)
   });
   
   // Fetch classes based on selected school
   const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
     queryKey: ['/api/classes', selectedSchool],
     enabled: !!selectedSchool,
-    select: (data) => {
+    select: (data: any) => {
       // Filter classes by school if a school is selected
       if (selectedSchool) {
         return data.filter((classItem: any) => 
@@ -279,7 +280,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
             ) : schools.length === 0 ? (
               <SelectItem value="none" disabled>No schools available</SelectItem>
             ) : (
-              schools.map((school: any) => (
+              schools.map((school) => (
                 <SelectItem key={school.id} value={school.id.toString()}>
                   {school.name}
                 </SelectItem>
@@ -337,7 +338,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
               ) : classes.length === 0 ? (
                 <SelectItem value="none" disabled>No classes available</SelectItem>
               ) : (
-                classes.map((classItem: any) => (
+                classes.map((classItem) => (
                   <SelectItem key={classItem.id} value={classItem.id.toString()}>
                     {classItem.name}
                   </SelectItem>

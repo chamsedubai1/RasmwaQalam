@@ -31,6 +31,11 @@ export function CaptchaField({ control, name, label = "CAPTCHA", description }: 
       
       const data = await response.json();
       setCaptchaImage(data.image);
+      
+      // When in development, log the CAPTCHA text if available
+      if (data.text) {
+        console.log('CAPTCHA text for testing:', data.text);
+      }
     } catch (err) {
       setError('Failed to load CAPTCHA. Please try again.');
       console.error('CAPTCHA fetch error:', err);

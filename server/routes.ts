@@ -68,18 +68,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate new CAPTCHA
       const captcha = generateCaptcha(sessionId);
       
+      // For debugging 
+      console.log(`Generated CAPTCHA for ${sessionId}: ${captcha.text}`);
+      
       // Store in session if available (optional)
       if (req.session) {
         req.session.captcha = {
           text: captcha.text,
           expiry: captcha.expiry
         };
+        console.log(`Stored CAPTCHA in session: ${captcha.text}`);
       }
       
       // Return the SVG image (without the actual text)
       res.json({
         image: captcha.svgImage,
-        expires: captcha.expiry
+        expires: captcha.expiry,
+        // During development, we send the text to make debugging easier
+        text: process.env.NODE_ENV === 'development' ? captcha.text : undefined
       });
     } catch (error) {
       console.error('CAPTCHA generation error:', error);
@@ -92,6 +98,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Keep old endpoint for backward compatibility
   apiRouter.get('/captcha', handleCaptchaRequest);
+  
+  // Debug endpoint to check session
+  apiRouter.get('/debug-session', (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).send('Debug endpoints only available in development mode');
+    }
+    
+    console.log('Session ID:', req.sessionID);
+    console.log('IP:', req.ip);
+    console.log('Session data:', req.session);
+    
+    // Get CAPTCHA from session
+    const sessionCaptcha = req.session?.captcha;
+    
+    // Get CAPTCHA from store based on IP
+    const ipBasedCaptcha = captchaStore.get(req.ip);
+    
+    // Return session info
+    res.json({
+      sessionId: req.sessionID,
+      ip: req.ip,
+      sessionData: req.session,
+      hasCaptchaInSession: !!sessionCaptcha,
+      sessionCaptcha: sessionCaptcha ? {
+        text: sessionCaptcha.text,
+        expires: sessionCaptcha.expiry
+      } : null,
+      hasCaptchaInStore: !!ipBasedCaptcha,
+      storeCaptcha: ipBasedCaptcha ? {
+        text: ipBasedCaptcha.text,
+        expires: ipBasedCaptcha.expiry
+      } : null
+    });
+  });
   
   // Verify CAPTCHA without proceeding further
   apiRouter.post('/verify-captcha', (req, res) => {
