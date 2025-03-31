@@ -94,8 +94,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get('/users', async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      // Return users without passwords
-      const sanitizedUsers = users.map(({ password, ...rest }) => rest);
+      const schools = await storage.getAllSchools();
+      const classes = await storage.getAllClasses();
+      
+      // Return users without passwords and with additional information
+      const sanitizedUsers = users.map(({ password, ...user }) => {
+        // Find school name
+        const school = schools.find(s => s.id === user.schoolId);
+        const schoolName = school ? school.name : null;
+        
+        // Find class and grade info
+        const classInfo = classes.find(c => c.id === user.classId);
+        const className = classInfo ? classInfo.name : null;
+        const gradeLevel = classInfo ? classInfo.gradeLevel : null;
+        
+        return {
+          ...user,
+          schoolName,
+          className,
+          gradeLevel
+        };
+      });
+      
       res.json(sanitizedUsers);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch users' });
@@ -109,9 +129,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Return user without password
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      // Return user without password and with additional information
+      const { password, ...userData } = user;
+      
+      // Get school info
+      let schoolName = null;
+      if (userData.schoolId) {
+        const school = await storage.getSchool(userData.schoolId);
+        schoolName = school ? school.name : null;
+      }
+      
+      // Get class and grade info
+      let className = null;
+      let gradeLevel = null;
+      if (userData.classId) {
+        const classInfo = await storage.getClass(userData.classId);
+        if (classInfo) {
+          className = classInfo.name;
+          gradeLevel = classInfo.gradeLevel;
+        }
+      }
+      
+      const enhancedUserData = {
+        ...userData,
+        schoolName,
+        className,
+        gradeLevel
+      };
+      
+      res.json(enhancedUserData);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch user' });
     }

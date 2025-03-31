@@ -106,6 +106,8 @@ const UserTable: React.FC<UserTableProps> = ({
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>School</TableHead>
+          <TableHead>Class</TableHead>
+          <TableHead>Grade</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
@@ -113,7 +115,7 @@ const UserTable: React.FC<UserTableProps> = ({
       <TableBody>
         {users.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center py-6">
+            <TableCell colSpan={8} className="text-center py-6">
               No users found
             </TableCell>
           </TableRow>
@@ -140,6 +142,8 @@ const UserTable: React.FC<UserTableProps> = ({
                   </span>
                 </TableCell>
                 <TableCell>{user.schoolName || "N/A"}</TableCell>
+                <TableCell>{user.className || "N/A"}</TableCell>
+                <TableCell>{user.gradeLevel || "N/A"}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
                     {user.isActive ? 'Active' : 'Locked'}
