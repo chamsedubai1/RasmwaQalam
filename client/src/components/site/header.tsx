@@ -82,7 +82,6 @@ const Header: React.FC = () => {
               <NavLink href="/gallery" role="all">{t("nav.gallery")}</NavLink>
               <NavLink href="/schools" role="all">{t("nav.schools")}</NavLink>
               <NavLink href="/partners" role="all">{t("nav.partners")}</NavLink>
-              <NavLink href="/documentation" role="all">{t("nav.documentation")}</NavLink>
               <NavLink href="/creart" role="student">{t("nav.creart")}</NavLink>
               <NavLink href="/teacher" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
               <NavLink href="/admin" role="admin">{t("nav.admin_dashboard")}</NavLink>
@@ -143,7 +142,6 @@ const Header: React.FC = () => {
           <NavLink href="/gallery" className="block" role="all">{t("nav.gallery")}</NavLink>
           <NavLink href="/schools" className="block" role="all">{t("nav.schools")}</NavLink>
           <NavLink href="/partners" className="block" role="all">{t("nav.partners")}</NavLink>
-          <NavLink href="/documentation" className="block" role="all">{t("nav.documentation")}</NavLink>
           <NavLink href="/creart" className="block" role="student">{t("nav.creart")}</NavLink>
           <NavLink href="/teacher" className="block" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
           <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>

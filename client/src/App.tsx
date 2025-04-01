@@ -20,7 +20,6 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import SubmissionView from "@/pages/submission-view";
 import Login from "@/pages/login";
 import UploadTest from "@/pages/upload-test";
-import DocumentationPage from "@/pages/documentation";
 import ProtectedRoute from "@/components/auth/protected-route";
 import { useEffect } from "react";
 
@@ -48,7 +47,6 @@ function Router() {
           <Route path="/schools" component={Schools} />
           <Route path="/partners" component={Partners} />
           <Route path="/login" component={Login} />
-          <Route path="/documentation" component={DocumentationPage} />
           <Route path="/submission/:id" component={SubmissionView} />
           <Route path="/upload-test" component={UploadTest} />
           
