@@ -907,12 +907,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissions = await storage.getSubmissionsByUser(userId);
       } else if (classId) {
         // Teacher view - get submissions by class with validation filter options
+        console.log(`Getting submissions for class ID: ${classId}, filter: ${req.query.pending ? 'pending' : (req.query.validated ? 'validated' : 'all')}`);
         if (req.query.pending === 'true') {
+          console.log(`Looking for pending validation submissions in class ${classId}`);
           submissions = await storage.getSubmissionsPendingValidation(classId);
+          console.log(`Found ${submissions.length} pending submissions`);
         } else if (req.query.validated === 'true') {
+          console.log(`Looking for validated submissions in class ${classId}`);
           submissions = await storage.getValidatedSubmissions(classId);
+          console.log(`Found ${submissions.length} validated submissions`);
         } else {
+          console.log(`Looking for all submissions in class ${classId}`);
           submissions = await storage.getSubmissionsByClass(classId);
+          console.log(`Found ${submissions.length} total submissions`);
         }
       } else if (eventId) {
         // Get all submissions for this event

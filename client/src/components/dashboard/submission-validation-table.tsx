@@ -52,7 +52,13 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
     refetch: refetchPendingSubmissions,
   } = useQuery<any[]>({
     queryKey: ["/api/submissions", { classId, pending: true }],
+    queryFn: async () => {
+      const response = await fetch(`/api/submissions?classId=${classId}&pending=true`);
+      if (!response.ok) throw new Error('Failed to fetch pending submissions');
+      return response.json();
+    },
     enabled: classId > 0 && activeTab === "pending",
+    refetchInterval: 5000, // Refetch every 5 seconds to check for new submissions
   });
 
   // Fetch validated submissions for this class
@@ -62,12 +68,22 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
     refetch: refetchValidatedSubmissions,
   } = useQuery<any[]>({
     queryKey: ["/api/submissions", { classId, validated: true }],
+    queryFn: async () => {
+      const response = await fetch(`/api/submissions?classId=${classId}&validated=true`);
+      if (!response.ok) throw new Error('Failed to fetch validated submissions');
+      return response.json();
+    },
     enabled: classId > 0 && activeTab === "validated",
   });
 
   // Get single submission details
   const { data: viewedSubmission, isLoading: isViewLoading } = useQuery<any>({
     queryKey: ["/api/submissions", viewSubmissionId],
+    queryFn: async () => {
+      const response = await fetch(`/api/submissions/${viewSubmissionId}`);
+      if (!response.ok) throw new Error('Failed to fetch submission details');
+      return response.json();
+    },
     enabled: !!viewSubmissionId,
   });
 

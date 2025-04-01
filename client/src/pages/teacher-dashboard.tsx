@@ -75,8 +75,16 @@ const TeacherDashboard: React.FC = () => {
   const [studentUsername, setStudentUsername] = useState("");
   const [studentPassword, setStudentPassword] = useState("");
   
-  // We'd typically get this from the authentication context in a real app
-  const teacherId = 4; // Using the ID of the teacher we created earlier
+  // Get the current user data
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+  });
+  
+  // Use the logged-in teacher's ID
+  const teacherId = currentUser?.id || null;
+  
+  // Debug output for teacher data
+  console.log("Current teacher data:", currentUser);
   
   // Fetch classes taught by this teacher
   const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery<any[]>({
