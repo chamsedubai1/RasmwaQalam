@@ -27,6 +27,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.gallery": "Gallery",
     "nav.schools": "Schools",
     "nav.partners": "Partners",
+    "nav.documentation": "Documentation",
     "nav.creart": "CreArt",
     "nav.teacher_dashboard": "Teacher Dashboard",
     "nav.admin_dashboard": "Admin Dashboard",
@@ -188,6 +189,14 @@ const translations: Record<Language, Record<string, string>> = {
     "footer.subscribe": "Subscribe",
     "footer.allRightsReserved": "All rights reserved.",
     
+    // Documentation page
+    "Documentation": "Documentation",
+    "Print": "Print",
+    "Overview": "Overview",
+    "Features": "Features",
+    "Competition": "Competition", 
+    "Technical": "Technical",
+    
     // About page
     "about.hero.title": "About",
     "about.hero.description": "Empowering student creativity through AI-assisted artistic expression and friendly competition",
@@ -284,6 +293,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.gallery": "المعرض",
     "nav.schools": "المدارس",
     "nav.partners": "الشركاء",
+    "nav.documentation": "التوثيق",
     "nav.creart": "إبداع الفن",
     "nav.teacher_dashboard": "لوحة تحكم المعلم",
     "nav.admin_dashboard": "لوحة تحكم المدير",
@@ -444,6 +454,14 @@ const translations: Record<Language, Record<string, string>> = {
     "footer.yourEmail": "بريدك الإلكتروني",
     "footer.subscribe": "اشترك",
     "footer.allRightsReserved": "جميع الحقوق محفوظة.",
+    
+    // Documentation page
+    "Documentation": "التوثيق",
+    "Print": "طباعة",
+    "Overview": "نظرة عامة",
+    "Features": "الميزات",
+    "Competition": "المسابقة", 
+    "Technical": "التقنية",
     
     // About page
     "about.hero.title": "نبذة عن",
