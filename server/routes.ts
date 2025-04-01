@@ -1350,6 +1350,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Submission not found' });
       }
       
+      // Prevent users from voting for their own submissions
+      if (submission.userId === voteData.voterId) {
+        return res.status(403).json({ message: 'You cannot vote for your own submission' });
+      }
+      
+      // Check if submission is validated by teacher
+      if (submission.validated !== true) {
+        return res.status(403).json({ message: 'This submission has not been validated by a teacher yet' });
+      }
+      
       // Get the event to determine the stage
       const event = await storage.getEvent(submission.eventId);
       if (!event) {

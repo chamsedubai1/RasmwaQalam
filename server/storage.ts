@@ -703,6 +703,7 @@ export class MemStorage implements IStorage {
     const submission: Submission = { 
       ...submissionData, 
       id, 
+      validated: null, // Ensure new submissions start as unvalidated (pending)
       classWinner: submissionData.classWinner || false,
       schoolWinner: submissionData.schoolWinner || false,
       countryWinner: submissionData.countryWinner || false,
