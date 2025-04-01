@@ -25,28 +25,11 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   }, []);
 
   useEffect(() => {
-    // Save role to localStorage and update visible elements
+    // Save role to localStorage
     if (userRole) {
       localStorage.setItem("userRole", userRole);
     } else {
       localStorage.removeItem("userRole");
-    }
-    
-    // First show all elements marked as "all"
-    document.querySelectorAll('[data-role="all"]').forEach(el => {
-      el.classList.remove('hidden');
-    });
-    
-    // Hide role-specific elements except "all"
-    document.querySelectorAll('[data-role="student"], [data-role="teacher"], [data-role="admin"]').forEach(el => {
-      el.classList.add('hidden');
-    });
-    
-    // Show elements for current role if there is one
-    if (userRole) {
-      document.querySelectorAll(`[data-role="${userRole}"]`).forEach(el => {
-        el.classList.remove('hidden');
-      });
     }
   }, [userRole]);
 

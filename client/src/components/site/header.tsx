@@ -70,15 +70,9 @@ const Header: React.FC = () => {
               <NavLink href="/gallery" role="all">{t("nav.gallery")}</NavLink>
               <NavLink href="/schools" role="all">{t("nav.schools")}</NavLink>
               <NavLink href="/partners" role="all">{t("nav.partners")}</NavLink>
-              {userRole === "student" && (
-                <NavLink href="/creart" role="student">{t("nav.creart")}</NavLink>
-              )}
-              {userRole === "teacher" && (
-                <NavLink href="/teacher" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
-              )}
-              {userRole === "admin" && (
-                <NavLink href="/admin" role="admin">{t("nav.admin_dashboard")}</NavLink>
-              )}
+              <NavLink href="/creart" role="student">{t("nav.creart")}</NavLink>
+              <NavLink href="/teacher" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
+              <NavLink href="/admin" role="admin">{t("nav.admin_dashboard")}</NavLink>
             </nav>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-2">
@@ -136,15 +130,9 @@ const Header: React.FC = () => {
           <NavLink href="/gallery" className="block" role="all">{t("nav.gallery")}</NavLink>
           <NavLink href="/schools" className="block" role="all">{t("nav.schools")}</NavLink>
           <NavLink href="/partners" className="block" role="all">{t("nav.partners")}</NavLink>
-          {userRole === "student" && (
-            <NavLink href="/creart" className="block" role="student">{t("nav.creart")}</NavLink>
-          )}
-          {userRole === "teacher" && (
-            <NavLink href="/teacher" className="block" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
-          )}
-          {userRole === "admin" && (
-            <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>
-          )}
+          <NavLink href="/creart" className="block" role="student">{t("nav.creart")}</NavLink>
+          <NavLink href="/teacher" className="block" role="teacher">{t("nav.teacher_dashboard")}</NavLink>
+          <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>
           
           <div className="border-t border-blue-700 my-3"></div>
           
