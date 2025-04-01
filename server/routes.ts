@@ -992,20 +992,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (userId) {
         submissions = await storage.getSubmissionsByUser(userId);
       } else if (classId) {
-        // Teacher view - get submissions by class with validation filter options
-        console.log(`Getting submissions for class ID: ${classId}, filter: ${req.query.pending ? 'pending' : (req.query.validated ? 'validated' : 'all')}`);
-        if (req.query.pending === 'true') {
-          console.log(`Looking for pending validation submissions in class ${classId}`);
-          submissions = await storage.getSubmissionsPendingValidation(classId);
-          console.log(`Found ${submissions.length} pending submissions`);
-        } else if (req.query.validated === 'true') {
-          console.log(`Looking for validated submissions in class ${classId}`);
-          submissions = await storage.getValidatedSubmissions(classId);
-          console.log(`Found ${submissions.length} validated submissions`);
+        // Teacher or student view with class ID
+        if (forVoting && currentUserId) {
+          // Student voting view - get only validated submissions from classmates
+          console.log(`Getting validated submissions for voting in class ${classId}`);
+          const allClassSubmissions = await storage.getSubmissionsByClass(classId);
+          console.log(`Found ${allClassSubmissions.length} total submissions in class, filtering for voting`);
+          
+          // Filter to show only validated submissions and exclude current user's own submissions
+          submissions = allClassSubmissions.filter(sub => 
+            sub.userId !== currentUserId && // Don't show own submissions
+            sub.validated === true         // Only show teacher-validated submissions
+          );
+          console.log(`After filtering for voting: ${submissions.length} submissions eligible for voting`);
         } else {
-          console.log(`Looking for all submissions in class ${classId}`);
-          submissions = await storage.getSubmissionsByClass(classId);
-          console.log(`Found ${submissions.length} total submissions`);
+          // Regular teacher view - get submissions by class with validation filter options
+          console.log(`Getting submissions for class ID: ${classId}, filter: ${req.query.pending ? 'pending' : (req.query.validated ? 'validated' : 'all')}`);
+          if (req.query.pending === 'true') {
+            console.log(`Looking for pending validation submissions in class ${classId}`);
+            submissions = await storage.getSubmissionsPendingValidation(classId);
+            console.log(`Found ${submissions.length} pending submissions`);
+          } else if (req.query.validated === 'true') {
+            console.log(`Looking for validated submissions in class ${classId}`);
+            submissions = await storage.getValidatedSubmissions(classId);
+            console.log(`Found ${submissions.length} validated submissions`);
+          } else {
+            console.log(`Looking for all submissions in class ${classId}`);
+            submissions = await storage.getSubmissionsByClass(classId);
+            console.log(`Found ${submissions.length} total submissions`);
+          }
         }
       } else if (eventId) {
         // Get all submissions for this event
