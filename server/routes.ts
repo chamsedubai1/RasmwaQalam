@@ -921,10 +921,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If this is for voting purposes and we have a current user ID
         if (forVoting && currentUserId) {
-          // 1. Filter out current user's own submissions
+          // 1. Filter out unvalidated submissions and current user's own submissions
           const beforeFilter = submissions.length;
-          submissions = submissions.filter(sub => sub.userId !== currentUserId);
-          console.log(`Filtered out user's own submissions: ${beforeFilter} -> ${submissions.length}`);
+          submissions = submissions.filter(sub => 
+            sub.userId !== currentUserId && // Filter out user's own submissions
+            sub.validated === true          // Only show submissions validated by teacher
+          );
+          console.log(`Filtered out user's own and unvalidated submissions: ${beforeFilter} -> ${submissions.length}`);
           
           // Get current user information
           const currentUser = await storage.getUser(currentUserId);
