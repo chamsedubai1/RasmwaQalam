@@ -36,8 +36,10 @@ const Header: React.FC = () => {
     } finally {
       // Always clear local user data and redirect
       setUserRole("");
-      clearUser();
-      localStorage.removeItem('authToken');
+      clearUser(); // this already clears authToken
+      localStorage.removeItem('authToken'); // extra safety
+      localStorage.removeItem('userData');
+      localStorage.removeItem('userRole');
       
       toast({
         title: t("message.success"),

@@ -50,11 +50,8 @@ export default function LoginPage() {
       console.log("Login successful:", response);
       
       if (response.role) {
-        // Set user role for basic authorization
-        setUserRole(response.role);
-        
-        // Set full user data in context for authenticated requests
-        setUser({
+        // Create user object
+        const userData = {
           id: response.id,
           username: response.username,
           fullName: response.fullName || response.username,
@@ -62,10 +59,18 @@ export default function LoginPage() {
           schoolId: response.schoolId,
           classId: response.classId,
           gradeLevel: response.gradeLevel
-        });
+        };
         
-        // Store auth token in localStorage
+        // Set user role for basic authorization
+        setUserRole(response.role);
+        
+        // Set full user data in context
+        setUser(userData);
+        
+        // Store auth token and user data in localStorage
         localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userRole', response.role);
         
         // Redirect based on role
         switch (response.role) {
@@ -110,11 +115,8 @@ export default function LoginPage() {
       
       // Auto-login user after successful registration
       if (response && response.id) {
-        // Set user role for basic authorization
-        setUserRole(response.role);
-        
-        // Set full user data in context
-        setUser({
+        // Create user object
+        const userData = {
           id: response.id,
           username: response.username,
           fullName: response.fullName || response.username,
@@ -122,10 +124,18 @@ export default function LoginPage() {
           schoolId: response.schoolId,
           classId: response.classId,
           gradeLevel: response.gradeLevel
-        });
+        };
         
-        // Store auth token in localStorage
+        // Set user role for basic authorization
+        setUserRole(response.role);
+        
+        // Set full user data in context
+        setUser(userData);
+        
+        // Store auth token and user data in localStorage
         localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userRole', response.role);
         
         // Redirect to appropriate page based on role
         switch (response.role) {

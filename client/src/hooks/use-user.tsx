@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 
 type User = {
   id: number;
@@ -20,10 +20,39 @@ export const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  
+  // Try to load user data from localStorage on initialization
+  useEffect(() => {
+    try {
+      const savedUserData = localStorage.getItem('userData');
+      if (savedUserData) {
+        const parsedUser = JSON.parse(savedUserData);
+        if (parsedUser && typeof parsedUser === 'object' && 
+            typeof parsedUser.id === 'number' && 
+            typeof parsedUser.username === 'string' &&
+            ['student', 'teacher', 'admin'].includes(parsedUser.role)) {
+          setUser(parsedUser);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data from localStorage:", error);
+    }
+  }, []);
+  
+  // Save user data to localStorage when it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('userData', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('userData');
+    }
+  }, [user]);
 
   const clearUser = () => {
     setUser(null);
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('userRole');
   };
 
   return (
