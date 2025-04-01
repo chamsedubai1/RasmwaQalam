@@ -22,17 +22,30 @@ const Header: React.FC = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
   
-  const handleLogout = () => {
-    // In a real app, you would make an API call to logout
-    setUserRole("");
-    clearUser();
-    
-    toast({
-      title: t("message.success"),
-      description: t("nav.logout") + " " + t("message.success").toLowerCase()
-    });
-    
-    setLocation("/");
+  const handleLogout = async () => {
+    try {
+      // Call API to logout
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        }
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Always clear local user data and redirect
+      setUserRole("");
+      clearUser();
+      localStorage.removeItem('authToken');
+      
+      toast({
+        title: t("message.success"),
+        description: t("nav.logout") + " " + t("message.success").toLowerCase()
+      });
+      
+      setLocation("/");
+    }
   };
 
   return (

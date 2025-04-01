@@ -59,6 +59,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get current authenticated user
+  apiRouter.get('/user', async (req, res) => {
+    try {
+      // Get authorization header
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Account is locked or inactive" });
+      }
+      
+      // Return user data (excluding password)
+      const { password: _, ...userData } = user;
+      res.status(200).json(userData);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Server error retrieving user data" });
+    }
+  });
+  
   // Helper function to generate and return CAPTCHA
   const handleCaptchaRequest = (req: Request, res: Response) => {
     try {
@@ -98,6 +131,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Keep old endpoint for backward compatibility
   apiRouter.get('/captcha', handleCaptchaRequest);
+  
+  // Get current user endpoint for authentication
+  apiRouter.get('/user', async (req, res) => {
+    try {
+      // This endpoint is used to check if a user is currently logged in
+      // and to get their data for authenticated routes
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'No credentials provided' });
+      }
+      
+      // Extract username from token (simple implementation)
+      const token = authHeader.split(' ')[1];
+      const [username, _] = token.split(':');
+      
+      // Get user by username
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      if (!user.isActive) {
+        return res.status(403).json({ message: 'Account is locked or inactive' });
+      }
+      
+      // Return user without password
+      const { password: __, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error retrieving user:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
   
   // Debug endpoint to check session
   apiRouter.get('/debug-session', (req, res) => {

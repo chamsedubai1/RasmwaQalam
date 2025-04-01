@@ -64,13 +64,16 @@ export default function LoginPage() {
           gradeLevel: response.gradeLevel
         });
         
+        // Store auth token in localStorage
+        localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
+        
         // Redirect based on role
         switch (response.role) {
           case "admin":
             setLocation("/admin");
             break;
           case "teacher":
-            setLocation("/");
+            setLocation("/teacher");
             break;
           case "student":
             setLocation("/");
@@ -120,6 +123,9 @@ export default function LoginPage() {
           classId: response.classId,
           gradeLevel: response.gradeLevel
         });
+        
+        // Store auth token in localStorage
+        localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
         
         // Redirect to appropriate page based on role
         switch (response.role) {

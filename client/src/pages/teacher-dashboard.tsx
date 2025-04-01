@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useUser } from "@/hooks/use-user";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -75,16 +76,27 @@ const TeacherDashboard: React.FC = () => {
   const [studentUsername, setStudentUsername] = useState("");
   const [studentPassword, setStudentPassword] = useState("");
   
-  // Get the current user data
-  const { data: currentUser } = useQuery({
+  // Get current user data from context
+  const { user } = useUser();
+  
+  // Use the logged-in teacher's ID from context
+  const teacherId = user?.id || null;
+  
+  // Debug log for troubleshooting
+  console.log("Current teacher ID:", teacherId);
+  console.log("Current user data:", user);
+  
+  // Fetch the most up-to-date user data from server
+  const { data: currentUserFromApi, isLoading: isLoadingUser } = useQuery({
     queryKey: ['/api/user'],
+    staleTime: 0, // Make sure we always get the latest user data
+    retry: 3,     // Retry failed requests
+    // Only enable this query if we have authentication token
+    enabled: !!localStorage.getItem('authToken'),
   });
   
-  // Use the logged-in teacher's ID
-  const teacherId = currentUser?.id || null;
-  
-  // Debug output for teacher data
-  console.log("Current teacher data:", currentUser);
+  // Debug output for teacher data from API
+  console.log("Current teacher data from API:", currentUserFromApi);
   
   // Fetch class assigned to this teacher
   const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery<any[]>({
