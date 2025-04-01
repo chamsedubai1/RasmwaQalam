@@ -32,6 +32,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
   const [subject, setSubject] = useState("");
   
   // Field-specific error states
@@ -43,6 +44,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     lastName?: string;
     email?: string;
     selectedSchool?: string;
+    selectedClass?: string;
     subject?: string;
     captchaText?: string;
   }>({});
@@ -60,6 +62,20 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const { data: schools = [], isLoading: isLoadingSchools } = useQuery({
     queryKey: ['/api/schools'],
     select: (data: any) => data.filter((school: any) => school.isActive)
+  });
+  
+  // Fetch classes data based on selected school
+  const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
+    queryKey: ['/api/classes', { schoolId: selectedSchool }],
+    queryFn: async () => {
+      if (!selectedSchool) return [];
+      const response = await fetch(`/api/classes?schoolId=${selectedSchool}`);
+      if (!response.ok) throw new Error('Failed to fetch classes');
+      const allClasses = await response.json();
+      // Only show classes that don't have a teacher assigned already
+      return allClasses.filter((classItem: any) => !classItem.teacherId || classItem.teacherId === 0);
+    },
+    enabled: !!selectedSchool,
   });
   
   // Handle form submission
@@ -81,6 +97,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       lastName?: string;
       email?: string;
       selectedSchool?: string;
+      selectedClass?: string;
       subject?: string;
       captchaText?: string;
     } = {};
@@ -107,6 +124,10 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     
     if (!selectedSchool) {
       errors.selectedSchool = "School selection is required";
+    }
+    
+    if (!selectedClass) {
+      errors.selectedClass = "Class selection is required";
     }
     
     if (!password) {
@@ -154,6 +175,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       email,
       role: "teacher",
       schoolId: parseInt(selectedSchool),
+      classId: parseInt(selectedClass), // Include the selected class ID
       subject, // Optional field
       captchaText // Include CAPTCHA text for validation on the server
     };
@@ -169,6 +191,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       setLastName("");
       setEmail("");
       setSelectedSchool("");
+      setSelectedClass("");
       setSubject("");
     } catch (error) {
       console.error("Registration error in form component:", error);
@@ -241,7 +264,10 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
         </Label>
         <Select 
           value={selectedSchool} 
-          onValueChange={setSelectedSchool}
+          onValueChange={(value) => {
+            setSelectedSchool(value);
+            setSelectedClass(""); // Reset class selection when school changes
+          }}
         >
           <SelectTrigger 
             id="teacher-school"
@@ -263,6 +289,44 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             )}
           </SelectContent>
         </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="teacher-class" className={formErrors.selectedClass ? "text-red-500" : ""}>
+          Class {formErrors.selectedClass && <span className="text-xs font-normal">- {formErrors.selectedClass}</span>}
+        </Label>
+        <Select 
+          value={selectedClass} 
+          onValueChange={setSelectedClass}
+          disabled={!selectedSchool || isLoadingClasses}
+        >
+          <SelectTrigger 
+            id="teacher-class"
+            className={formErrors.selectedClass ? "border-red-500 focus-visible:ring-red-500" : ""}
+          >
+            <SelectValue placeholder={!selectedSchool ? "Select a school first" : "Select your class"} />
+          </SelectTrigger>
+          <SelectContent>
+            {isLoadingClasses ? (
+              <SelectItem value="loading" disabled>Loading classes...</SelectItem>
+            ) : !selectedSchool ? (
+              <SelectItem value="none" disabled>Select a school first</SelectItem>
+            ) : classes.length === 0 ? (
+              <SelectItem value="none" disabled>No available classes at this school</SelectItem>
+            ) : (
+              classes.map((classItem) => (
+                <SelectItem key={classItem.id} value={classItem.id.toString()}>
+                  {classItem.name} (Grade {classItem.gradeLevel})
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        {selectedSchool && classes.length === 0 && !isLoadingClasses && (
+          <p className="text-xs text-amber-600 mt-1">
+            All classes at this school already have assigned teachers. Please select a different school.
+          </p>
+        )}
       </div>
       
       <div className="space-y-2">

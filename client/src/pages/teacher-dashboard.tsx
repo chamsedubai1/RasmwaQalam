@@ -86,15 +86,26 @@ const TeacherDashboard: React.FC = () => {
   // Debug output for teacher data
   console.log("Current teacher data:", currentUser);
   
-  // Fetch classes taught by this teacher
+  // Fetch class assigned to this teacher
   const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery<any[]>({
     queryKey: [`/api/classes?teacherId=${teacherId}`],
+    enabled: !!teacherId,
   });
   
-  // Fetch students for selected class
+  // Get the first class if available (teacher can only have one class)
+  const teacherClassId = classes && classes.length > 0 ? classes[0].id : null;
+  
+  // Use the teacherClassId as the selectedClassId if not already set
+  React.useEffect(() => {
+    if (teacherClassId && !selectedClassId) {
+      setSelectedClassId(teacherClassId);
+    }
+  }, [teacherClassId, selectedClassId]);
+  
+  // Fetch students for the teacher's class only
   const { data: students = [], isLoading: isLoadingStudents, refetch: refetchStudents } = useQuery<any[]>({
-    queryKey: selectedClassId ? [`/api/users?classId=${selectedClassId}`] : [`/api/users`],
-    enabled: !!selectedClassId,
+    queryKey: [`/api/users?classId=${teacherClassId}`],
+    enabled: !!teacherClassId,
   });
   
   // Fetch open events
@@ -290,26 +301,43 @@ const TeacherDashboard: React.FC = () => {
       return;
     }
     
+    if (!teacherClassId) {
+      toast({
+        title: "No class assigned",
+        description: "You must have a class assigned to add students",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const classData = classes[0]; // Teacher should only have one class
+    
     const userData = {
       username: studentUsername,
       password: studentPassword,
       email: studentEmail,
       fullName: studentFullName,
       role: "student",
-      schoolId: Number((classes as any[]).find((c: any) => c.id === selectedClassId)?.schoolId),
-      classId: selectedClassId,
-      gradeLevel: (classes as any[]).find((c: any) => c.id === selectedClassId)?.gradeLevel,
+      schoolId: Number(classData.schoolId),
+      classId: teacherClassId,
+      gradeLevel: classData.gradeLevel,
       isActive: true
     };
     
     addStudentMutation.mutate(userData);
   };
   
+  // Fetch submissions for the teacher's class
+  const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery<any[]>({
+    queryKey: [`/api/submissions?classId=${teacherClassId}`],
+    enabled: !!teacherClassId,
+  });
+  
   // Calculate summary metrics
   const totalClasses = (classes as any[]).length;
   const totalStudents = (students as any[]).length;
   const activeEvents = (events as any[]).length;
-  const totalSubmissions = 0; // This would be fetched from API in a real app
+  const totalSubmissions = (submissions as any[]).length;
   
   return (
     <div>
