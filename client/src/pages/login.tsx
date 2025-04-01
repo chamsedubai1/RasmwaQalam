@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
 import StudentRegistrationForm from "@/components/auth/student-registration-form";
 import TeacherRegistrationForm from "@/components/auth/teacher-registration-form";
+import ForgotPasswordDialog from "@/components/auth/forgot-password-dialog";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const { setUser } = useUser();
   const [activeTab, setActiveTab] = useState("login");
   const [registrationRole, setRegistrationRole] = useState("student");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   
   // Login form state
   const [loginUsername, setLoginUsername] = useState("");
@@ -215,7 +217,15 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
-                      <Button type="button" variant="link" className="px-0 text-xs text-blue-600">
+                      <Button 
+                        type="button" 
+                        variant="link" 
+                        className="px-0 text-xs text-blue-600"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsForgotPasswordOpen(true);
+                        }}
+                      >
                         Forgot password?
                       </Button>
                     </div>
@@ -291,6 +301,11 @@ export default function LoginPage() {
           </CardFooter>
         </Card>
       </div>
+      
+      <ForgotPasswordDialog 
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </div>
   );
 }

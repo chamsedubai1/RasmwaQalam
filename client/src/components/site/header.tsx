@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FazaaLogo } from "@/components/site/logo";
 import LanguageSwitcher from "@/components/site/language-switcher";
+import { apiRequest } from "@/lib/queryClient";
 
 const Header: React.FC = () => {
   const { userRole, setUserRole } = useUserRole();
@@ -25,19 +26,28 @@ const Header: React.FC = () => {
   const handleLogout = async () => {
     try {
       // Call API to logout
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
-        }
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // Always clear local user data and redirect
+      await apiRequest('POST', '/api/auth/logout');
+      
+      // Clear local user data and redirect
       setUserRole("");
       clearUser(); // this already clears authToken
       localStorage.removeItem('authToken'); // extra safety
+      localStorage.removeItem('userData');
+      localStorage.removeItem('userRole');
+      
+      toast({
+        title: t("message.success"),
+        description: t("nav.logout") + " " + t("message.success").toLowerCase()
+      });
+      
+      setLocation("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      
+      // Still clear data even if API call fails
+      setUserRole("");
+      clearUser();
+      localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       localStorage.removeItem('userRole');
       

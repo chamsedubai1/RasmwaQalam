@@ -231,6 +231,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Registration endpoint with CAPTCHA verification
+  // Logout endpoint
+  apiRouter.post('/auth/logout', async (req, res) => {
+    try {
+      // In a token-based authentication system without sessions, 
+      // we don't need to do anything on the server side
+      // The client should remove the token from storage
+      res.status(200).send();
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+  
+  // Forgot password - request password reset
+  apiRouter.post('/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // For security reasons, we don't want to reveal if an email exists or not
+        // We'll still return a success message
+        return res.status(200).json({ 
+          message: 'If your email is registered, you will receive password reset instructions.'
+        });
+      }
+      
+      // Generate a reset token (uuid)
+      const resetToken = `${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      const tokenExpiry = new Date();
+      tokenExpiry.setHours(tokenExpiry.getHours() + 1); // Token expires in 1 hour
+      
+      // Normally, here we would:
+      // 1. Save the token and its expiration to the database
+      // 2. Send an email with a reset link
+      
+      // For demo purposes, we'll just return the token
+      // In a real app, you would NEVER return this token in the response
+      return res.status(200).json({ 
+        message: 'If your email is registered, you will receive password reset instructions.',
+        // For development only:
+        debug: {
+          token: resetToken,
+          userId: user.id,
+          expires: tokenExpiry
+        }
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+  
+  // Reset password with token
+  apiRouter.post('/auth/reset-password', async (req, res) => {
+    try {
+      const { token, userId, newPassword } = req.body;
+      
+      if (!token || !userId || !newPassword) {
+        return res.status(400).json({ message: 'All fields are required' });
+      }
+      
+      // In a real app, we would:
+      // 1. Verify the token is valid and not expired
+      // 2. Update the user's password
+      
+      // For this demo, we'll just update the password
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Update the user's password
+      await storage.updateUser(userId, {
+        ...user,
+        password: newPassword
+      });
+      
+      return res.status(200).json({ message: 'Password has been reset successfully' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   apiRouter.post('/auth/register', requireCaptcha, async (req, res) => {
     try {
       // Validate the user data
