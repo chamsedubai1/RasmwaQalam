@@ -905,6 +905,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissions = await storage.getSubmissionsByUserAndEvent(userId, eventId);
       } else if (userId) {
         submissions = await storage.getSubmissionsByUser(userId);
+      } else if (classId) {
+        // Teacher view - get submissions by class with validation filter options
+        if (req.query.pending === 'true') {
+          submissions = await storage.getSubmissionsPendingValidation(classId);
+        } else if (req.query.validated === 'true') {
+          submissions = await storage.getValidatedSubmissions(classId);
+        } else {
+          submissions = await storage.getSubmissionsByClass(classId);
+        }
       } else if (eventId) {
         // Get all submissions for this event
         submissions = await storage.getSubmissionsByEvent(eventId);
@@ -1178,6 +1187,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...updatedSubmission, voteCount });
     } catch (error) {
       res.status(500).json({ message: 'Failed to update submission' });
+    }
+  });
+  
+  // Validate submissions (teacher approval)
+  apiRouter.post('/submissions/:id/validate', async (req, res) => {
+    try {
+      const submissionId = Number(req.params.id);
+      const { validated } = req.body;
+      
+      if (validated === undefined) {
+        return res.status(400).json({ message: 'Validation status is required' });
+      }
+      
+      const submission = await storage.getSubmission(submissionId);
+      if (!submission) {
+        return res.status(404).json({ message: 'Submission not found' });
+      }
+      
+      // Update the validation status
+      const updatedSubmission = await storage.validateSubmission(submissionId, !!validated);
+      
+      // Get additional data for the response
+      const voteCount = await storage.getVoteCountForSubmission(submissionId);
+      const user = await storage.getUser(submission.userId);
+      
+      res.json({
+        ...updatedSubmission,
+        voteCount,
+        userFullName: user ? user.fullName : 'Unknown User',
+        message: validated ? 'Submission approved' : 'Submission rejected'
+      });
+    } catch (error) {
+      console.error('Error validating submission:', error);
+      res.status(500).json({ message: 'Failed to validate submission' });
     }
   });
   

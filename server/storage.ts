@@ -67,9 +67,13 @@ export interface IStorage {
   getSubmissionsByUser(userId: number): Promise<Submission[]>;
   getSubmissionsByEvent(eventId: number): Promise<Submission[]>;
   getSubmissionsByUserAndEvent(userId: number, eventId: number): Promise<Submission[]>;
+  getSubmissionsByClass(classId: number): Promise<Submission[]>;
+  getSubmissionsPendingValidation(classId: number): Promise<Submission[]>;
+  getValidatedSubmissions(classId: number): Promise<Submission[]>;
   getWinningSubmissions(winnerCategory: string): Promise<Submission[]>;
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   updateSubmission(id: number, submissionData: Partial<Submission>): Promise<Submission | undefined>;
+  validateSubmission(id: number, validated: boolean): Promise<Submission | undefined>;
   deleteSubmission(id: number): Promise<boolean>;
 
   // Vote methods
@@ -403,7 +407,7 @@ export class MemStorage implements IStorage {
     });
     
     // Add submissions for studa1 and studa2 for class voting testing
-    this.createSubmission({
+    const sub1 = this.createSubmission({
       title: "Spring Blossoms",
       description: "A poem about spring flowers",
       contentType: "text",
@@ -412,7 +416,7 @@ export class MemStorage implements IStorage {
       eventId: poetryEvent.id
     });
     
-    this.createSubmission({
+    const sub2 = this.createSubmission({
       title: "The Spring Awakening",
       description: "A poem about new beginnings",
       contentType: "text",
@@ -420,6 +424,9 @@ export class MemStorage implements IStorage {
       userId: studa1.id,
       eventId: poetryEvent.id
     });
+    
+    // Set some submissions as validated for testing
+    this.validateSubmission(sub1.id, true);
   }
 
   // User methods
@@ -659,6 +666,27 @@ export class MemStorage implements IStorage {
       sub => sub.userId === userId && sub.eventId === eventId
     );
   }
+  
+  async getSubmissionsByClass(classId: number): Promise<Submission[]> {
+    // Get all students in this class
+    const students = await this.getUsersByClass(classId);
+    const studentIds = students.map(student => student.id);
+    
+    // Get all submissions from those students
+    return Array.from(this.submissions.values()).filter(
+      sub => studentIds.includes(sub.userId)
+    );
+  }
+  
+  async getSubmissionsPendingValidation(classId: number): Promise<Submission[]> {
+    const submissions = await this.getSubmissionsByClass(classId);
+    return submissions.filter(sub => sub.validated === null);
+  }
+  
+  async getValidatedSubmissions(classId: number): Promise<Submission[]> {
+    const submissions = await this.getSubmissionsByClass(classId);
+    return submissions.filter(sub => sub.validated === true);
+  }
 
   async getWinningSubmissions(winnerCategory: string): Promise<Submission[]> {
     return Array.from(this.submissions.values()).filter(sub => {
@@ -689,6 +717,15 @@ export class MemStorage implements IStorage {
     if (!submission) return undefined;
     
     const updatedSubmission = { ...submission, ...submissionData };
+    this.submissions.set(id, updatedSubmission);
+    return updatedSubmission;
+  }
+  
+  async validateSubmission(id: number, validated: boolean): Promise<Submission | undefined> {
+    const submission = this.submissions.get(id);
+    if (!submission) return undefined;
+    
+    const updatedSubmission = { ...submission, validated };
     this.submissions.set(id, updatedSubmission);
     return updatedSubmission;
   }

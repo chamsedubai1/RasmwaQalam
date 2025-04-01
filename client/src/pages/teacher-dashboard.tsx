@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ClassTable from "@/components/dashboard/class-table";
 import StudentTable from "@/components/dashboard/student-table";
 import EventTable from "@/components/dashboard/event-table";
+import SubmissionValidationTable from "@/components/dashboard/submission-validation-table";
 import {
   Dialog,
   DialogContent,
@@ -382,6 +383,10 @@ const TeacherDashboard: React.FC = () => {
             <Users className="h-4 w-4" />
             <span>Students</span>
           </TabsTrigger>
+          <TabsTrigger value="submissions" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <ClipboardCheck className="h-4 w-4" />
+            <span>Submissions</span>
+          </TabsTrigger>
           <TabsTrigger value="events" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
             <CalendarDays className="h-4 w-4" />
             <span>Events</span>
@@ -432,6 +437,28 @@ const TeacherDashboard: React.FC = () => {
               ) : (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
                   <p className="text-gray-500">Please select a class to manage students.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="submissions">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {selectedClassId 
+                  ? `Submission Validation for ${(classes as any[]).find((c: any) => c.id === selectedClassId)?.name || 'Class'}`
+                  : "Submission Validation"
+                }
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedClassId ? (
+                <SubmissionValidationTable classId={selectedClassId} />
+              ) : (
+                <div className="text-center py-8 bg-muted/30 rounded-lg">
+                  <p className="text-muted-foreground">Please select a class to manage submissions.</p>
                 </div>
               )}
             </CardContent>

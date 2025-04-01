@@ -85,6 +85,7 @@ export const submissions = pgTable("submissions", {
   userId: integer("user_id").notNull(),
   eventId: integer("event_id").notNull(),
   submittedAt: timestamp("submitted_at").defaultNow(),
+  validated: boolean("validated").default(false), // Teacher validation for submissions
   classWinner: boolean("class_winner").default(false),
   schoolWinner: boolean("school_winner").default(false),
   countryWinner: boolean("country_winner").default(false),
