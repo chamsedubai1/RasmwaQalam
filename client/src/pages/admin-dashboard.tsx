@@ -2304,11 +2304,11 @@ const AdminDashboard: React.FC = () => {
                                   size="sm"
                                   className="border-red-300 text-red-600 hover:text-red-700 hover:bg-red-50"
                                   onClick={() => {
-                                    setSelectedClassId(classItem.id);
-                                    setShowDeleteDialog(true);
-                                    toast({
-                                      description: "Delete confirmation coming soon!"
+                                    setSelectedItemToDelete({
+                                      type: 'class',
+                                      id: classItem.id
                                     });
+                                    setShowDeleteDialog(true);
                                   }}
                                 >
                                   Delete
@@ -4468,6 +4468,115 @@ const AdminDashboard: React.FC = () => {
             </Button>
             <Button onClick={handleUpdatePartner}>
               Update Partner
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedItemToDelete?.type === 'class' && (
+              <p>
+                Are you sure you want to delete this class? This action cannot be undone.
+                All students will be unassigned from this class.
+              </p>
+            )}
+            {selectedItemToDelete?.type === 'school' && (
+              <p>
+                Are you sure you want to delete this school? This action cannot be undone.
+                All classes and students associated with this school will be affected.
+              </p>
+            )}
+            {selectedItemToDelete?.type === 'partner' && (
+              <p>
+                Are you sure you want to delete this partner? This action cannot be undone.
+              </p>
+            )}
+            {selectedItemToDelete?.type === 'event' && (
+              <p>
+                Are you sure you want to delete this event? This action cannot be undone.
+                All registrations and submissions for this event will be deleted.
+              </p>
+            )}
+            {selectedItemToDelete?.type === 'user' && (
+              <p>
+                Are you sure you want to delete this user? This action cannot be undone.
+                All data associated with this user will be permanently removed.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setSelectedItemToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={async () => {
+                if (!selectedItemToDelete) return;
+                
+                try {
+                  // Determine API endpoint based on item type
+                  const endpoint = `/api/${selectedItemToDelete.type}s/${selectedItemToDelete.id}`;
+                  
+                  // Delete the item
+                  const response = await fetch(endpoint, {
+                    method: 'DELETE',
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Failed to delete ${selectedItemToDelete.type}`);
+                  }
+                  
+                  // Show success message
+                  toast({
+                    title: "Success",
+                    description: `${selectedItemToDelete.type} deleted successfully`,
+                  });
+                  
+                  // Refresh data
+                  switch (selectedItemToDelete.type) {
+                    case 'class':
+                      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+                      break;
+                    case 'school':
+                      queryClient.invalidateQueries({ queryKey: ['/api/schools'] });
+                      break;
+                    case 'partner':
+                      queryClient.invalidateQueries({ queryKey: ['/api/partners'] });
+                      break;
+                    case 'event':
+                      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+                      break;
+                    case 'user':
+                      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+                      break;
+                  }
+                  
+                } catch (error) {
+                  console.error('Delete error:', error);
+                  toast({
+                    title: "Error",
+                    description: error instanceof Error ? error.message : 'Failed to delete item',
+                    variant: "destructive",
+                  });
+                } finally {
+                  setShowDeleteDialog(false);
+                  setSelectedItemToDelete(null);
+                }
+              }}
+            >
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
