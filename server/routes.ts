@@ -1141,6 +1141,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissions = await storage.getSubmissionsByEvent(eventId);
         console.log(`Found ${submissions.length} submissions for event ID ${eventId}`);
         
+        // Apply validation filters if specified
+        if (req.query.pending === 'true') {
+          console.log('Filtering event submissions: pending validation only');
+          submissions = submissions.filter(sub => sub.validated === null);
+          console.log(`Found ${submissions.length} pending submissions for event ${eventId}`);
+        } else if (req.query.validated === 'true') {
+          console.log('Filtering event submissions: validated only');
+          submissions = submissions.filter(sub => sub.validated === true);
+          console.log(`Found ${submissions.length} validated submissions for event ${eventId}`);
+        } else if (req.query.rejected === 'true') {
+          console.log('Filtering event submissions: rejected only');
+          submissions = submissions.filter(sub => sub.validated === false);
+          console.log(`Found ${submissions.length} rejected submissions for event ${eventId}`);
+        }
+        
         // If this is for voting purposes and we have a current user ID
         if (forVoting && currentUserId) {
           // Get current user information first
@@ -1474,8 +1489,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Submission not found' });
       }
       
-      // Convert to boolean value and update the validation status
-      // true = approved, false = rejected
+      // Convert input to an explicit boolean value
+      // - true = approved
+      // - false = rejected
+      // (null for pending is managed at creation time only, not through validation API)
       const validationValue = validated === true || validated === 'true';
       const updatedSubmission = await storage.validateSubmission(submissionId, validationValue);
       
