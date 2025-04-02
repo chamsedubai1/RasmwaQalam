@@ -3780,7 +3780,7 @@ const AdminDashboard: React.FC = () => {
       
       {/* Create Event Dialog */}
       <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Event</DialogTitle>
           </DialogHeader>
@@ -3799,7 +3799,7 @@ const AdminDashboard: React.FC = () => {
               <Textarea 
                 id="event-description" 
                 placeholder="Enter event description"
-                className="min-h-[100px]"
+                className="min-h-[80px]"
                 value={eventDescription}
                 onChange={(e) => setEventDescription(e.target.value)}
               />
@@ -3879,13 +3879,15 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="event-image">Event Image</Label>
-              <ImageUpload 
-                onImageUploaded={(url) => setEventImageUrl(url)}
-                existingImageUrl={eventImageUrl}
-              />
+              <div className="max-h-[200px] overflow-y-auto">
+                <ImageUpload 
+                  onImageUploaded={(url) => setEventImageUrl(url)}
+                  existingImageUrl={eventImageUrl}
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-white pt-2 border-t mt-2">
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
@@ -3896,7 +3898,7 @@ const AdminDashboard: React.FC = () => {
       
       {/* Edit Event Dialog */}
       <Dialog open={showEditEventDialog} onOpenChange={setShowEditEventDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Event</DialogTitle>
           </DialogHeader>
@@ -3915,7 +3917,7 @@ const AdminDashboard: React.FC = () => {
               <Textarea 
                 id="edit-event-description" 
                 placeholder="Enter event description"
-                className="min-h-[100px]"
+                className="min-h-[80px]"
                 value={eventDescription}
                 onChange={(e) => setEventDescription(e.target.value)}
               />
@@ -3996,13 +3998,15 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-event-image">Event Image</Label>
-              <ImageUpload 
-                onImageUploaded={(url) => setEventImageUrl(url)}
-                existingImageUrl={eventImageUrl}
-              />
+              <div className="max-h-[200px] overflow-y-auto">
+                <ImageUpload 
+                  onImageUploaded={(url) => setEventImageUrl(url)}
+                  existingImageUrl={eventImageUrl}
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-white pt-2 border-t mt-2">
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
@@ -4013,7 +4017,7 @@ const AdminDashboard: React.FC = () => {
       
       {/* Create School Dialog */}
       <Dialog open={showCreateSchoolDialog} onOpenChange={setShowCreateSchoolDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New School</DialogTitle>
           </DialogHeader>
@@ -4065,13 +4069,15 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="school-image">School Logo/Image</Label>
-              <ImageUpload 
-                onImageUploaded={(url) => setSchoolImageUrl(url)}
-                existingImageUrl={schoolImageUrl}
-              />
+              <div className="max-h-[200px] overflow-y-auto">
+                <ImageUpload 
+                  onImageUploaded={(url) => setSchoolImageUrl(url)}
+                  existingImageUrl={schoolImageUrl}
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-white pt-2 border-t mt-2">
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
