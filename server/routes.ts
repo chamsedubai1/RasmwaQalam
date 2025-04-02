@@ -1609,8 +1609,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentStage === 'school' ? 'schoolWinner' : 
         currentStage === 'country' ? 'countryWinner' : 'globalWinner';
       
-      // 4. Take top 10 submissions (or fewer if there are less than 10)
-      const topSubmissions = submissionsWithVoteCounts.slice(0, 10);
+      // 4. Take top 3 submissions (or fewer if there are less than 3)
+      const topSubmissions = submissionsWithVoteCounts.slice(0, 3);
       const winnerIds = topSubmissions.map(sub => sub.id);
       
       console.log(`Marking top ${winnerIds.length} submissions as ${currentStage} winners:`, winnerIds);
