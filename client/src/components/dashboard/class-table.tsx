@@ -107,9 +107,16 @@ const ClassTable: React.FC<ClassTableProps> = ({
               <TableCell>{cls.gradeLevel}</TableCell>
               <TableCell>{cls.studentCount || 0}</TableCell>
               <TableCell>
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cls.isLocked ? 'bg-gray-100 text-gray-800' : 'bg-success bg-opacity-10 text-success'}`}>
-                  {cls.isLocked ? 'Locked' : 'Active'}
-                </span>
+                <div className={`flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  cls.isLocked 
+                    ? "bg-red-100 text-red-800" 
+                    : "bg-green-100 text-green-800"
+                }`}>
+                  <span className={`h-2 w-2 rounded-full mr-1.5 ${
+                    cls.isLocked ? "bg-red-500" : "bg-green-500"
+                  }`}></span>
+                  {cls.isLocked ? "Locked" : "Active"}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex space-x-2">

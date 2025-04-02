@@ -205,13 +205,46 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
       setSelectedSchool("");
       setSelectedGrade("");
       setSelectedClass("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error in form component:", error);
+      
+      // Check for server response with specific error fields
+      if (error && error.response && error.response.data) {
+        const errorData = error.response.data as { field?: string; message?: string };
+        
+        if (errorData.field === 'classId' && typeof errorData.message === 'string' && errorData.message.includes('locked')) {
+          // Handle locked class error
+          setFormErrors({
+            ...formErrors,
+            selectedClass: errorData.message
+          });
+          
+          toast({
+            title: "Registration Error",
+            description: "The selected class is locked for new registrations. Please contact your teacher.",
+            variant: "destructive"
+          });
+        }
+      }
     }
   };
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-blue-700">
+              <strong>Note:</strong> Some classes may be locked for new registrations. Only active classes will be shown in the dropdown menu.
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName" className={formErrors.firstName ? "text-red-500" : ""}>
@@ -290,7 +323,7 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
             ) : schools.length === 0 ? (
               <SelectItem value="none" disabled>No schools available</SelectItem>
             ) : (
-              schools.map((school) => (
+              schools.map((school: School) => (
                 <SelectItem key={school.id} value={school.id.toString()}>
                   {school.name}
                 </SelectItem>
@@ -348,11 +381,16 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
               ) : classes.length === 0 ? (
                 <SelectItem value="none" disabled>No classes available</SelectItem>
               ) : (
-                classes.map((classItem) => (
+                classes.map((classItem: Class) => (
                   <SelectItem key={classItem.id} value={classItem.id.toString()}>
                     {classItem.name}
                   </SelectItem>
                 ))
+              )}
+              {selectedSchool && !isLoadingClasses && classes.length === 0 && (
+                <div className="p-2 text-center">
+                  <p className="text-red-500 text-xs">All classes are currently locked. Please contact your teacher.</p>
+                </div>
               )}
             </SelectContent>
           </Select>

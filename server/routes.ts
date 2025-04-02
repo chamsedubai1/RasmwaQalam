@@ -346,6 +346,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Check if the class is locked for new registrations (only for student role)
+      if (userData.role === 'student' && userData.classId) {
+        const classData = await storage.getClass(userData.classId);
+        if (classData && classData.isLocked) {
+          return res.status(403).json({
+            message: 'This class is currently locked for new registrations. Please contact your teacher.',
+            field: 'classId'
+          });
+        }
+      }
+      
       // For teachers, check if teacher is already assigned to a class
       if (userData.role === 'teacher' && userData.classId) {
         // We can't check teacher classes here since user doesn't have an ID yet
