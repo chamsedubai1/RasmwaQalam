@@ -4527,7 +4527,10 @@ const AdminDashboard: React.FC = () => {
                 
                 try {
                   // Determine API endpoint based on item type
-                  const endpoint = `/api/${selectedItemToDelete.type}s/${selectedItemToDelete.id}`;
+                  // Handle plural forms correctly (e.g., 'class' → 'classes')
+                  const endpoint = selectedItemToDelete.type === 'class' 
+                    ? `/api/classes/${selectedItemToDelete.id}`
+                    : `/api/${selectedItemToDelete.type}s/${selectedItemToDelete.id}`;
                   
                   // Delete the item
                   const response = await fetch(endpoint, {
