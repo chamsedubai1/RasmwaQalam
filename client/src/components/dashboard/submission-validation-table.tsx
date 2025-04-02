@@ -75,6 +75,21 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
     },
     enabled: classId > 0 && activeTab === "validated",
   });
+  
+  // Fetch rejected submissions for this class
+  const {
+    data: rejectedSubmissions = [],
+    isLoading: isRejectedLoading,
+    refetch: refetchRejectedSubmissions,
+  } = useQuery<any[]>({
+    queryKey: ["/api/submissions", { classId, rejected: true }],
+    queryFn: async () => {
+      const response = await fetch(`/api/submissions?classId=${classId}&rejected=true`);
+      if (!response.ok) throw new Error('Failed to fetch rejected submissions');
+      return response.json();
+    },
+    enabled: classId > 0 && activeTab === "rejected",
+  });
 
   // Get single submission details
   const { data: viewedSubmission, isLoading: isViewLoading } = useQuery<any>({
@@ -92,13 +107,18 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
     mutationFn: async ({ submissionId, validated }: { submissionId: number; validated: boolean }) => {
       return apiRequest("POST", `/api/submissions/${submissionId}/validate`, { validated });
     },
-    onSuccess: () => {
-      // Refetch both lists after validation
+    onSuccess: (data, variables) => {
+      // Refetch all lists after validation
       refetchPendingSubmissions();
       refetchValidatedSubmissions();
+      refetchRejectedSubmissions();
+      
+      // Show appropriate message based on validation status
       toast({
         title: "Success",
-        description: "Submission validation status updated",
+        description: variables.validated 
+          ? "Submission approved successfully" 
+          : "Submission rejected successfully",
       });
     },
     onError: (error: any) => {
@@ -141,6 +161,12 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
             Validated Submissions
             {validatedSubmissions.length > 0 && (
               <Badge className="ml-2 bg-green-500">{validatedSubmissions.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected Submissions
+            {rejectedSubmissions.length > 0 && (
+              <Badge className="ml-2 bg-red-500">{rejectedSubmissions.length}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -253,7 +279,7 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
                       <TableHead>Title</TableHead>
                       <TableHead>Student</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Validated</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Votes</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -298,6 +324,87 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
             </CardContent>
           </Card>
         </TabsContent>
+        
+        <TabsContent value="rejected">
+          <Card>
+            <CardHeader>
+              <CardTitle>Rejected Submissions</CardTitle>
+              <CardDescription>
+                These submissions have been reviewed and not approved for participation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isRejectedLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : rejectedSubmissions.length === 0 ? (
+                <div className="text-center py-8 bg-muted/30 rounded-lg">
+                  <p className="text-muted-foreground">No rejected submissions</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rejectedSubmissions.map((submission) => (
+                      <TableRow key={submission.id}>
+                        <TableCell className="font-medium">{submission.title}</TableCell>
+                        <TableCell>{submission.userFullName}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              submission.contentType === "text"
+                                ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                            }
+                          >
+                            {submission.contentType === "text" ? "Poem" : "Image"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Rejected
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(submission.submittedAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleView(submission.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 ml-2"
+                            onClick={() => handleApprove(submission.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Submission View Dialog */}
@@ -318,7 +425,19 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold">{viewedSubmission.title}</h3>
-                <p className="text-sm text-muted-foreground">By {viewedSubmission.userFullName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">By {viewedSubmission.userFullName}</p>
+                  {viewedSubmission.validated === true && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      Approved
+                    </Badge>
+                  )}
+                  {viewedSubmission.validated === false && (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                      Rejected
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {viewedSubmission.contentType === "text" ? (
@@ -347,7 +466,7 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
           )}
 
           <DialogFooter className="gap-2">
-            {viewedSubmission && !viewedSubmission.validated && (
+            {viewedSubmission && viewedSubmission.validated === null && (
               <>
                 <Button
                   variant="outline"
@@ -371,6 +490,31 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
                   Approve
                 </Button>
               </>
+            )}
+            {viewedSubmission && viewedSubmission.validated === false && (
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  handleApprove(viewedSubmission.id);
+                  setViewSubmissionDialogOpen(false);
+                }}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Change to Approved
+              </Button>
+            )}
+            {viewedSubmission && viewedSubmission.validated === true && (
+              <Button
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                onClick={() => {
+                  handleReject(viewedSubmission.id);
+                  setViewSubmissionDialogOpen(false);
+                }}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Change to Rejected
+              </Button>
             )}
             <Button variant="outline" onClick={() => setViewSubmissionDialogOpen(false)}>
               Close

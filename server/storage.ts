@@ -70,6 +70,7 @@ export interface IStorage {
   getSubmissionsByClass(classId: number): Promise<Submission[]>;
   getSubmissionsPendingValidation(classId: number): Promise<Submission[]>;
   getValidatedSubmissions(classId: number): Promise<Submission[]>;
+  getRejectedSubmissions(classId: number): Promise<Submission[]>;
   getWinningSubmissions(winnerCategory: string): Promise<Submission[]>;
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   updateSubmission(id: number, submissionData: Partial<Submission>): Promise<Submission | undefined>;
@@ -686,6 +687,11 @@ export class MemStorage implements IStorage {
   async getValidatedSubmissions(classId: number): Promise<Submission[]> {
     const submissions = await this.getSubmissionsByClass(classId);
     return submissions.filter(sub => sub.validated === true);
+  }
+  
+  async getRejectedSubmissions(classId: number): Promise<Submission[]> {
+    const submissions = await this.getSubmissionsByClass(classId);
+    return submissions.filter(sub => sub.validated === false);
   }
 
   async getWinningSubmissions(winnerCategory: string): Promise<Submission[]> {

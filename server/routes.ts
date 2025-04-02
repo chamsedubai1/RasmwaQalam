@@ -1126,6 +1126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Looking for validated submissions in class ${classId}`);
             submissions = await storage.getValidatedSubmissions(classId);
             console.log(`Found ${submissions.length} validated submissions`);
+          } else if (req.query.rejected === 'true') {
+            console.log(`Looking for rejected submissions in class ${classId}`);
+            submissions = await storage.getRejectedSubmissions(classId);
+            console.log(`Found ${submissions.length} rejected submissions`);
           } else {
             console.log(`Looking for all submissions in class ${classId}`);
             submissions = await storage.getSubmissionsByClass(classId);
