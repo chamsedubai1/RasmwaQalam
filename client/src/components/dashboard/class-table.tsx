@@ -44,8 +44,8 @@ const ClassTable: React.FC<ClassTableProps> = ({
 
   const lockMutation = useMutation({
     mutationFn: async ({ id, isLocked }: { id: number, isLocked: boolean }) => {
-      const response = await apiRequest('PATCH', `/api/classes/${id}`, { isLocked });
-      return response.json();
+      await apiRequest('PATCH', `/api/classes/${id}`, { isLocked });
+      return { id, isLocked }; // Return the updated values directly
     },
     onSuccess: (updatedClass) => {
       // Immediately update the cache for this specific class
