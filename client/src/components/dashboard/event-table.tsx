@@ -33,25 +33,20 @@ const EventTable: React.FC<EventTableProps> = ({
 
   const promoteEventStageMutation = useMutation({
     mutationFn: async (eventData: { id: number, stage: string }) => {
-      const stageMap: Record<string, string> = {
-        'class': 'school',
-        'school': 'country',
-        'country': 'global',
-        'global': 'global'
-      };
-      
-      const nextStage = stageMap[eventData.stage] || eventData.stage;
-      
-      return apiRequest('PATCH', `/api/events/${eventData.id}`, { 
-        stage: nextStage 
-      });
+      // Use the dedicated promote endpoint instead of patching the event
+      // This will clear votes to allow users to vote again in the next stage
+      return apiRequest('POST', `/api/events/${eventData.id}/promote`, {});
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Success",
-        description: "Event stage promoted",
+        description: "Event promoted to next stage and votes have been reset",
       });
+      // Invalidate both events and votes queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      // Also invalidate any vote-related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/votes/count-by-voter'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/submissions'] });
     },
     onError: (error) => {
       toast({

@@ -1301,6 +1301,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let hasVoted = false;
           if (currentUserId) {
             hasVoted = await storage.hasUserVotedForSubmission(currentUserId, sub.id);
+            
+            // If we have a current event, check if this is a winner from previous stage
+            // In that case, we'll set hasVoted to false to allow voting again
+            if (hasVoted && currentEvent) {
+              let isWinnerFromPreviousStage = false;
+              
+              switch (currentEvent.stage) {
+                case 'school':
+                  // If we're in school stage, students can vote for class winners again
+                  isWinnerFromPreviousStage = sub.classWinner === true;
+                  break;
+                case 'country':
+                  // If we're in country stage, students can vote for school winners again
+                  isWinnerFromPreviousStage = sub.schoolWinner === true;
+                  break;
+                case 'global':
+                  // If we're in global stage, students can vote for country winners again
+                  isWinnerFromPreviousStage = sub.countryWinner === true;
+                  break;
+              }
+              
+              // If it's a winner from previous stage, allow voting again by setting hasVoted to false
+              if (isWinnerFromPreviousStage) {
+                console.log(`Submission ${sub.id} is a winner from previous stage. Allowing user ${currentUserId} to vote again.`);
+                hasVoted = false;
+              }
+            }
           }
           
           // Get the user's full name for each submission
@@ -1510,7 +1537,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Determine the next stage based on current stage
       let nextStage;
-      switch (event.stage) {
+      let currentStage = event.stage;
+      
+      switch (currentStage) {
         case 'class':
           nextStage = 'school';
           break;
@@ -1526,15 +1555,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: 'Invalid current stage' });
       }
       
+      // Get all submissions for this event
+      const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
+      const eventSubmissionIds = eventSubmissions.map(s => s.id);
+      
+      console.log(`Removing votes for ${eventSubmissionIds.length} submissions in event ${eventId} for promotion to ${nextStage} stage`);
+      
+      // Delete all votes for these submissions to reset voting for the next stage
+      for (const submissionId of eventSubmissionIds) {
+        const votes = await storage.getVotesBySubmission(submissionId);
+        for (const vote of votes) {
+          await storage.deleteVote(vote.id);
+        }
+      }
+      
+      console.log(`Cleared all votes for event ${eventId} during promotion to ${nextStage} stage`);
+      
+      // Mark winner submissions based on the current stage and vote counts
+      // This is important to do AFTER clearing votes but BEFORE updating the stage
+      
+      // 1. Get submissions with vote counts (before votes were cleared)
+      const submissionsWithVoteCounts = await Promise.all(
+        eventSubmissions.map(async (sub) => {
+          // Calculate the vote count for each submission
+          const voteCount = await storage.getVoteCountForSubmission(sub.id);
+          return { ...sub, voteCount };
+        })
+      );
+      
+      // 2. Sort submissions by vote count (descending)
+      submissionsWithVoteCounts.sort((a, b) => b.voteCount - a.voteCount);
+      
+      // 3. Determine which field to set based on current stage
+      const winnerField = 
+        currentStage === 'class' ? 'classWinner' : 
+        currentStage === 'school' ? 'schoolWinner' : 
+        currentStage === 'country' ? 'countryWinner' : 'globalWinner';
+      
+      // 4. Take top 10 submissions (or fewer if there are less than 10)
+      const topSubmissions = submissionsWithVoteCounts.slice(0, 10);
+      const winnerIds = topSubmissions.map(sub => sub.id);
+      
+      console.log(`Marking top ${winnerIds.length} submissions as ${currentStage} winners:`, winnerIds);
+      
+      // 5. Mark these submissions as winners for the current stage
+      for (const id of winnerIds) {
+        await storage.updateSubmission(id, { [winnerField]: true });
+      }
+      
       // Update the event stage
-      // Type-safe stage update
       const updatedEvent = await storage.updateEvent(eventId, { 
         stage: nextStage as "class" | "school" | "country" | "global" 
       });
       
       res.json({ 
-        message: `Event promoted from ${event.stage} to ${nextStage} stage`,
-        event: updatedEvent
+        message: `Event promoted from ${event.stage} to ${nextStage} stage. All votes have been reset and top ${winnerIds.length} submissions marked as winners.`,
+        event: updatedEvent,
+        winnerIds: winnerIds
       });
     } catch (error) {
       console.error('Error promoting event:', error);
@@ -1562,13 +1639,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const voteData = insertVoteSchema.parse(req.body);
       
-      // Check if voter has already voted for this submission
-      const hasVoted = await storage.hasUserVotedForSubmission(voteData.voterId, voteData.submissionId);
-      
-      if (hasVoted) {
-        return res.status(409).json({ message: 'User already voted for this submission' });
-      }
-      
       // Get the submission to determine the event
       const submission = await storage.getSubmission(voteData.submissionId);
       if (!submission) {
@@ -1591,6 +1661,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Event not found' });
       }
       
+      // Check if voter has already voted for this submission
+      const hasVoted = await storage.hasUserVotedForSubmission(voteData.voterId, voteData.submissionId);
+      
+      // Special case handling: User can vote again if it's a submission that won in a previous stage
+      // and we're now in a new stage
+      let isWinnerFromPreviousStage = false;
+      
+      switch (event.stage) {
+        case 'school':
+          // If we're in school stage, we can vote for class winners again
+          isWinnerFromPreviousStage = submission.classWinner === true;
+          break;
+        case 'country':
+          // If we're in country stage, we can vote for school winners again
+          isWinnerFromPreviousStage = submission.schoolWinner === true;
+          break;
+        case 'global':
+          // If we're in global stage, we can vote for country winners again
+          isWinnerFromPreviousStage = submission.countryWinner === true;
+          break;
+      }
+      
+      // If user has already voted for this submission and it's not a winner from previous stage,
+      // then we reject the vote
+      if (hasVoted && !isWinnerFromPreviousStage) {
+        return res.status(409).json({ message: 'User already voted for this submission' });
+      }
+      
+      // If user has already voted for this submission and it IS a winner from previous stage,
+      // we need to remove their previous vote before adding a new one
+      if (hasVoted && isWinnerFromPreviousStage) {
+        console.log(`User ${voteData.voterId} is voting again for submission ${voteData.submissionId} which was a winner in a previous stage`);
+        
+        // Find the previous vote
+        const userVotes = await storage.getVotesByVoter(voteData.voterId);
+        const previousVote = userVotes.find(vote => vote.submissionId === voteData.submissionId);
+        
+        // Delete the previous vote
+        if (previousVote) {
+          await storage.deleteVote(previousVote.id);
+          console.log(`Deleted previous vote (id: ${previousVote.id}) to allow voting again for winner from previous stage`);
+        }
+      }
+      
       // Count how many votes this user has already cast for submissions in this event
       const userVotes = await storage.getVotesByVoter(voteData.voterId);
       
@@ -1603,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Check if user has reached the maximum number of votes (3) for this event
-      if (votesInThisEvent.length >= 3) {
+      if (votesInThisEvent.length >= 3 && !hasVoted) {
         return res.status(403).json({ 
           message: 'Maximum number of votes (3) reached for this event',
           votesUsed: votesInThisEvent.length
