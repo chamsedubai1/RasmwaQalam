@@ -44,10 +44,29 @@ const ClassTable: React.FC<ClassTableProps> = ({
 
   const lockMutation = useMutation({
     mutationFn: async ({ id, isLocked }: { id: number, isLocked: boolean }) => {
-      return apiRequest('PATCH', `/api/classes/${id}`, { isLocked });
+      const response = await apiRequest('PATCH', `/api/classes/${id}`, { isLocked });
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedClass) => {
+      // Immediately update the cache for this specific class
+      queryClient.setQueryData(['/api/classes'], (oldData: any[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map(cls => 
+          cls.id === updatedClass.id ? { ...cls, isLocked: updatedClass.isLocked } : cls
+        );
+      });
+      
+      // Also refetch to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      
+      // Show success message with the updated status
+      toast({
+        title: `Class ${updatedClass.isLocked ? 'locked' : 'unlocked'} successfully`,
+        description: updatedClass.isLocked 
+          ? "New students will not be able to register for this class. Existing students are unaffected." 
+          : "Students can now register for this class.",
+      });
     },
     onError: (error: any) => {
       toast({
@@ -87,17 +106,10 @@ const ClassTable: React.FC<ClassTableProps> = ({
   // Execute the lock toggle after confirmation
   const confirmLockToggle = () => {
     if (classToModify) {
+      const newLockedStatus = !classToModify.isLocked;
       lockMutation.mutate({ 
         id: classToModify.id, 
-        isLocked: !classToModify.isLocked 
-      });
-      
-      // Show a toast message
-      toast({
-        title: `Class ${classToModify.isLocked ? 'unlocked' : 'locked'} successfully`,
-        description: classToModify.isLocked 
-          ? "Students can now register for this class." 
-          : "New students will not be able to register for this class. Existing students are unaffected.",
+        isLocked: newLockedStatus
       });
       
       // Close the dialog
