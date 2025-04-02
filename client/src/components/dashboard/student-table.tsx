@@ -49,7 +49,11 @@ const StudentTable: React.FC<StudentTableProps> = ({
         title: "Success",
         description: "Student removed from class",
       });
+      // Invalidate both general users endpoint and the specific class students endpoint
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      if (classId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users?classId=${classId}`] });
+      }
       setShowConfirmRemove(false);
     },
     onError: (error) => {
@@ -65,12 +69,17 @@ const StudentTable: React.FC<StudentTableProps> = ({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
       return apiRequest('PATCH', `/api/users/${id}`, { isActive });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      const statusText = variables.isActive ? "activated" : "suspended";
       toast({
         title: "Success",
-        description: "Student status updated",
+        description: `Student ${statusText} successfully`,
       });
+      // Invalidate both general users endpoint and the specific class students endpoint
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      if (classId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users?classId=${classId}`] });
+      }
     },
     onError: (error) => {
       toast({
@@ -119,6 +128,7 @@ const StudentTable: React.FC<StudentTableProps> = ({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Student ID</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Active Events</TableHead>
             <TableHead>Submissions</TableHead>
             <TableHead>Actions</TableHead>
@@ -127,7 +137,7 @@ const StudentTable: React.FC<StudentTableProps> = ({
         <TableBody>
           {students.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-6">
+              <TableCell colSpan={6} className="text-center py-6">
                 No students found
               </TableCell>
             </TableRow>
@@ -148,6 +158,18 @@ const StudentTable: React.FC<StudentTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>{student.id}</TableCell>
+                <TableCell>
+                  <div className={`flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    student.isActive 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-red-100 text-red-800"
+                  }`}>
+                    <span className={`h-2 w-2 rounded-full mr-1.5 ${
+                      student.isActive ? "bg-green-500" : "bg-red-500"
+                    }`}></span>
+                    {student.isActive ? "Active" : "Suspended"}
+                  </div>
+                </TableCell>
                 <TableCell>{student.activeEvents || 0}</TableCell>
                 <TableCell>{student.submissions || 0}</TableCell>
                 <TableCell>
