@@ -732,7 +732,11 @@ export class MemStorage implements IStorage {
     const submission = this.submissions.get(id);
     if (!submission) return undefined;
     
-    const updatedSubmission = { ...submission, validated };
+    // Make a true/false/null value to handle rejection properly
+    // null means pending, true means approved, false means rejected
+    const validationValue = validated === true ? true : false;
+    
+    const updatedSubmission = { ...submission, validated: validationValue };
     this.submissions.set(id, updatedSubmission);
     return updatedSubmission;
   }

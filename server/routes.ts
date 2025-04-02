@@ -1457,7 +1457,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Validate submissions (teacher approval)
-  apiRouter.post('/submissions/:id/validate', async (req, res) => {
+  // Support both POST and PUT methods for backward compatibility
+  const handleValidation = async (req: Request, res: Response) => {
     try {
       const submissionId = Number(req.params.id);
       const { validated } = req.body;
@@ -1466,23 +1467,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Validation status is required' });
       }
       
+      console.log(`Validating submission ${submissionId} with value:`, validated);
+      
       const submission = await storage.getSubmission(submissionId);
       if (!submission) {
         return res.status(404).json({ message: 'Submission not found' });
       }
       
-      // Update the validation status
-      const updatedSubmission = await storage.validateSubmission(submissionId, !!validated);
+      // Convert to boolean value and update the validation status
+      // true = approved, false = rejected
+      const validationValue = validated === true || validated === 'true';
+      const updatedSubmission = await storage.validateSubmission(submissionId, validationValue);
       
       // Get additional data for the response
       const voteCount = await storage.getVoteCountForSubmission(submissionId);
       const user = await storage.getUser(submission.userId);
       
+      console.log(`Submission ${submissionId} updated validation status:`, updatedSubmission?.validated);
+      
+      if (!updatedSubmission) {
+        return res.status(500).json({ message: 'Failed to validate submission' });
+      }
+      
       res.json({
         ...updatedSubmission,
         voteCount,
         userFullName: user ? user.fullName : 'Unknown User',
-        message: validated ? 'Submission approved' : 'Submission rejected'
+        message: validationValue ? 'Submission approved' : 'Submission rejected'
+      });
+    } catch (error) {
+      console.error('Error validating submission:', error);
+      res.status(500).json({ message: 'Failed to validate submission' });
+    }
+  };
+  
+  // Support both POST and PUT endpoints for the same validation logic
+  apiRouter.post('/submissions/:id/validate', handleValidation);
+  apiRouter.put('/submissions/:id/validate', handleValidation);
+    try {
+      const submissionId = Number(req.params.id);
+      const { validated } = req.body;
+      
+      if (validated === undefined) {
+        return res.status(400).json({ message: 'Validation status is required' });
+      }
+      
+      console.log(`Validating submission ${submissionId} with value:`, validated);
+      
+      const submission = await storage.getSubmission(submissionId);
+      if (!submission) {
+        return res.status(404).json({ message: 'Submission not found' });
+      }
+      
+      // Convert to boolean value and update the validation status
+      // true = approved, false = rejected
+      const validationValue = validated === true || validated === 'true';
+      const updatedSubmission = await storage.validateSubmission(submissionId, validationValue);
+      
+      // Get additional data for the response
+      const voteCount = await storage.getVoteCountForSubmission(submissionId);
+      const user = await storage.getUser(submission.userId);
+      
+      console.log(`Submission ${submissionId} updated validation status:`, updatedSubmission.validated);
+      
+      res.json({
+        ...updatedSubmission,
+        voteCount,
+        userFullName: user ? user.fullName : 'Unknown User',
+        message: validationValue ? 'Submission approved' : 'Submission rejected'
       });
     } catch (error) {
       console.error('Error validating submission:', error);
