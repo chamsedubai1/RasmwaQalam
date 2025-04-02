@@ -1143,23 +1143,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If this is for voting purposes and we have a current user ID
         if (forVoting && currentUserId) {
-          // 1. Filter out unvalidated submissions and current user's own submissions
-          const beforeFilter = submissions.length;
-          submissions = submissions.filter(sub => 
-            sub.userId !== currentUserId && // Filter out user's own submissions
-            sub.validated === true          // Only show submissions validated by teacher
-          );
-          console.log(`Filtered out user's own and unvalidated submissions: ${beforeFilter} -> ${submissions.length}`);
-          
-          // Get current user information
+          // Get current user information first
           const currentUser = await storage.getUser(currentUserId);
           console.log('Current user:', currentUser);
           
           if (!currentUser) {
             return res.status(400).json({ message: 'Invalid user ID' });
           }
+
+          // Get current event to determine its stage
+          console.log(`Current event stage from request: ${currentEventStage}`);
           
-          // Apply stage-specific filters
+          // 1. CRITICAL FIX: Apply winner status filtering FIRST based on the stage
+          // This ensures only winners from previous stages are shown
+          if (currentEventStage === 'school') {
+            // In school stage, only show class winners from previous stage
+            const beforeFilter = submissions.length;
+            submissions = submissions.filter(sub => sub.classWinner === true);
+            console.log(`CRITICAL FILTER: Filtered to only class winners: ${beforeFilter} -> ${submissions.length}`);
+          } else if (currentEventStage === 'country') {
+            // In country stage, only show school winners from previous stage
+            const beforeFilter = submissions.length;
+            submissions = submissions.filter(sub => sub.schoolWinner === true);
+            console.log(`CRITICAL FILTER: Filtered to only school winners: ${beforeFilter} -> ${submissions.length}`);
+          } else if (currentEventStage === 'global') {
+            // In global stage, only show country winners from previous stage
+            const beforeFilter = submissions.length;
+            submissions = submissions.filter(sub => sub.countryWinner === true);
+            console.log(`CRITICAL FILTER: Filtered to only country winners: ${beforeFilter} -> ${submissions.length}`);
+          }
+          
+          // 2. Basic Filtering: Remove user's own submissions and unvalidated submissions 
+          const beforeBasicFilter = submissions.length;
+          submissions = submissions.filter(sub => 
+            sub.userId !== currentUserId && // Filter out user's own submissions
+            sub.validated === true          // Only show submissions validated by teacher
+          );
+          console.log(`Filtered out user's own and unvalidated submissions: ${beforeBasicFilter} -> ${submissions.length}`);
+          
+          // 3. Apply additional stage-specific filters for user context (class, grade, school)
           switch (currentEventStage) {
             case 'class':
               // CLASS STAGE: Only show submissions from students in the same class
@@ -1187,13 +1209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
               
             case 'school':
-              // SCHOOL STAGE: Only show WINNING submissions from the class stage
-              // from the same grade level within the same school
-              console.log('School stage: First filtering to only show class winners');
-              // CRITICAL STEP: First filter to only include class winners (regardless of other criteria)
-              const beforeSchoolWinnerFilter = submissions.length;
-              submissions = submissions.filter(sub => sub.classWinner === true);
-              console.log(`Filtered to only class winners: ${beforeSchoolWinnerFilter} -> ${submissions.length}`);
+              // SCHOOL STAGE: Only process additional filters for same grade level within same school
+              // We already filtered for class winners at the top level
+              console.log('School stage: Already filtered to only show class winners');
               
               // Then further filter for same grade level within the same school
               if (currentUser.schoolId) {
@@ -1229,12 +1247,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
               
             case 'country':
-              // COUNTRY STAGE: Only show WINNING submissions from the school stage
-              console.log('Country stage: First filtering to only show school winners');
-              // CRITICAL STEP: First filter to only include school winners (regardless of other criteria)
-              const beforeCountryWinnerFilter = submissions.length;
-              submissions = submissions.filter(sub => sub.schoolWinner === true);
-              console.log(`Filtered to only school winners: ${beforeCountryWinnerFilter} -> ${submissions.length}`);
+              // COUNTRY STAGE: Only process additional filters for same grade level across all schools
+              // We already filtered for school winners at the top level
+              console.log('Country stage: Already filtered to only show school winners');
               
               // Then further filter for same grade level across all schools
               // Get current user's class to determine grade level
@@ -1268,11 +1283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
               
             case 'global':
-              // GLOBAL STAGE: Only show WINNING submissions from the country stage
-              console.log('Global stage: showing only country winners');
-              const beforeGlobalFilter = submissions.length;
-              submissions = submissions.filter(sub => sub.countryWinner === true);
-              console.log(`Filtered to country winners: ${beforeGlobalFilter} -> ${submissions.length}`);
+              // GLOBAL STAGE: Already filtered for country winners at the top level
+              console.log('Global stage: Already filtered to only show country winners');
               break;
               
             default:
