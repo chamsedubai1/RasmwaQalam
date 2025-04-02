@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import EventCard from "@/components/site/event-card";
+import { useUser } from "@/hooks/use-user";
+import { useUserRole } from "@/hooks/use-user-role";
+import { AlertCircle } from "lucide-react";
 import SubmissionModal from "@/components/site/submission-modal";
 import {
   Select,
@@ -17,21 +20,33 @@ import {
   Sparkles, 
   TrendingUp,
   Award, 
-  Globe2
+  Globe2,
+  LockKeyhole
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 
 const Events: React.FC = () => {
   const { t } = useLanguage();
+  const { user } = useUser();
+  const { userRole } = useUserRole();
   const [eventType, setEventType] = useState("all");
   const [eventStatus, setEventStatus] = useState("all");
   const [eventStage, setEventStage] = useState("all");
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
   
   // Fetch all events
-  const { data: allEvents = [], isLoading } = useQuery<any[]>({
+  const { data: allEvents = [], isLoading: isLoadingEvents } = useQuery<any[]>({
     queryKey: ['/api/events'],
   });
+  
+  // Fetch user's class if the user is a student
+  const { data: userClass, isLoading: isLoadingClass } = useQuery<any>({
+    queryKey: ['/api/classes', user?.classId ? `/${user.classId}` : null],
+    enabled: userRole === 'student' && !!user?.classId,
+  });
+  
+  const isClassLocked = userClass?.isLocked || false;
+  const isLoading = isLoadingEvents || isLoadingClass;
   
   // Apply filters
   const filteredEvents = allEvents.filter((event) => {
@@ -52,6 +67,28 @@ const Events: React.FC = () => {
   
   return (
     <div>
+      {/* Class lock warning banner */}
+      {userRole === 'student' && isClassLocked && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-5 mb-6 shadow-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 mt-0.5">
+              <LockKeyhole className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-base font-medium text-red-800">Class Locked by Teacher</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>Your class is currently locked by your teacher. While your class is locked:</p>
+                <ul className="mt-1 ml-6 list-disc">
+                  <li>You cannot register for new events</li>
+                  <li>You cannot participate in any competitions</li>
+                  <li>You can still browse and view event information</li>
+                </ul>
+                <p className="mt-2">If you believe this is an error, please contact your teacher directly.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hero Section */}
       <div className="relative mb-12 rounded-xl overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 opacity-90"></div>
@@ -204,6 +241,7 @@ const Events: React.FC = () => {
               stage={event.stage}
               endDate={event.endDate}
               onSubmit={handleSubmit}
+              isClassLocked={userRole === 'student' && isClassLocked}
             />
           ))}
         </div>

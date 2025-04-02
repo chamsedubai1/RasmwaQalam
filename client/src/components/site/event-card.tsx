@@ -5,6 +5,7 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LockKeyhole, AlertTriangle } from "lucide-react";
 
 interface EventCardProps {
   id: number;
@@ -16,6 +17,7 @@ interface EventCardProps {
   stage: string;
   endDate: string;
   onSubmit: (eventId: number) => void;
+  isClassLocked?: boolean;  // Added class locked status
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -27,7 +29,8 @@ const EventCard: React.FC<EventCardProps> = ({
   status,
   stage,
   endDate,
-  onSubmit
+  onSubmit,
+  isClassLocked = false
 }) => {
   const { userRole } = useUserRole();
   const { user } = useUser();
@@ -65,11 +68,22 @@ const EventCard: React.FC<EventCardProps> = ({
       queryClient.invalidateQueries({ queryKey: ['/api/registrations', `?userId=${userId}`] });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to register: ${error.message}`,
-        variant: "destructive"
-      });
+      // Check for specific error messages
+      const errorMessage = error.message;
+      
+      if (errorMessage.includes('class is currently locked')) {
+        toast({
+          title: "Registration Blocked",
+          description: "Your class is currently locked. Please contact your teacher.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to register: ${errorMessage}`,
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -195,14 +209,33 @@ const EventCard: React.FC<EventCardProps> = ({
                     Unregister
                   </Button>
                 ) : (
-                  <Button
-                    variant="default"
-                    className="bg-primary hover:bg-indigo-700"
-                    onClick={handleRegister}
-                    disabled={isLoadingRegistrations || registerMutation.isPending}
-                  >
-                    Register
-                  </Button>
+                  <>
+                    <Button
+                      variant="default"
+                      className={isClassLocked 
+                        ? "bg-gray-400 hover:bg-gray-500" 
+                        : "bg-primary hover:bg-indigo-700"
+                      }
+                      onClick={handleRegister}
+                      disabled={isLoadingRegistrations || registerMutation.isPending || isClassLocked}
+                      title={isClassLocked ? "Your class is locked - registration not available" : ""}
+                    >
+                      {isClassLocked ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <LockKeyhole className="h-4 w-4" />
+                          <span>Class Locked</span>
+                        </div>
+                      ) : "Register"}
+                    </Button>
+                    {isClassLocked && (
+                      <div className="w-full mt-2 bg-red-50 border border-red-200 rounded-md p-2">
+                        <p className="text-xs text-red-600 flex items-center">
+                          <LockKeyhole className="h-3 w-3 mr-1 stroke-red-600" />
+                          Class locked by teacher - contact them to unlock
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
                 {isRegistered && (
                   <Button
