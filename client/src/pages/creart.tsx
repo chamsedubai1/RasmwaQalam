@@ -123,17 +123,24 @@ const CreArt: React.FC = () => {
   // Get user's classId from the user context
   const classId = user?.classId;
 
-  // Fetch submissions for class voting if there's an active class event
+  // Fetch submissions for voting (handles different stages: class, school, country, global)
   const { data: votableSubmissions = [], isLoading: isLoadingVotableSubmissions } = useQuery({
-    queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }],
+    queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId, currentEventStage }],
     queryFn: async () => {
-      if (!eventId || !userId || !classId) {
-        console.log('Missing required parameters for voting submissions query:', { eventId, userId, classId });
+      if (!eventId || !userId) {
+        console.log('Missing required parameters for voting submissions query:', { eventId, userId });
         return [];
       }
       
-      const url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&classId=${classId}`;
-      console.log('Fetching voting submissions with URL:', url);
+      // Building the URL based on event stage
+      let url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&currentEventStage=${currentEventStage}`;
+      
+      // Only include classId for class stage voting
+      if (currentEventStage === 'class' && classId) {
+        url += `&classId=${classId}`;
+      }
+      
+      console.log(`Fetching ${currentEventStage} stage voting submissions with URL:`, url);
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -143,10 +150,13 @@ const CreArt: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log(`Fetched ${data.length} voting submissions:`, data);
+      console.log(`Fetched ${data.length} voting submissions for ${currentEventStage} stage:`, data);
       return data;
     },
-    enabled: !!eventId && !!userId && !!classId && activeTab === 'voting',
+    // Only require classId for class stage, for other stages we don't need it
+    enabled: !!eventId && !!userId && 
+      (currentEventStage !== 'class' || !!classId) && 
+      activeTab === 'voting',
     staleTime: 0, // Don't cache the results
     refetchOnWindowFocus: true // Refetch when the window regains focus
   });
@@ -219,9 +229,9 @@ const CreArt: React.FC = () => {
       });
       // Invalidate queries to refresh data
       if (eventId && userId) {
-        // Invalidate both submissions and voting stats using the proper array format
+        // Invalidate both submissions and voting stats using the proper array format and including stage
         queryClient.invalidateQueries({ 
-          queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }] 
+          queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, currentEventStage }] 
         });
         
         // Also invalidate voting stats to update the vote counter
@@ -241,9 +251,9 @@ const CreArt: React.FC = () => {
         
         // Force refresh the voting stats
         if (eventId && userId) {
-          // Refresh submissions to update UI using proper array format
+          // Refresh submissions to update UI using proper array format and stage
           queryClient.invalidateQueries({
-            queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId }]
+            queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, currentEventStage }]
           });
           
           // Refresh voting stats using proper array format

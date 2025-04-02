@@ -1080,12 +1080,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const forVoting = req.query.forVoting === 'true';
       const currentUserId = req.query.currentUserId ? Number(req.query.currentUserId) : undefined;
       
-      console.log('Submissions query params:', { userId, eventId, classId, forVoting, currentUserId });
+      // Check if event stage is explicitly provided in the query parameters
+      const requestedEventStage = req.query.currentEventStage as string;
       
-      let submissions;
       // Get current event to determine voting stage
       let currentEvent = eventId ? await storage.getEvent(eventId) : null;
-      let currentEventStage = currentEvent ? currentEvent.stage : 'class';
+      
+      // Use the requested stage if provided, otherwise use the event's stage, or fall back to 'class'
+      let currentEventStage = requestedEventStage || (currentEvent ? currentEvent.stage : 'class');
+      
+      console.log('Submissions query params:', { 
+        userId, eventId, classId, forVoting, currentUserId, currentEventStage,
+        requestedStage: requestedEventStage,
+        actualEventStage: currentEvent?.stage 
+      });
+      
+      let submissions;
       
       if (userId && eventId) {
         submissions = await storage.getSubmissionsByUserAndEvent(userId, eventId);
