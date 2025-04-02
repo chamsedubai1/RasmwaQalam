@@ -1209,11 +1209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
               
             case 'school':
-              // SCHOOL STAGE: Only process additional filters for same grade level within same school
-              // We already filtered for class winners at the top level
+              // SCHOOL STAGE: Show class winners from the same grade level within the same school
               console.log('School stage: Already filtered to only show class winners');
               
-              // Then further filter for same grade level within the same school
               if (currentUser.schoolId) {
                 // Get current user's class to determine grade level
                 const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
@@ -1227,31 +1225,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
                   const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
                   
-                  console.log(`Classes with grade level ${userGradeLevel}:`, sameGradeClassIds);
+                  console.log(`Classes with grade level ${userGradeLevel} in school ${currentUser.schoolId}:`, sameGradeClassIds);
                   
-                  // Get users from these classes
+                  // Get users from these classes (only same grade level in same school)
                   const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
                   const sameGradeUsers = allUsers.filter(usr => 
                     usr.classId && sameGradeClassIds.includes(usr.classId)
                   );
                   const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
                   
-                  console.log(`Users in same grade (${userGradeLevel}):`, sameGradeUserIds);
+                  console.log(`Users in same grade (${userGradeLevel}) in same school:`, sameGradeUserIds);
                   
-                  // Filter submissions to only include those from the same grade/school
+                  // Filter submissions to only include class winners from the same grade level in the same school
                   const beforeSchoolFilter = submissions.length;
                   submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
-                  console.log(`Filtered class winners to same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                  console.log(`Filtered class winners to same grade in same school: ${beforeSchoolFilter} -> ${submissions.length}`);
                 }
               }
               break;
               
             case 'country':
-              // COUNTRY STAGE: Only process additional filters for same grade level across all schools
-              // We already filtered for school winners at the top level
+              // COUNTRY STAGE: Show school winners from the same grade level across all schools
               console.log('Country stage: Already filtered to only show school winners');
               
-              // Then further filter for same grade level across all schools
+              // Filter for same grade level across all schools
               // Get current user's class to determine grade level
               const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
               const userGradeLevel = userClass ? userClass.gradeLevel : null;
@@ -1264,9 +1261,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
                 const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
                 
-                console.log(`All classes with grade level ${userGradeLevel}:`, sameGradeClassIds);
+                console.log(`All classes with grade level ${userGradeLevel} across all schools:`, sameGradeClassIds);
                 
-                // Get all users from these classes
+                // Get all users from these classes (same grade level across all schools)
                 const allUsers = await storage.getAllUsers();
                 const sameGradeUsers = allUsers.filter(usr => 
                   usr.classId && sameGradeClassIds.includes(usr.classId)
@@ -1275,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 console.log(`Users in same grade (${userGradeLevel}) across all schools:`, sameGradeUserIds);
                 
-                // Filter submissions to only include those from the same grade across all schools
+                // Filter submissions to only include school winners from the same grade level across all schools
                 const beforeCountryFilter = submissions.length;
                 submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
                 console.log(`Filtered school winners to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);

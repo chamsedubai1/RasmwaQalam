@@ -1,0 +1,15 @@
+The submission filtering, when promoting the event to the next stage is not working properly, let me explain in more details what I’m expecting let consider the following based on example with 5 Classes: 
+
+•	Class AAA, part of RWA School and it’s grade 4 class, with 10  students
+•	Class AAB, part of RWA School and it’s grade 4 class, with 10 students
+•	Class AAC, part of RWA School and it’s grade 5 class, with 10 students
+•	Class AAD, part of RWA School and it’s grade 5 class, with 10 students
+•	Class DDD, part of GEMS A School and it’s grade 4 class, with 10 students
+
+
+When the event is at Class stage all students should be able submit up to 3 submissions to the events, and votes for up 3 submissions of their classmates, students could not vote for their own submission. A class stage when the vote is completed each class will 3 winning submissions (the top one that have received the number of vote from their classmates.  
+
+
+When the Event is promoted to School stage only the winning submissions at class stage will be available/displayed for students to vote for them in school stage by their grade mates within the same school. For example as   AAA and AAB are both Grade 4 classes at RWA, the student within these 2 classes when the event is promoted at school level, they will see 6 winning submissions (3 from class  AAA and 3 from Class AAB) as they are the Class winner submission for Grade 4 classes. Students from Class  AAC that is Garde 5 Class they will not be able to winning submission from Class AAA and AAB, because the grade is different.
+
+When the Event is promoted to Country stage only the winning submissions at School stage will be available/displayed for students to vote for them in Country stage by their grade mates a cross schools in the same country. For example as   AAA, AAB and DDD classes are all Grade 4 classes (event if in different school RWA and GEMS but in the same country) the student within these 3 classes when the event is promoted at Country level, they will see 9 winning submissions (3 from class  AAA , 3 from Class AAB and 3 from class DDD) available new round of vote, as this 9 submission were 9 winning submissions for Grade 4 classes at event Schools stage
