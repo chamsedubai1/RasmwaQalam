@@ -34,8 +34,7 @@ import {
   CheckCircle2,
   Star,
   Plus,
-  Check,
-  LockKeyhole
+  Check
 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,26 +60,8 @@ const CreArt: React.FC = () => {
   // Always include all hooks before any early returns to avoid the
   // "Rendered fewer hooks than expected" error
   
-  // Get the authenticated user's ID and class info
+  // Get the authenticated user's ID
   const userId = user?.id;
-  const userClassId = user?.classId;
-  
-  // Fetch user's class info to check if class is locked
-  const { data: userClass, isLoading: isLoadingClass } = useQuery({
-    queryKey: ['/api/classes', userClassId],
-    queryFn: async () => {
-      if (!userClassId) return null;
-      try {
-        const response = await fetch(`/api/classes/${userClassId}`);
-        if (!response.ok) return null;
-        return await response.json();
-      } catch (error) {
-        console.error('Failed to fetch class info:', error);
-        return null;
-      }
-    },
-    enabled: !!userClassId && userRole === 'student',
-  });
   
   // Fetch user registrations - only run the query if we have a valid userId
   const { data: registrations = [], isLoading: isLoadingRegistrations } = useQuery({
@@ -330,33 +311,8 @@ const CreArt: React.FC = () => {
     voteMutation.mutate(submissionId);
   };
   
-  // Check if user class is locked
-  const isClassLocked = userClass?.isLocked || false;
-  
   return (
     <div>
-      {/* Class Status Banner - only shown when class is locked */}
-      {isClassLocked && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-5 mb-6 shadow-sm">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 mt-0.5">
-              <LockKeyhole className="h-5 w-5 text-red-500" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-base font-medium text-red-800">Class Locked by Teacher</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>Your class is currently locked by your teacher. While your class is locked:</p>
-                <ul className="mt-1 ml-6 list-disc">
-                  <li>You cannot register for new events</li>
-                  <li>You cannot create new art or poetry submissions</li>
-                  <li>You can still view your existing work and submissions</li>
-                </ul>
-                <p className="mt-2">If you believe this is an error, please contact your teacher directly.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Hero Section */}
       <div className="relative rounded-xl overflow-hidden mb-8">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 opacity-90"></div>

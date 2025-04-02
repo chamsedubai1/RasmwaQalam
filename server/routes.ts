@@ -1021,20 +1021,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: 'User already registered for this event' });
       }
       
-      // Fetch the user to check if their class is locked
-      const user = await storage.getUser(registrationData.userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      
-      // If user has a class, check if it's locked
-      if (user.classId) {
-        const userClass = await storage.getClass(user.classId);
-        if (userClass?.isLocked) {
-          return res.status(403).json({ message: 'Registration not allowed: Your class is currently locked' });
-        }
-      }
-      
       const registration = await storage.createRegistration(registrationData);
       res.status(201).json(registration);
     } catch (error) {

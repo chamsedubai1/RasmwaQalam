@@ -11,10 +11,8 @@ import {
   PenTool, 
   Users, 
   School,
-  Palette,
-  LockKeyhole
+  Palette 
 } from "lucide-react";
-import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import EventCard from "@/components/site/event-card";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -25,24 +23,14 @@ import aiRobotImage from "../assets/ai-robot-art.png";
 
 const Home: React.FC = () => {
   const { userRole } = useUserRole();
-  const { user } = useUser();
   const { t } = useLanguage();
   const [submitEventId, setSubmitEventId] = React.useState<number | null>(null);
 
   // Fetch featured events
-  const { data: events, isLoading: isLoadingEvents } = useQuery<Event[]>({
+  const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ['/api/events?status=open'],
     enabled: true,
   });
-  
-  // Fetch user's class if the user is a student
-  const { data: userClass, isLoading: isLoadingClass } = useQuery<any>({
-    queryKey: ['/api/classes', user?.classId ? `/${user.classId}` : null],
-    enabled: userRole === 'student' && !!user?.classId,
-  });
-  
-  const isClassLocked = userClass?.isLocked || false;
-  const isLoading = isLoadingEvents || isLoadingClass;
 
   const featuredEvents = events?.slice(0, 3) || [];
 
@@ -56,29 +44,6 @@ const Home: React.FC = () => {
 
   return (
     <div>
-      {/* Class Locked Warning Banner */}
-      {userRole === 'student' && isClassLocked && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-5 mb-6 shadow-sm">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 mt-0.5">
-              <LockKeyhole className="h-5 w-5 text-red-500" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-base font-medium text-red-800">Class Locked by Teacher</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>Your class is currently locked by your teacher. While your class is locked:</p>
-                <ul className="mt-1 ml-6 list-disc">
-                  <li>You cannot register for new events</li>
-                  <li>You cannot create new art or poetry submissions</li>
-                  <li>You can still browse the site and view available competitions</li>
-                </ul>
-                <p className="mt-2">If you believe this is an error, please contact your teacher directly.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-        
       {/* AI Robot Art Section */}
       <div className="w-full mt-10 mb-20 px-4 md:px-8">
         <div className="bg-gradient-to-br from-blue-600 via-indigo-500 to-blue-700 rounded-2xl overflow-hidden shadow-2xl">
@@ -154,7 +119,6 @@ const Home: React.FC = () => {
                 stage={event.stage}
                 endDate={event.endDate ? event.endDate.toString() : ''}
                 onSubmit={handleSubmit}
-                isClassLocked={userRole === 'student' && isClassLocked}
               />
             ))
           )}

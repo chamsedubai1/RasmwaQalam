@@ -32,15 +32,12 @@ const ClassTable: React.FC<ClassTableProps> = ({
     mutationFn: async ({ id, isLocked }: { id: number, isLocked: boolean }) => {
       return apiRequest('PATCH', `/api/classes/${id}`, { isLocked });
     },
-    onSuccess: (_, variables) => {
-      const statusText = variables.isLocked ? "locked" : "unlocked";
+    onSuccess: () => {
       toast({
         title: "Success",
-        description: `Class has been ${statusText} successfully`,
+        description: "Class status updated",
       });
-      // Invalidate both generic and specific queries
       queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/classes?teacherId=`] });
     },
     onError: (error) => {
       toast({
@@ -110,14 +107,7 @@ const ClassTable: React.FC<ClassTableProps> = ({
               <TableCell>{cls.gradeLevel}</TableCell>
               <TableCell>{cls.studentCount || 0}</TableCell>
               <TableCell>
-                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  cls.isLocked 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-green-100 text-green-800'
-                }`}>
-                  <span className={`h-2 w-2 rounded-full mr-1.5 mt-1.5 ${
-                    cls.isLocked ? 'bg-red-500' : 'bg-green-500'
-                  }`}></span>
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cls.isLocked ? 'bg-gray-100 text-gray-800' : 'bg-success bg-opacity-10 text-success'}`}>
                   {cls.isLocked ? 'Locked' : 'Active'}
                 </span>
               </TableCell>

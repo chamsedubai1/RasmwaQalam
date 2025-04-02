@@ -300,18 +300,6 @@ const TeacherDashboard: React.FC = () => {
     updateClassMutation.mutate({ 
       id: classId, 
       data: { isLocked: !isLocked } 
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: `Class has been ${isLocked ? 'unlocked' : 'locked'} successfully`,
-        });
-        // Refresh both classes and students data
-        refetchClasses();
-        if (selectedClassId) {
-          refetchStudents();
-        }
-      }
     });
   };
   
