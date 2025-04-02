@@ -1189,6 +1189,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             case 'school':
               // SCHOOL STAGE: Only show WINNING submissions from the class stage
               // from the same grade level within the same school
+              console.log('School stage: First filtering to only show class winners');
+              // CRITICAL STEP: First filter to only include class winners (regardless of other criteria)
+              const beforeSchoolWinnerFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.classWinner === true);
+              console.log(`Filtered to only class winners: ${beforeSchoolWinnerFilter} -> ${submissions.length}`);
+              
+              // Then further filter for same grade level within the same school
               if (currentUser.schoolId) {
                 // Get current user's class to determine grade level
                 const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
@@ -1213,21 +1220,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   console.log(`Users in same grade (${userGradeLevel}):`, sameGradeUserIds);
                   
-                  // Filter submissions to only include:
-                  // 1. Submissions from the same grade/school
-                  // 2. Only ones marked as class winners
+                  // Filter submissions to only include those from the same grade/school
                   const beforeSchoolFilter = submissions.length;
-                  submissions = submissions.filter(sub => 
-                    sameGradeUserIds.includes(sub.userId) && sub.classWinner === true
-                  );
-                  console.log(`Filtered to class winners from same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                  submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
+                  console.log(`Filtered class winners to same grade in school: ${beforeSchoolFilter} -> ${submissions.length}`);
                 }
               }
               break;
               
             case 'country':
               // COUNTRY STAGE: Only show WINNING submissions from the school stage
-              // from the same grade level across all schools
+              console.log('Country stage: First filtering to only show school winners');
+              // CRITICAL STEP: First filter to only include school winners (regardless of other criteria)
+              const beforeCountryWinnerFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.schoolWinner === true);
+              console.log(`Filtered to only school winners: ${beforeCountryWinnerFilter} -> ${submissions.length}`);
+              
+              // Then further filter for same grade level across all schools
               // Get current user's class to determine grade level
               const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
               const userGradeLevel = userClass ? userClass.gradeLevel : null;
@@ -1251,14 +1260,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 console.log(`Users in same grade (${userGradeLevel}) across all schools:`, sameGradeUserIds);
                 
-                // Filter submissions to only include:
-                // 1. Submissions from the same grade across all schools
-                // 2. Only ones marked as school winners
+                // Filter submissions to only include those from the same grade across all schools
                 const beforeCountryFilter = submissions.length;
-                submissions = submissions.filter(sub => 
-                  sameGradeUserIds.includes(sub.userId) && sub.schoolWinner === true
-                );
-                console.log(`Filtered to school winners from same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
+                submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
+                console.log(`Filtered school winners to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
               }
               break;
               
