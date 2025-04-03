@@ -95,6 +95,8 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
   const [isMarkingWinner, setIsMarkingWinner] = useState(false);
   const [sortField, setSortField] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(50);
   const [filters, setFilters] = useState({
     name: "",
     school: "",
@@ -395,14 +397,70 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
     </div>
   );
 
+  // Calculate pagination
+  const pageCount = Math.ceil(sortedParticipants.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedParticipants.slice(indexOfFirstItem, indexOfLastItem);
+  
+  // Handle page changes
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+  
   // Container with expanded width
   return (
     <div className="w-full mx-auto">
       {filterFields}
       
+      {/* Pagination status */}
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-sm text-gray-500">
+          Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedParticipants.length)} of {sortedParticipants.length} participants
+        </p>
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1}
+          >
+            First
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm mx-2">
+            Page {currentPage} of {pageCount}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === pageCount}
+          >
+            Next
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(pageCount)}
+            disabled={currentPage === pageCount}
+          >
+            Last
+          </Button>
+        </div>
+      </div>
+      
       {/* Card-based layout for better space utilization */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {sortedParticipants.map((participant) => (
+        {currentItems.map((participant) => (
           <div 
             key={participant.id} 
             className={`p-4 rounded-lg border ${
@@ -598,7 +656,7 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedParticipants.map((participant) => (
+            {currentItems.map((participant) => (
               <tr key={`table-${participant.id}`} className={
                 participant.classWinner ? "bg-blue-50" :
                 participant.schoolWinner ? "bg-purple-50" :
@@ -672,6 +730,51 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
             ))}
           </tbody>
         </table>
+      </div>
+      
+      {/* Bottom pagination for mobile view too */}
+      <div className="mt-6 flex justify-between items-center">
+        <p className="text-sm text-gray-500">
+          Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedParticipants.length)} of {sortedParticipants.length} participants
+        </p>
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1}
+          >
+            First
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm mx-2">
+            Page {currentPage} of {pageCount}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === pageCount}
+          >
+            Next
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handlePageChange(pageCount)}
+            disabled={currentPage === pageCount}
+          >
+            Last
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -4641,8 +4744,8 @@ const AdminDashboard: React.FC = () => {
                 </p>
               </div>
               
-              {/* Participants table */}
-              <div className="overflow-y-auto h-[calc(100%-120px)]">
+              {/* Participants table with increased height to show more submissions */}
+              <div className="overflow-y-auto h-[calc(100vh-240px)]">
                 <ParticipantsTable eventId={selectedEventId} />
               </div>
               
