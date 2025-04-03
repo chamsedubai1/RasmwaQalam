@@ -1696,20 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Removing votes for ${eventSubmissionIds.length} submissions in event ${eventId} for promotion to ${nextStage} stage`);
       
-      // Delete all votes for these submissions to reset voting for the next stage
-      for (const submissionId of eventSubmissionIds) {
-        const votes = await storage.getVotesBySubmission(submissionId);
-        for (const vote of votes) {
-          await storage.deleteVote(vote.id);
-        }
-      }
-      
-      console.log(`Cleared all votes for event ${eventId} during promotion to ${nextStage} stage`);
-      
-      // Mark winner submissions based on the current stage and vote counts
-      // This is important to do AFTER clearing votes but BEFORE updating the stage
-      
-      // 1. Get submissions with vote counts (before votes were cleared)
+      // 1. Get submissions with vote counts first (need this for determining winners)
       const submissionsWithVoteCounts = await Promise.all(
         eventSubmissions.map(async (sub) => {
           // Calculate the vote count for each submission
@@ -1737,6 +1724,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const id of winnerIds) {
         await storage.updateSubmission(id, { [winnerField]: true });
       }
+      
+      // NEW BEHAVIOR: Only delete votes for non-winning submissions
+      // This preserves vote counts for winners when they move to the next stage
+      for (const submissionId of eventSubmissionIds) {
+        // Skip deletion of votes for winning submissions
+        if (winnerIds.includes(submissionId)) {
+          console.log(`Preserving votes for winning submission ${submissionId}`);
+          continue;
+        }
+        
+        const votes = await storage.getVotesBySubmission(submissionId);
+        for (const vote of votes) {
+          await storage.deleteVote(vote.id);
+        }
+      }
+      
+      console.log(`Cleared votes for non-winning submissions in event ${eventId} during promotion to ${nextStage} stage. Preserved votes for ${winnerIds.length} winning submissions.`);
+      
+      // Note: We've already determined the winners above, no need to redo the calculation
       
       // Update the event stage
       const updatedEvent = await storage.updateEvent(eventId, { 
