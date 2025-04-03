@@ -1183,7 +1183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (stageToUseForFiltering === 'school') {
             // In school stage, only show class winners from previous stage
             // Get ALL submissions for this event, not just from user's class
-            if (event) {
+            if (currentEvent) {
               // First get all current submissions across all classes/schools
               const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
               console.log(`SCHOOL STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
@@ -1201,7 +1201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (stageToUseForFiltering === 'country') {
             // In country stage, only show school winners from previous stage
             // Same improvement as for school stage - get ALL submissions for this event across all schools
-            if (event) {
+            if (currentEvent) {
               // First get all current submissions across all classes/schools
               const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
               console.log(`COUNTRY STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
@@ -1219,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (stageToUseForFiltering === 'global') {
             // In global stage, only show country winners from previous stage
             // Same improvement as for other stages - get ALL submissions for this event
-            if (event) {
+            if (currentEvent) {
               // First get all current submissions across all classes/schools
               const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
               console.log(`GLOBAL STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
