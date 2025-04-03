@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 import {
   Tabs,
   TabsContent,
@@ -4340,6 +4341,236 @@ const AdminDashboard: React.FC = () => {
               
               <WideDialogFooter className="mt-6">
                 <Button variant="outline" onClick={() => setShowParticipantsDialog(false)}>
+                  Close
+                </Button>
+              </WideDialogFooter>
+            </>
+          )}
+        </WideDialogContent>
+      </WideDialog>
+
+      {/* Voting History Dialog */}
+      <WideDialog open={showVotingHistoryDialog} onOpenChange={setShowVotingHistoryDialog}>
+        <WideDialogContent>
+          <WideDialogHeader>
+            <WideDialogTitle>Voting History</WideDialogTitle>
+            <WideDialogDescription>
+              View detailed voting statistics for this event across all stages
+            </WideDialogDescription>
+          </WideDialogHeader>
+          
+          {selectedEventId && (
+            <>
+              {isLoadingVotingHistory ? (
+                <div className="py-10 flex justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <p className="text-sm text-muted-foreground">Loading voting history...</p>
+                  </div>
+                </div>
+              ) : votingHistoryData ? (
+                <div className="overflow-auto max-h-[70vh]">
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">Event Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-blue-600">Status</p>
+                        <p className="capitalize">{votingHistoryData.eventStatus}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-600">Current Stage</p>
+                        <p className="capitalize">{votingHistoryData.eventStage}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Class Stage Voting */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+                        <h3 className="text-white font-semibold">Class Stage Voting</h3>
+                      </div>
+                      <div className="p-4">
+                        {votingHistoryData.classStage ? (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                <p className="text-xs text-blue-600 font-medium">Total Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.classStage.totalSubmissions}</p>
+                              </div>
+                              <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                <p className="text-xs text-blue-600 font-medium">Total Votes</p>
+                                <p className="text-xl font-bold">{votingHistoryData.classStage.totalVotes}</p>
+                              </div>
+                              <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                <p className="text-xs text-blue-600 font-medium">Winning Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.classStage.winnersCount}</p>
+                              </div>
+                            </div>
+                            
+                            <h4 className="font-medium mb-2 text-blue-700">Top Winners</h4>
+                            {votingHistoryData.classStage.winners && votingHistoryData.classStage.winners.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-blue-50">
+                                      <th className="text-left p-2 text-xs font-semibold text-blue-800">Rank</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-blue-800">Student</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-blue-800">Class</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-blue-800">Votes</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {votingHistoryData.classStage.winners.map((winner: any, index: number) => (
+                                      <tr key={index} className="border-b border-blue-100">
+                                        <td className="p-2 font-medium">{index + 1}</td>
+                                        <td className="p-2">{winner.studentName}</td>
+                                        <td className="p-2">{winner.className}</td>
+                                        <td className="p-2">{winner.voteCount}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No winners information available for this stage.</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">No data available for the class stage.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* School Stage Voting */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
+                        <h3 className="text-white font-semibold">School Stage Voting</h3>
+                      </div>
+                      <div className="p-4">
+                        {votingHistoryData.schoolStage ? (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-indigo-50 p-3 rounded-md border border-indigo-100">
+                                <p className="text-xs text-indigo-600 font-medium">Total Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.schoolStage.totalSubmissions}</p>
+                              </div>
+                              <div className="bg-indigo-50 p-3 rounded-md border border-indigo-100">
+                                <p className="text-xs text-indigo-600 font-medium">Total Votes</p>
+                                <p className="text-xl font-bold">{votingHistoryData.schoolStage.totalVotes}</p>
+                              </div>
+                              <div className="bg-indigo-50 p-3 rounded-md border border-indigo-100">
+                                <p className="text-xs text-indigo-600 font-medium">Winning Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.schoolStage.winnersCount}</p>
+                              </div>
+                            </div>
+                            
+                            <h4 className="font-medium mb-2 text-indigo-700">Top Winners</h4>
+                            {votingHistoryData.schoolStage.winners && votingHistoryData.schoolStage.winners.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-indigo-50">
+                                      <th className="text-left p-2 text-xs font-semibold text-indigo-800">Rank</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-indigo-800">Student</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-indigo-800">Class</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-indigo-800">Votes</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {votingHistoryData.schoolStage.winners.map((winner: any, index: number) => (
+                                      <tr key={index} className="border-b border-indigo-100">
+                                        <td className="p-2 font-medium">{index + 1}</td>
+                                        <td className="p-2">{winner.studentName}</td>
+                                        <td className="p-2">{winner.className}</td>
+                                        <td className="p-2">{winner.voteCount}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No winners information available for this stage.</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">No data available for the school stage.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Country Stage Voting */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3">
+                        <h3 className="text-white font-semibold">Country Stage Voting</h3>
+                      </div>
+                      <div className="p-4">
+                        {votingHistoryData.countryStage ? (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                                <p className="text-xs text-purple-600 font-medium">Total Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.countryStage.totalSubmissions}</p>
+                              </div>
+                              <div className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                                <p className="text-xs text-purple-600 font-medium">Total Votes</p>
+                                <p className="text-xl font-bold">{votingHistoryData.countryStage.totalVotes}</p>
+                              </div>
+                              <div className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                                <p className="text-xs text-purple-600 font-medium">Winning Submissions</p>
+                                <p className="text-xl font-bold">{votingHistoryData.countryStage.winnersCount}</p>
+                              </div>
+                            </div>
+                            
+                            <h4 className="font-medium mb-2 text-purple-700">Top Winners</h4>
+                            {votingHistoryData.countryStage.winners && votingHistoryData.countryStage.winners.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-purple-50">
+                                      <th className="text-left p-2 text-xs font-semibold text-purple-800">Rank</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-purple-800">Student</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-purple-800">School</th>
+                                      <th className="text-left p-2 text-xs font-semibold text-purple-800">Votes</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {votingHistoryData.countryStage.winners.map((winner: any, index: number) => (
+                                      <tr key={index} className="border-b border-purple-100">
+                                        <td className="p-2 font-medium">{index + 1}</td>
+                                        <td className="p-2">{winner.studentName}</td>
+                                        <td className="p-2">{winner.schoolName}</td>
+                                        <td className="p-2">{winner.voteCount}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No winners information available for this stage.</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">No data available for the country stage.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <AlertCircle className="h-8 w-8 text-yellow-500" />
+                    <p className="text-lg font-medium">No voting history available</p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      There is no voting data available for this event yet. This may be because the event hasn't started or no votes have been cast.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <WideDialogFooter className="mt-6">
+                <Button variant="outline" onClick={() => setShowVotingHistoryDialog(false)}>
                   Close
                 </Button>
               </WideDialogFooter>
