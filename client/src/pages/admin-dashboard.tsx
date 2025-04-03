@@ -689,6 +689,14 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
+  // Fetch reports statistics
+  const { data: statistics, isLoading: isLoadingStatistics, refetch: refetchStatistics } = useQuery({
+    queryKey: ['/api/reports/statistics'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
+  });
+  
   // Fetch all schools (including inactive ones for admin)
   const { data: schools = [], isLoading: isLoadingSchools, refetch: refetchSchools } = useQuery({
     queryKey: ['/api/schools'],
@@ -2443,6 +2451,7 @@ const AdminDashboard: React.FC = () => {
                     refetchUsers();
                     refetchSchools();
                     refetchClasses();
+                    refetchStatistics();
                     toast({
                       title: "Refreshed",
                       description: "Report data has been refreshed",
@@ -2511,18 +2520,108 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 
                 <div className="bg-green-50 rounded-lg shadow p-4 border border-green-100">
-                  <h3 className="text-sm font-medium text-green-800 mb-1">Total Participants</h3>
+                  <h3 className="text-sm font-medium text-green-800 mb-1">Total Submissions</h3>
                   <p className="text-3xl font-bold text-green-700">
-                    {isLoadingEvents ? (
+                    {isLoadingStatistics ? (
                       <span className="text-lg">Loading...</span>
                     ) : (
-                      events.reduce((total: number, event: any) => total + (event.participantCount || 0), 0)
+                      statistics?.overall?.totalSubmissions || 0
                     )}
                   </p>
                   <div className="mt-2 text-xs flex items-center text-green-600">
                     <div className="flex space-x-2">
-                      <span>Across all events</span>
+                      <span>{statistics?.overall?.approvedSubmissions || 0} Approved</span>
+                      <span>•</span>
+                      <span>{statistics?.overall?.pendingSubmissions || 0} Pending</span>
+                      <span>•</span>
+                      <span>{statistics?.overall?.rejectedSubmissions || 0} Rejected</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Submission breakdown */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Submission Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
+                    <h4 className="text-blue-800 font-semibold mb-3 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v15m0 0 6.713-6.712M12 18l-6.713-6.712"/><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                      Submissions by Category
+                    </h4>
+                    {isLoadingStatistics ? (
+                      <div className="flex justify-center items-center h-40">
+                        <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg p-4 border border-blue-200">
+                          <div className="text-sm text-blue-700 mb-1">Poetry Submissions</div>
+                          <div className="text-3xl font-bold text-blue-800">{statistics?.overall?.poetrySubmissions || 0}</div>
+                          <div className="text-xs text-blue-600 mt-1">
+                            {Math.round(((statistics?.overall?.poetrySubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}% of total
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-4 border border-blue-200">
+                          <div className="text-sm text-blue-700 mb-1">Painting Submissions</div>
+                          <div className="text-3xl font-bold text-blue-800">{statistics?.overall?.paintingSubmissions || 0}</div>
+                          <div className="text-xs text-blue-600 mt-1">
+                            {Math.round(((statistics?.overall?.paintingSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}% of total
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
+                    <h4 className="text-purple-800 font-semibold mb-3 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Submission Status
+                    </h4>
+                    {isLoadingStatistics ? (
+                      <div className="flex justify-center items-center h-40">
+                        <svg className="animate-spin h-8 w-8 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white rounded-lg p-3 border border-purple-200">
+                          <div className="text-sm text-purple-700 mb-1">Approved</div>
+                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.approvedSubmissions || 0}</div>
+                          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full"
+                              style={{ width: `${Math.round(((statistics?.overall?.approvedSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 border border-purple-200">
+                          <div className="text-sm text-purple-700 mb-1">Pending</div>
+                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.pendingSubmissions || 0}</div>
+                          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-yellow-500 h-2 rounded-full"
+                              style={{ width: `${Math.round(((statistics?.overall?.pendingSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 border border-purple-200">
+                          <div className="text-sm text-purple-700 mb-1">Rejected</div>
+                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.rejectedSubmissions || 0}</div>
+                          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
+                              style={{ width: `${Math.round(((statistics?.overall?.rejectedSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2615,18 +2714,24 @@ const AdminDashboard: React.FC = () => {
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Classes
                         </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Submissions
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Approval Rate
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {isLoadingSchools || isLoadingUsers || isLoadingClasses ? (
+                      {isLoadingSchools || isLoadingUsers || isLoadingClasses || isLoadingStatistics ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                          <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
                             Loading school data...
                           </td>
                         </tr>
                       ) : schools.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                          <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
                             No schools found
                           </td>
                         </tr>
@@ -2635,6 +2740,19 @@ const AdminDashboard: React.FC = () => {
                           const teacherCount = allUsers.filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
                           const studentCount = allUsers.filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
                           const classCount = classes.filter((c: any) => c.schoolId === school.id).length;
+                          
+                          // Get school statistics from our API data
+                          const schoolStat = statistics?.schoolStats?.find((stat: any) => stat.schoolId === school.id) || {
+                            totalSubmissions: 0,
+                            approvedSubmissions: 0,
+                            pendingSubmissions: 0,
+                            rejectedSubmissions: 0
+                          };
+                          
+                          // Calculate approval rate
+                          const approvalRate = schoolStat.totalSubmissions > 0 
+                            ? Math.round((schoolStat.approvedSubmissions / schoolStat.totalSubmissions) * 100) 
+                            : 0;
                           
                           return (
                             <tr key={school.id}>
@@ -2649,6 +2767,37 @@ const AdminDashboard: React.FC = () => {
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {classCount}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex flex-col">
+                                  <span>{schoolStat.totalSubmissions} total</span>
+                                  <span className="text-xs text-gray-400">
+                                    <span className="text-green-500">{schoolStat.approvedSubmissions} approved</span> / 
+                                    <span className="text-yellow-500"> {schoolStat.pendingSubmissions} pending</span> / 
+                                    <span className="text-red-500"> {schoolStat.rejectedSubmissions} rejected</span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                <div className="flex items-center">
+                                  <span className={`mr-2 ${
+                                    approvalRate >= 70 ? 'text-green-600' : 
+                                    approvalRate >= 40 ? 'text-yellow-600' : 
+                                    approvalRate > 0 ? 'text-red-600' : 'text-gray-400'
+                                  }`}>
+                                    {approvalRate}%
+                                  </span>
+                                  <div className="w-16 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full ${
+                                        approvalRate >= 70 ? 'bg-green-500' : 
+                                        approvalRate >= 40 ? 'bg-yellow-500' : 
+                                        approvalRate > 0 ? 'bg-red-500' : 'bg-gray-300'
+                                      }`} 
+                                      style={{ width: `${approvalRate}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
                               </td>
                             </tr>
                           );

@@ -3261,6 +3261,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup upload routes
   setupUploadRoutes(apiRouter);
+  
+  // Add statistics endpoint for reports
+  apiRouter.get('/reports/statistics', async (req, res) => {
+    try {
+      // Get all submissions from storage
+      const submissions = await storage.getAllSubmissions();
+      
+      // Count total submissions
+      const totalSubmissions = submissions.length;
+      
+      // Count approved submissions
+      const approvedSubmissions = submissions.filter(sub => sub.validated === true).length;
+      
+      // Count rejected submissions
+      const rejectedSubmissions = submissions.filter(sub => sub.validated === false).length;
+      
+      // Count pending submissions
+      const pendingSubmissions = submissions.filter(sub => sub.validated === null).length;
+      
+      // Count submissions by type
+      const poetrySubmissions = await Promise.all(
+        submissions.map(async sub => {
+          const event = await storage.getEvent(sub.eventId);
+          return event && event.type === 'poetry';
+        })
+      ).then(results => results.filter(Boolean).length);
+      
+      const paintingSubmissions = await Promise.all(
+        submissions.map(async sub => {
+          const event = await storage.getEvent(sub.eventId);
+          return event && event.type === 'painting';
+        })
+      ).then(results => results.filter(Boolean).length);
+      
+      // Get all votes
+      const votes = [];
+      for (const sub of submissions) {
+        const subVotes = await storage.getVotesBySubmission(sub.id);
+        votes.push(...subVotes);
+      }
+      
+      // Get all schools
+      const schools = await storage.getAllSchools();
+      
+      // Get all classes
+      const classes = await storage.getAllClasses();
+      
+      // Calculate statistics by school
+      const schoolStats = await Promise.all(
+        schools.map(async school => {
+          const schoolUsers = await storage.getUsersBySchool(school.id);
+          const schoolUserIds = schoolUsers.map(user => user.id);
+          
+          // Count submissions by users from this school
+          const schoolSubmissions = submissions.filter(sub => 
+            schoolUserIds.includes(sub.userId)
+          );
+          
+          return {
+            schoolId: school.id,
+            schoolName: school.name,
+            totalSubmissions: schoolSubmissions.length,
+            approvedSubmissions: schoolSubmissions.filter(sub => sub.validated === true).length,
+            pendingSubmissions: schoolSubmissions.filter(sub => sub.validated === null).length,
+            rejectedSubmissions: schoolSubmissions.filter(sub => sub.validated === false).length
+          };
+        })
+      );
+      
+      // Calculate statistics by class
+      const classStats = await Promise.all(
+        classes.map(async cls => {
+          const classUsers = await storage.getUsersByClass(cls.id);
+          const classUserIds = classUsers.map(user => user.id);
+          
+          // Count submissions by users from this class
+          const classSubmissions = submissions.filter(sub => 
+            classUserIds.includes(sub.userId)
+          );
+          
+          return {
+            classId: cls.id,
+            className: cls.name,
+            schoolId: cls.schoolId,
+            totalSubmissions: classSubmissions.length,
+            approvedSubmissions: classSubmissions.filter(sub => sub.validated === true).length,
+            pendingSubmissions: classSubmissions.filter(sub => sub.validated === null).length,
+            rejectedSubmissions: classSubmissions.filter(sub => sub.validated === false).length
+          };
+        })
+      );
+      
+      // Return combined statistics
+      res.json({
+        overall: {
+          totalSubmissions,
+          approvedSubmissions,
+          rejectedSubmissions,
+          pendingSubmissions,
+          totalVotes: votes.length,
+          poetrySubmissions,
+          paintingSubmissions
+        },
+        schoolStats,
+        classStats
+      });
+    } catch (error) {
+      console.error('Error generating statistics:', error);
+      res.status(500).json({ error: 'Failed to generate statistics' });
+    }
+  });
 
   // Register API routes
   app.use('/api', apiRouter);

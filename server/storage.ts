@@ -68,6 +68,7 @@ export interface IStorage {
   getSubmissionsByEvent(eventId: number): Promise<Submission[]>;
   getSubmissionsByUserAndEvent(userId: number, eventId: number): Promise<Submission[]>;
   getSubmissionsByClass(classId: number): Promise<Submission[]>;
+  getAllSubmissions(): Promise<Submission[]>;
   getSubmissionsPendingValidation(classId: number): Promise<Submission[]>;
   getValidatedSubmissions(classId: number): Promise<Submission[]>;
   getRejectedSubmissions(classId: number): Promise<Submission[]>;
@@ -677,6 +678,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.submissions.values()).filter(
       sub => studentIds.includes(sub.userId)
     );
+  }
+  
+  async getAllSubmissions(): Promise<Submission[]> {
+    return Array.from(this.submissions.values());
   }
   
   async getSubmissionsPendingValidation(classId: number): Promise<Submission[]> {
