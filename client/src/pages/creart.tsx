@@ -120,27 +120,37 @@ const CreArt: React.FC = () => {
   // Get the current event's stage for display and filtering
   const currentEventStage = activeVotingEvent ? activeVotingEvent.stage : 'class';
   
+  // State for selected voting stage tab (may be different from current event stage when viewing history)
+  const [selectedVotingStage, setSelectedVotingStage] = useState<'class' | 'school' | 'country' | 'global'>(
+    (currentEventStage as 'class' | 'school' | 'country' | 'global')
+  );
+  
+  // Update selected voting stage when current event stage changes
+  useEffect(() => {
+    setSelectedVotingStage(currentEventStage as 'class' | 'school' | 'country' | 'global');
+  }, [currentEventStage]);
+  
   // Get user's classId from the user context
   const classId = user?.classId;
 
   // Fetch submissions for voting (handles different stages: class, school, country, global)
   const { data: votableSubmissions = [], isLoading: isLoadingVotableSubmissions } = useQuery({
-    queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId, currentEventStage }],
+    queryKey: ['/api/submissions', { eventId, forVoting: true, currentUserId: userId, classId, currentEventStage, requestedStage: selectedVotingStage }],
     queryFn: async () => {
       if (!eventId || !userId) {
         console.log('Missing required parameters for voting submissions query:', { eventId, userId });
         return [];
       }
       
-      // Building the URL based on event stage
-      let url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&currentEventStage=${currentEventStage}`;
+      // Building the URL based on selected voting stage (may be different from current event stage when viewing history)
+      let url = `/api/submissions?eventId=${eventId}&forVoting=true&currentUserId=${userId}&currentEventStage=${currentEventStage}&requestedStage=${selectedVotingStage}`;
       
       // Only include classId for class stage voting
-      if (currentEventStage === 'class' && classId) {
+      if (selectedVotingStage === 'class' && classId) {
         url += `&classId=${classId}`;
       }
       
-      console.log(`Fetching ${currentEventStage} stage voting submissions with URL:`, url);
+      console.log(`Fetching ${selectedVotingStage} stage voting submissions with URL:`, url);
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -150,15 +160,16 @@ const CreArt: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log(`Fetched ${data.length} voting submissions for ${currentEventStage} stage:`, data);
+      console.log(`Fetched ${data.length} voting submissions for ${selectedVotingStage} stage:`, data);
       return data;
     },
     // Only require classId for class stage, for other stages we don't need it
     enabled: !!eventId && !!userId && 
-      (currentEventStage !== 'class' || !!classId) && 
+      (selectedVotingStage !== 'class' || !!classId) && 
       activeTab === 'voting',
     staleTime: 0, // Don't cache the results
-    refetchOnWindowFocus: true // Refetch when the window regains focus
+    refetchOnWindowFocus: true, // Refetch when the window regains focus
+    refetchOnMount: true // Refetch when the component mounts
   });
   
   // Debug logging for voting at any stage
@@ -568,11 +579,11 @@ const CreArt: React.FC = () => {
         <TabsContent value="voting" className="mt-4">
           {activeVotingEvent && (
             <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Vote className="h-5 w-5 text-blue-600 mr-2" />
                   <h2 className="text-xl font-semibold font-heading text-blue-800">
-                    {currentEventStage.charAt(0).toUpperCase() + currentEventStage.slice(1)} Voting - {activeVotingEvent.name}
+                    Voting - {activeVotingEvent.name}
                   </h2>
                 </div>
                 
@@ -604,80 +615,219 @@ const CreArt: React.FC = () => {
                 )}
               </div>
               
-              {isLoadingVotableSubmissions ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                </div>
-              ) : !Array.isArray(votableSubmissions) || votableSubmissions.length === 0 ? (
-                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
-                  <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
-                    <Vote className="h-8 w-8 text-blue-400" />
-                  </div>
-                  <p className="text-blue-700">No submissions available for voting yet.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {votableSubmissions.map((submission: any) => (
-                    <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                      <div className="p-4 bg-blue-50">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-medium text-blue-900">{submission.title}</h3>
-                          <span className="text-xs text-blue-600">{submission.userFullName || "Anonymous"}</span>
-                        </div>
+              {/* Sub-tabs for different voting stages */}
+              <Tabs value={selectedVotingStage} onValueChange={(value) => setSelectedVotingStage(value as 'class' | 'school' | 'country' | 'global')}>
+                <TabsList className="w-full border-b border-blue-100 mb-6 bg-transparent p-0">
+                  <TabsTrigger 
+                    value="class" 
+                    className={`px-5 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                      selectedVotingStage === 'class' 
+                        ? 'bg-white border-blue-200 border-t border-l border-r text-blue-800' 
+                        : (currentEventStage === 'class' || currentEventStage === 'school' || currentEventStage === 'country' || currentEventStage === 'global')
+                          ? 'bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                    disabled={!['class', 'school', 'country', 'global'].includes(currentEventStage)}
+                  >
+                    Class Voting
+                  </TabsTrigger>
+                  
+                  <TabsTrigger 
+                    value="school" 
+                    className={`px-5 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                      selectedVotingStage === 'school' 
+                        ? 'bg-white border-blue-200 border-t border-l border-r text-blue-800' 
+                        : (currentEventStage === 'school' || currentEventStage === 'country' || currentEventStage === 'global')
+                          ? 'bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                    disabled={!['school', 'country', 'global'].includes(currentEventStage)}
+                  >
+                    School Voting
+                  </TabsTrigger>
+                  
+                  <TabsTrigger 
+                    value="country" 
+                    className={`px-5 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                      selectedVotingStage === 'country' 
+                        ? 'bg-white border-blue-200 border-t border-l border-r text-blue-800' 
+                        : (currentEventStage === 'country' || currentEventStage === 'global')
+                          ? 'bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                    disabled={!['country', 'global'].includes(currentEventStage)}
+                  >
+                    Country Voting
+                  </TabsTrigger>
+                  
+                  <TabsTrigger 
+                    value="global" 
+                    className={`px-5 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                      selectedVotingStage === 'global' 
+                        ? 'bg-white border-blue-200 border-t border-l border-r text-blue-800' 
+                        : currentEventStage === 'global'
+                          ? 'bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                    disabled={currentEventStage !== 'global'}
+                  >
+                    Global Voting
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Content area for submissions */}
+                <TabsContent value={selectedVotingStage} className="mt-0 px-0">
+                  {/* Stage explanation banner */}
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="mr-3 mt-0.5">
+                        <AlertCircle className="h-5 w-5 text-blue-500" />
                       </div>
-                      
-                      {submission.contentType === "text" ? (
-                        <div className="p-4 font-artistic text-blue-800 bg-white">
-                          <p className="whitespace-pre-line">{submission.content}</p>
-                        </div>
-                      ) : (
-                        <div className="h-48 bg-blue-50 border-y border-blue-100">
-                          <img 
-                            src={submission.content} 
-                            alt={submission.title} 
-                            className="w-full h-full object-cover shadow-inner" 
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-blue-700">
-                            {submission.voteCount || 0} votes received
-                          </span>
-                          <span className="text-xs text-blue-500">
-                            {submission.eventId === eventId 
-                              ? `Current event: ${submission.eventName || activeVotingEvent?.name}` 
-                              : submission.eventName 
-                                ? `Event: ${submission.eventName}` 
-                                : `Event #${submission.eventId}`}
-                          </span>
-                        </div>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className={submission.hasVoted 
-                            ? "bg-green-600 hover:bg-green-700 text-white rounded-full"
-                            : votingStats && votingStats.remaining <= 0
-                              ? "bg-gray-400 text-white rounded-full cursor-not-allowed"
-                              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"}
-                          onClick={() => handleVote(submission.id)}
-                          disabled={submission.hasVoted || voteMutation.isPending || (votingStats && votingStats.remaining <= 0)}
-                          title={votingStats && votingStats.remaining <= 0 ? "You have used all your votes" : ""}
-                        >
-                          {submission.hasVoted ? (
-                            <><CheckCircle2 className="h-4 w-4 mr-1" /> Voted</>
-                          ) : votingStats && votingStats.remaining <= 0 ? (
-                            <><Vote className="h-4 w-4 mr-1" /> No votes left</>
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-700 mb-1">
+                          {selectedVotingStage === 'class' ? (
+                            "Class Voting Stage"
+                          ) : selectedVotingStage === 'school' ? (
+                            "School Voting Stage"
+                          ) : selectedVotingStage === 'country' ? (
+                            "Country Voting Stage"
                           ) : (
-                            <><Heart className="h-4 w-4 mr-1" /> Vote</>
+                            "Global Voting Stage"
                           )}
-                        </Button>
+                        </h3>
+                        <p className="text-sm text-blue-600">
+                          {selectedVotingStage === 'class' ? (
+                            "Vote for submissions from students in your class. The top 3 submissions will advance to the School stage."
+                          ) : selectedVotingStage === 'school' ? (
+                            "Vote for class winners from students in your grade level and school. The top 3 submissions will advance to the Country stage."
+                          ) : selectedVotingStage === 'country' ? (
+                            "Vote for school winners from your country. The top 3 submissions will advance to the Global stage."
+                          ) : (
+                            "Vote for country winners to determine the global champions."
+                          )}
+                        </p>
+                        {selectedVotingStage !== currentEventStage && (
+                          <p className="text-xs text-blue-500 mt-1 italic">
+                            Note: You are viewing {selectedVotingStage} stage history. The current event stage is {currentEventStage}.
+                          </p>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                  
+                  {/* Submission list */}
+                  {isLoadingVotableSubmissions ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    </div>
+                  ) : !Array.isArray(votableSubmissions) || votableSubmissions.length === 0 ? (
+                    <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                      <div className="inline-block h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 mx-auto">
+                        <Vote className="h-8 w-8 text-blue-400" />
+                      </div>
+                      <p className="text-blue-700">
+                        {selectedVotingStage === currentEventStage ? (
+                          "No submissions available for voting in this stage yet."
+                        ) : (
+                          `No submissions found in the ${selectedVotingStage} stage history.`
+                        )}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {votableSubmissions.map((submission: any) => (
+                        <div key={submission.id} className="border border-blue-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                          <div className="p-4 bg-blue-50">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-medium text-blue-900">{submission.title}</h3>
+                              <span className="text-xs text-blue-600">{submission.userFullName || "Anonymous"}</span>
+                            </div>
+                            {/* Winner badges if applicable */}
+                            {selectedVotingStage !== 'class' && submission.classWinner && (
+                              <div className="mt-1">
+                                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700 text-xs">
+                                  <Trophy className="mr-1 h-3 w-3" /> Class Winner
+                                </Badge>
+                              </div>
+                            )}
+                            {selectedVotingStage !== 'school' && selectedVotingStage !== 'class' && submission.schoolWinner && (
+                              <div className="mt-1">
+                                <Badge variant="outline" className="bg-indigo-50 border-indigo-200 text-indigo-700 text-xs">
+                                  <Trophy className="mr-1 h-3 w-3" /> School Winner
+                                </Badge>
+                              </div>
+                            )}
+                            {selectedVotingStage === 'global' && submission.countryWinner && (
+                              <div className="mt-1">
+                                <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700 text-xs">
+                                  <Trophy className="mr-1 h-3 w-3" /> Country Winner
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {submission.contentType === "text" ? (
+                            <div className="p-4 font-artistic text-blue-800 bg-white">
+                              <p className="whitespace-pre-line">{submission.content}</p>
+                            </div>
+                          ) : (
+                            <div className="h-48 bg-blue-50 border-y border-blue-100">
+                              <img 
+                                src={submission.content} 
+                                alt={submission.title} 
+                                className="w-full h-full object-cover shadow-inner" 
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-blue-700">
+                                {submission.voteCount || 0} votes received
+                              </span>
+                              <span className="text-xs text-blue-500">
+                                {submission.eventId === eventId 
+                                  ? `Current event: ${submission.eventName || activeVotingEvent?.name}` 
+                                  : submission.eventName 
+                                    ? `Event: ${submission.eventName}` 
+                                    : `Event #${submission.eventId}`}
+                              </span>
+                            </div>
+                            
+                            {/* Only show vote button if viewing current stage */}
+                            {selectedVotingStage === currentEventStage ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className={submission.hasVoted 
+                                  ? "bg-green-600 hover:bg-green-700 text-white rounded-full"
+                                  : votingStats && votingStats.remaining <= 0
+                                    ? "bg-gray-400 text-white rounded-full cursor-not-allowed"
+                                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full"}
+                                onClick={() => handleVote(submission.id)}
+                                disabled={submission.hasVoted || voteMutation.isPending || (votingStats && votingStats.remaining <= 0)}
+                                title={votingStats && votingStats.remaining <= 0 ? "You have used all your votes" : ""}
+                              >
+                                {submission.hasVoted ? (
+                                  <><CheckCircle2 className="h-4 w-4 mr-1" /> Voted</>
+                                ) : votingStats && votingStats.remaining <= 0 ? (
+                                  <><Vote className="h-4 w-4 mr-1" /> No votes left</>
+                                ) : (
+                                  <><Heart className="h-4 w-4 mr-1" /> Vote</>
+                                )}
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                                Previous Stage
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </TabsContent>

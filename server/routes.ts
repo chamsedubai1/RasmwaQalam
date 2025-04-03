@@ -1083,6 +1083,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if event stage is explicitly provided in the query parameters
       const requestedEventStage = req.query.currentEventStage as string;
       
+      // Check if we want a specific historical stage different from the current event stage
+      // This is used to view voting history from previous stages
+      const requestedStage = req.query.requestedStage as string;
+      
       // Get current event to determine voting stage
       let currentEvent = eventId ? await storage.getEvent(eventId) : null;
       
@@ -1091,7 +1095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Submissions query params:', { 
         userId, eventId, classId, forVoting, currentUserId, currentEventStage,
-        requestedStage: requestedEventStage,
+        requestedStage,
         actualEventStage: currentEvent?.stage 
       });
       
@@ -1169,19 +1173,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get current event to determine its stage
           console.log(`Current event stage from request: ${currentEventStage}`);
           
+          // Check if we have a request for a specific voting stage (might be different from current event stage)
+          // This is used for viewing voting history from previous stages
+          const stageToUseForFiltering = requestedStage || currentEventStage;
+          
           // 1. CRITICAL FIX: Apply winner status filtering FIRST based on the stage
           // This ensures only winners from previous stages are shown
-          if (currentEventStage === 'school') {
+          if (stageToUseForFiltering === 'school') {
             // In school stage, only show class winners from previous stage
             const beforeFilter = submissions.length;
             submissions = submissions.filter(sub => sub.classWinner === true);
             console.log(`CRITICAL FILTER: Filtered to only class winners: ${beforeFilter} -> ${submissions.length}`);
-          } else if (currentEventStage === 'country') {
+          } else if (stageToUseForFiltering === 'country') {
             // In country stage, only show school winners from previous stage
             const beforeFilter = submissions.length;
             submissions = submissions.filter(sub => sub.schoolWinner === true);
             console.log(`CRITICAL FILTER: Filtered to only school winners: ${beforeFilter} -> ${submissions.length}`);
-          } else if (currentEventStage === 'global') {
+          } else if (stageToUseForFiltering === 'global') {
             // In global stage, only show country winners from previous stage
             const beforeFilter = submissions.length;
             submissions = submissions.filter(sub => sub.countryWinner === true);
@@ -1197,7 +1205,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Filtered out user's own and unvalidated submissions: ${beforeBasicFilter} -> ${submissions.length}`);
           
           // 3. Apply additional stage-specific filters for user context (class, grade, school)
-          switch (currentEventStage) {
+          // Use the requested stage for filtering if available, otherwise use current event stage
+          switch (stageToUseForFiltering) {
             case 'class':
               // CLASS STAGE: Only show submissions from students in the same class
               if (classId) {
