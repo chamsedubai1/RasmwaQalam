@@ -2,6 +2,7 @@ import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import EventVotingHistory from "./event-voting-history";
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Eye, BarChart, TrendingUp, Award } from "lucide-react";
 
 interface SubmissionValidationTableProps {
   classId: number;
@@ -168,6 +169,10 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
             {rejectedSubmissions.length > 0 && (
               <Badge className="ml-2 bg-red-500">{rejectedSubmissions.length}</Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="votingHistory">
+            Event Voting History
+            <Badge className="ml-2 bg-blue-500"><BarChart className="h-3 w-3" /></Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -402,6 +407,20 @@ const SubmissionValidationTable: React.FC<SubmissionValidationTableProps> = ({
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="votingHistory">
+          <Card>
+            <CardHeader>
+              <CardTitle>Event Voting History</CardTitle>
+              <CardDescription>
+                View voting analytics for events related to your class
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <EventVotingHistory classId={classId} />
             </CardContent>
           </Card>
         </TabsContent>

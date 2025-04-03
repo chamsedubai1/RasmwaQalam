@@ -84,6 +84,7 @@ export const submissions = pgTable("submissions", {
   content: text("content").notNull(), // poem text or image URL
   userId: integer("user_id").notNull(),
   eventId: integer("event_id").notNull(),
+  classId: integer("class_id"), // The class of the student making the submission
   submittedAt: timestamp("submitted_at").defaultNow(),
   validated: boolean("validated"), // Teacher validation for submissions (null means pending)
   classWinner: boolean("class_winner").default(false),

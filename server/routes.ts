@@ -1517,6 +1517,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Event not found' });
       }
       
+      // Get user info to get their class ID
+      const user = await storage.getUser(submissionData.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Add user's classId to the submission data
+      if (user.classId) {
+        submissionData.classId = user.classId;
+      }
+      
       // Check if event is in a stage that allows submissions (only class stage)
       if (event.stage !== 'class') {
         return res.status(403).json({ 
@@ -1843,6 +1854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get('/events/:id/voting-history', async (req, res) => {
     try {
       const eventId = Number(req.params.id);
+      const classId = req.query.classId ? Number(req.query.classId) : null;
       
       const event = await storage.getEvent(eventId);
       if (!event) {
@@ -1857,6 +1869,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schoolStageWinners = allSubmissions.filter(sub => sub.schoolWinner === true);
       const countryStageWinners = allSubmissions.filter(sub => sub.countryWinner === true);
       const globalStageWinners = allSubmissions.filter(sub => sub.globalWinner === true);
+
+      // For teacher view, we need to filter data based on their class
+      let classInfo = null;
+      let schoolInfo = null;
+      let filteredClassWinners = classStageWinners;
+      let filteredSchoolWinners = schoolStageWinners;
+
+      if (classId) {
+        // Get class and school info for the teacher
+        classInfo = await storage.getClass(classId);
+        
+        if (classInfo) {
+          schoolInfo = classInfo.schoolId ? await storage.getSchool(classInfo.schoolId) : null;
+          
+          // For Class stage: Only include submissions from the teacher's own class
+          filteredClassWinners = classStageWinners.filter(async (sub) => {
+            const user = await storage.getUser(sub.userId);
+            return user && user.classId === classId;
+          });
+          
+          // For School stage: Only include submissions from the same grade level in the school
+          if (schoolInfo && classInfo.gradeLevel) {
+            filteredSchoolWinners = await Promise.all(
+              schoolStageWinners.filter(async (sub) => {
+                const user = await storage.getUser(sub.userId);
+                if (!user || !user.classId) return false;
+                
+                const userClass = await storage.getClass(user.classId);
+                return userClass && 
+                       userClass.schoolId === classInfo.schoolId && 
+                       userClass.gradeLevel === classInfo.gradeLevel;
+              })
+            );
+          }
+        }
+      }
       
       // For each submission, get the vote count and user details
       const processSubmissions = async (submissions: Submission[]) => {
@@ -1899,53 +1947,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Get enhanced data for each stage
-      const classStageResults = await processSubmissions(classStageWinners);
-      const schoolStageResults = await processSubmissions(schoolStageWinners);
+      const classStageResults = await processSubmissions(filteredClassWinners);
+      const schoolStageResults = await processSubmissions(filteredSchoolWinners);
       const countryStageResults = await processSubmissions(countryStageWinners);
       const globalStageResults = await processSubmissions(globalStageWinners);
       
-      // Get overall event statistics
-      const totalSubmissions = allSubmissions.length;
-      const validatedSubmissions = allSubmissions.filter(sub => sub.validated === true).length;
-      const rejectedSubmissions = allSubmissions.filter(sub => sub.validated === false).length;
-      const pendingSubmissions = allSubmissions.filter(sub => sub.validated === null).length;
+      // Get votes for each stage based on available submissions
+      let classStageVotes = 0;
+      let schoolStageVotes = 0;
       
-      res.json({
-        event: {
-          id: event.id,
-          name: event.name,
-          currentStage: event.stage, 
-          status: event.status
-        },
-        stats: {
+      for (const sub of filteredClassWinners) {
+        classStageVotes += await storage.getVoteCountForSubmission(sub.id);
+      }
+      
+      for (const sub of filteredSchoolWinners) {
+        schoolStageVotes += await storage.getVoteCountForSubmission(sub.id);
+      }
+      
+      // Get submissions specific to the class or school if classId is provided
+      let filteredSubmissions = allSubmissions;
+      
+      if (classId && classInfo) {
+        // For class-specific view, get submissions from this class
+        const classSubmissions = await storage.getSubmissionsByClass(classId);
+        
+        // Additional filter for same grade if we're looking at school level
+        if (schoolInfo && classInfo.gradeLevel) {
+          // Get classes in the same grade
+          const schoolClasses = await storage.getClassesBySchool(schoolInfo.id);
+          const sameGradeClasses = schoolClasses.filter(c => c.gradeLevel === classInfo.gradeLevel);
+          
+          // Get submissions from same-grade classes
+          const sameGradeSubmissions = [];
+          for (const cls of sameGradeClasses) {
+            const clsSubmissions = await storage.getSubmissionsByClass(cls.id);
+            sameGradeSubmissions.push(...clsSubmissions);
+          }
+          
+          // Add to filtered submissions
+          filteredSubmissions = [...classSubmissions, ...sameGradeSubmissions];
+        } else {
+          filteredSubmissions = classSubmissions;
+        }
+      }
+      
+      // Get overall statistics for filtered submissions
+      const totalSubmissions = filteredSubmissions.length;
+      const validatedSubmissions = filteredSubmissions.filter(sub => sub.validated === true).length;
+      const rejectedSubmissions = filteredSubmissions.filter(sub => sub.validated === false).length;
+      const pendingSubmissions = filteredSubmissions.filter(sub => sub.validated === null).length;
+      const approvalRate = totalSubmissions > 0 
+        ? Math.round((validatedSubmissions / totalSubmissions) * 100) 
+        : 0;
+      
+      // Determine overall votes (sum of votes on all validated submissions)
+      let totalVotes = 0;
+      for (const sub of filteredSubmissions.filter(s => s.validated === true)) {
+        totalVotes += await storage.getVoteCountForSubmission(sub.id);
+      }
+      
+      // Format the response for the teacher view
+      const response = {
+        eventId: event.id,
+        eventName: event.name,
+        eventType: event.type,
+        eventStage: event.stage,
+        eventStatus: event.status,
+        className: classInfo ? classInfo.name : null,
+        schoolName: schoolInfo ? schoolInfo.name : null,
+        
+        // Overall stats
+        overall: {
           totalSubmissions,
+          totalVotes,
+          approvalRate,
           validatedSubmissions,
           rejectedSubmissions,
           pendingSubmissions,
-          classWinners: classStageWinners.length,
-          schoolWinners: schoolStageWinners.length,
-          countryWinners: countryStageWinners.length,
-          globalWinners: globalStageWinners.length
         },
-        history: {
-          classStage: {
-            winners: classStageResults.sort((a, b) => b.voteCount - a.voteCount),
-            completed: event.stage !== 'class'
-          },
-          schoolStage: {
-            winners: schoolStageResults.sort((a, b) => b.voteCount - a.voteCount),
-            completed: ['school', 'country', 'global'].includes(event.stage)
-          },
-          countryStage: {
-            winners: countryStageResults.sort((a, b) => b.voteCount - a.voteCount),
-            completed: ['country', 'global'].includes(event.stage)
-          },
-          globalStage: {
-            winners: globalStageResults.sort((a, b) => b.voteCount - a.voteCount),
-            completed: event.stage === 'global' && event.status === 'closed'
-          }
-        }
-      });
+        
+        // Class stage data
+        classStage: {
+          totalSubmissions: filteredClassWinners.length,
+          totalVotes: classStageVotes,
+          winnersCount: classStageResults.length,
+          winners: classStageResults.sort((a, b) => b.voteCount - a.voteCount),
+          completed: event.stage !== 'class'
+        },
+        
+        // School stage data
+        schoolStage: {
+          totalSubmissions: filteredSchoolWinners.length,
+          totalVotes: schoolStageVotes,
+          winnersCount: schoolStageResults.length,
+          winners: schoolStageResults.sort((a, b) => b.voteCount - a.voteCount),
+          completed: ['school', 'country', 'global'].includes(event.stage)
+        },
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error('Error fetching event voting history:', error);
       res.status(500).json({ message: 'Failed to fetch event voting history' });

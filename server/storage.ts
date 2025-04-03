@@ -670,7 +670,18 @@ export class MemStorage implements IStorage {
   }
   
   async getSubmissionsByClass(classId: number): Promise<Submission[]> {
-    // Get all students in this class
+    // First, try to get submissions directly by classId
+    const submissionsByClassId = Array.from(this.submissions.values()).filter(
+      sub => sub.classId === classId
+    );
+    
+    // If we found submissions with classId, return them
+    if (submissionsByClassId.length > 0) {
+      return submissionsByClassId;
+    }
+    
+    // Fallback to the old method: get submissions via student IDs
+    // This is for backward compatibility with existing submissions
     const students = await this.getUsersByClass(classId);
     const studentIds = students.map(student => student.id);
     
