@@ -1701,24 +1701,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventSubmissions.map(async (sub) => {
           // Calculate the vote count for each submission
           const voteCount = await storage.getVoteCountForSubmission(sub.id);
-          return { ...sub, voteCount };
+          
+          // Get user info to determine class
+          const user = await storage.getUser(sub.userId);
+          const classId = user?.classId;
+          
+          return { ...sub, voteCount, classId };
         })
       );
       
-      // 2. Sort submissions by vote count (descending)
-      submissionsWithVoteCounts.sort((a, b) => b.voteCount - a.voteCount);
+      // Get a list of unique class IDs from the submissions
+      const classIdsSet = new Set<number>();
       
-      // 3. Determine which field to set based on current stage
+      // Collect all unique class IDs
+      submissionsWithVoteCounts
+        .filter(sub => sub.classId !== undefined && sub.classId !== null)
+        .forEach(sub => classIdsSet.add(sub.classId as number));
+      
+      // Convert to array
+      const classIds = Array.from(classIdsSet);
+      
+      console.log(`Found submissions from ${classIds.length} different classes`);
+      
+      // 2. Determine which field to set based on current stage
       const winnerField = 
         currentStage === 'class' ? 'classWinner' : 
         currentStage === 'school' ? 'schoolWinner' : 
         currentStage === 'country' ? 'countryWinner' : 'globalWinner';
       
-      // 4. Take top 3 submissions (or fewer if there are less than 3)
-      const topSubmissions = submissionsWithVoteCounts.slice(0, 3);
-      const winnerIds = topSubmissions.map(sub => sub.id);
+      let winnerIds: number[] = [];
       
-      console.log(`Marking top ${winnerIds.length} submissions as ${currentStage} winners:`, winnerIds);
+      if (currentStage === 'class') {
+        // For class stage, we need to determine winners for each class separately
+        
+        for (const classId of classIds) {
+          // Get submissions for this class
+          const classSubmissions = submissionsWithVoteCounts.filter(sub => sub.classId === classId);
+          
+          // Sort by vote count (descending)
+          classSubmissions.sort((a, b) => b.voteCount - a.voteCount);
+          
+          console.log(`Class ${classId}: ${classSubmissions.length} submissions`);
+          
+          if (classSubmissions.length === 0) continue;
+          
+          // Take top 3 submissions from this class (handle ties for 3rd place)
+          const topSubmissionsForClass = [];
+          
+          // Always include the top 2 submissions if they exist
+          if (classSubmissions.length >= 1) topSubmissionsForClass.push(classSubmissions[0]);
+          if (classSubmissions.length >= 2) topSubmissionsForClass.push(classSubmissions[1]);
+          
+          // For the 3rd position, include all submissions that tie with the 3rd place score
+          if (classSubmissions.length >= 3) {
+            const thirdPlaceScore = classSubmissions[2].voteCount;
+            const tiedSubmissions = classSubmissions.filter((sub, index) => 
+              index >= 2 && sub.voteCount === thirdPlaceScore
+            );
+            
+            topSubmissionsForClass.push(...tiedSubmissions);
+          }
+          
+          // Add the winning IDs from this class to the overall winners list
+          const classWinnerIds = topSubmissionsForClass.map(sub => sub.id);
+          winnerIds.push(...classWinnerIds);
+          
+          console.log(`Top submissions for class ${classId}:`, classWinnerIds.length);
+        }
+      } else {
+        // For other stages, we use the previous approach but handle ties
+        
+        // Sort submissions by vote count (descending)
+        submissionsWithVoteCounts.sort((a, b) => b.voteCount - a.voteCount);
+        
+        // Take top 3 submissions but include any that tie with the 3rd place score
+        const topSubmissions = [];
+        
+        // Always include the top 2 submissions if they exist
+        if (submissionsWithVoteCounts.length >= 1) topSubmissions.push(submissionsWithVoteCounts[0]);
+        if (submissionsWithVoteCounts.length >= 2) topSubmissions.push(submissionsWithVoteCounts[1]);
+        
+        // For the 3rd position, include all submissions that tie with the 3rd place score
+        if (submissionsWithVoteCounts.length >= 3) {
+          const thirdPlaceScore = submissionsWithVoteCounts[2].voteCount;
+          const tiedSubmissions = submissionsWithVoteCounts.filter((sub, index) => 
+            index >= 2 && sub.voteCount === thirdPlaceScore
+          );
+          
+          topSubmissions.push(...tiedSubmissions);
+        }
+        
+        winnerIds = topSubmissions.map(sub => sub.id);
+      }
+      
+      console.log(`Marking ${winnerIds.length} submissions as ${currentStage} winners:`, winnerIds);
       
       // 5. Mark these submissions as winners for the current stage
       for (const id of winnerIds) {

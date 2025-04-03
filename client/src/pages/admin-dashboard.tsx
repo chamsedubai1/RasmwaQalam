@@ -1146,7 +1146,93 @@ const AdminDashboard: React.FC = () => {
       }
       
       const data = await response.json();
-      setVotingHistoryData(data);
+      
+      // Process the raw API data into a format suitable for the UI
+      const processedData = {
+        eventName: data.event.name,
+        eventStatus: data.event.status,
+        eventStage: data.event.currentStage,
+        
+        // Class stage
+        classStage: {
+          // Basic stats
+          totalSubmissions: data.stats.totalSubmissions,
+          totalVotes: data.history.classStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          winnersCount: data.history.classStage.winners.length,
+          completed: data.history.classStage.completed,
+          
+          // Format winners data for UI
+          winners: data.history.classStage.winners.map((winner: any) => ({
+            id: winner.id,
+            studentName: winner.userFullName,
+            className: winner.className,
+            schoolName: winner.schoolName,
+            gradeLevel: winner.gradeLevel,
+            voteCount: winner.voteCount,
+            thumbnail: winner.thumbnail,
+            title: winner.title
+          }))
+        },
+        
+        // School stage
+        schoolStage: {
+          totalSubmissions: data.history.schoolStage.winners.length,
+          totalVotes: data.history.schoolStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          winnersCount: data.history.schoolStage.winners.length,
+          completed: data.history.schoolStage.completed,
+          
+          winners: data.history.schoolStage.winners.map((winner: any) => ({
+            id: winner.id,
+            studentName: winner.userFullName,
+            className: winner.className,
+            schoolName: winner.schoolName,
+            gradeLevel: winner.gradeLevel,
+            voteCount: winner.voteCount,
+            thumbnail: winner.thumbnail,
+            title: winner.title
+          }))
+        },
+        
+        // Country stage
+        countryStage: {
+          totalSubmissions: data.history.countryStage.winners.length,
+          totalVotes: data.history.countryStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          winnersCount: data.history.countryStage.winners.length,
+          completed: data.history.countryStage.completed,
+          
+          winners: data.history.countryStage.winners.map((winner: any) => ({
+            id: winner.id,
+            studentName: winner.userFullName,
+            className: winner.className,
+            schoolName: winner.schoolName,
+            gradeLevel: winner.gradeLevel,
+            voteCount: winner.voteCount,
+            thumbnail: winner.thumbnail,
+            title: winner.title
+          }))
+        },
+        
+        // Global stage
+        globalStage: {
+          totalSubmissions: data.history.globalStage.winners.length,
+          totalVotes: data.history.globalStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          winnersCount: data.history.globalStage.winners.length,
+          completed: data.history.globalStage.completed,
+          
+          winners: data.history.globalStage.winners.map((winner: any) => ({
+            id: winner.id,
+            studentName: winner.userFullName,
+            className: winner.className,
+            schoolName: winner.schoolName,
+            gradeLevel: winner.gradeLevel,
+            voteCount: winner.voteCount,
+            thumbnail: winner.thumbnail,
+            title: winner.title
+          }))
+        }
+      };
+      
+      setVotingHistoryData(processedData);
     } catch (error) {
       console.error("Error fetching voting history:", error);
       toast({
