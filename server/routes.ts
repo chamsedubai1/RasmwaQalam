@@ -1182,19 +1182,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // This ensures only winners from previous stages are shown
           if (stageToUseForFiltering === 'school') {
             // In school stage, only show class winners from previous stage
-            const beforeFilter = submissions.length;
-            submissions = submissions.filter(sub => sub.classWinner === true);
-            console.log(`CRITICAL FILTER: Filtered to only class winners: ${beforeFilter} -> ${submissions.length}`);
+            // Get ALL submissions for this event, not just from user's class
+            if (event) {
+              // First get all current submissions across all classes/schools
+              const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
+              console.log(`SCHOOL STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
+              
+              // Then filter to only class winners
+              const beforeFilter = allEventSubmissions.length;
+              submissions = allEventSubmissions.filter(sub => sub.classWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only class winners: ${beforeFilter} -> ${submissions.length}`);
+            } else {
+              // Fallback to previous behavior if no event (shouldn't happen)
+              const beforeFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.classWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only class winners: ${beforeFilter} -> ${submissions.length}`);
+            }
           } else if (stageToUseForFiltering === 'country') {
             // In country stage, only show school winners from previous stage
-            const beforeFilter = submissions.length;
-            submissions = submissions.filter(sub => sub.schoolWinner === true);
-            console.log(`CRITICAL FILTER: Filtered to only school winners: ${beforeFilter} -> ${submissions.length}`);
+            // Same improvement as for school stage - get ALL submissions for this event across all schools
+            if (event) {
+              // First get all current submissions across all classes/schools
+              const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
+              console.log(`COUNTRY STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
+              
+              // Then filter to only school winners
+              const beforeFilter = allEventSubmissions.length;
+              submissions = allEventSubmissions.filter(sub => sub.schoolWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only school winners: ${beforeFilter} -> ${submissions.length}`);
+            } else {
+              // Fallback to previous behavior if no event (shouldn't happen)
+              const beforeFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.schoolWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only school winners: ${beforeFilter} -> ${submissions.length}`);
+            }
           } else if (stageToUseForFiltering === 'global') {
             // In global stage, only show country winners from previous stage
-            const beforeFilter = submissions.length;
-            submissions = submissions.filter(sub => sub.countryWinner === true);
-            console.log(`CRITICAL FILTER: Filtered to only country winners: ${beforeFilter} -> ${submissions.length}`);
+            // Same improvement as for other stages - get ALL submissions for this event
+            if (event) {
+              // First get all current submissions across all classes/schools
+              const allEventSubmissions = await storage.getSubmissionsByEvent(eventId);
+              console.log(`GLOBAL STAGE IMPROVEMENT: Retrieved all ${allEventSubmissions.length} submissions for event`);
+              
+              // Then filter to only country winners
+              const beforeFilter = allEventSubmissions.length;
+              submissions = allEventSubmissions.filter(sub => sub.countryWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only country winners: ${beforeFilter} -> ${submissions.length}`);
+            } else {
+              // Fallback to previous behavior if no event (shouldn't happen)
+              const beforeFilter = submissions.length;
+              submissions = submissions.filter(sub => sub.countryWinner === true);
+              console.log(`CRITICAL FILTER: Filtered to only country winners: ${beforeFilter} -> ${submissions.length}`);
+            }
           }
           
           // 2. Basic Filtering: Remove user's own submissions and unvalidated submissions 
