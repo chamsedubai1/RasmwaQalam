@@ -1094,6 +1094,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the requested stage if provided, otherwise use the event's stage, or fall back to 'class'
       let currentEventStage = requestedEventStage || (currentEvent ? currentEvent.stage : 'class');
       
+      // For historical voting stages, we need to know the actual event stage to properly show voting history
+      const isHistoricalView = requestedStage && requestedStage !== currentEventStage;
+      
       console.log('Submissions query params:', { 
         userId, eventId, classId, forVoting, currentUserId, currentEventStage,
         requestedStage,
@@ -1422,7 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // If we have a current event, check if this is a winner from previous stage
             // In that case, we'll set hasVoted to false to allow voting again
-            if (hasVoted && currentEvent) {
+            if (hasVoted && currentEvent && !isHistoricalView) {
               let isWinnerFromPreviousStage = false;
               
               switch (currentEvent.stage) {
@@ -1994,46 +1997,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if voter has already voted for this submission
       const hasVoted = await storage.hasUserVotedForSubmission(voteData.voterId, voteData.submissionId);
       
-      // Special case handling: User can vote again if it's a submission that won in a previous stage
-      // and we're now in a new stage
-      let isWinnerFromPreviousStage = false;
-      
-      switch (event.stage) {
-        case 'school':
-          // If we're in school stage, we can vote for class winners again
-          isWinnerFromPreviousStage = submission.classWinner === true;
-          break;
-        case 'country':
-          // If we're in country stage, we can vote for school winners again
-          isWinnerFromPreviousStage = submission.schoolWinner === true;
-          break;
-        case 'global':
-          // If we're in global stage, we can vote for country winners again
-          isWinnerFromPreviousStage = submission.countryWinner === true;
-          break;
-      }
-      
-      // If user has already voted for this submission and it's not a winner from previous stage,
-      // then we reject the vote
-      if (hasVoted && !isWinnerFromPreviousStage) {
+      // When a user has already voted for this submission, we reject the vote
+      // Removed the special case handling based on winners from previous stages
+      // This ensures even if a submission is a winner from a previous stage, users cannot vote multiple times
+      if (hasVoted) {
         return res.status(409).json({ message: 'User already voted for this submission' });
       }
       
-      // If user has already voted for this submission and it IS a winner from previous stage,
-      // we need to remove their previous vote before adding a new one
-      if (hasVoted && isWinnerFromPreviousStage) {
-        console.log(`User ${voteData.voterId} is voting again for submission ${voteData.submissionId} which was a winner in a previous stage`);
-        
-        // Find the previous vote
-        const userVotes = await storage.getVotesByVoter(voteData.voterId);
-        const previousVote = userVotes.find(vote => vote.submissionId === voteData.submissionId);
-        
-        // Delete the previous vote
-        if (previousVote) {
-          await storage.deleteVote(previousVote.id);
-          console.log(`Deleted previous vote (id: ${previousVote.id}) to allow voting again for winner from previous stage`);
-        }
-      }
+      // This special handling for previous stage winners has been removed
+      // to enforce the rule that users can only vote once per submission
+      // even across different competition stages
       
       // Count how many votes this user has already cast for submissions in this event
       const userVotes = await storage.getVotesByVoter(voteData.voterId);
@@ -2047,7 +2020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Check if user has reached the maximum number of votes (3) for this event
-      if (votesInThisEvent.length >= 3 && !hasVoted) {
+      if (votesInThisEvent.length >= 3) {
         return res.status(403).json({ 
           message: 'Maximum number of votes (3) reached for this event',
           votesUsed: votesInThisEvent.length
@@ -2526,7 +2499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const newUser = await storage.createUser(userData);
             logToFile(`Successfully created user with ID: ${newUser.id}`);
             results.success++;
-          } catch (createError) {
+          } catch (createError: any) {
             const errorMsg = `Failed to create user: ${createError.message}`;
             logToFile(errorMsg);
             results.errors.push(`Row ${i + 1}: ${errorMsg}`);
