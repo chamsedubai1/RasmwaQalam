@@ -242,49 +242,13 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
         throw new Error('Failed to fetch participants');
       }
       
+      // The API now returns a complete participant entry for each submission
+      // with all the details we need, so we don't need to make additional requests
       const data = await response.json();
+      console.log(`Loaded ${data.length} participants (submissions) from the API`);
       
-      // Fetch additional data for each submission
-      const participantsWithDetails = await Promise.all(
-        data.map(async (participant: any) => {
-          if (participant.hasSubmitted && participant.submissionId) {
-            try {
-              const submissionResponse = await fetch(`/api/submissions/${participant.submissionId}`);
-              if (submissionResponse.ok) {
-                const submissionData = await submissionResponse.json();
-                return { 
-                  ...participant,
-                  submissionTitle: submissionData.title || "Untitled",
-                  voteCount: submissionData.voteCount || 0,
-                  classWinner: submissionData.classWinner || false,
-                  schoolWinner: submissionData.schoolWinner || false,
-                  countryWinner: submissionData.countryWinner || false,
-                  globalWinner: submissionData.globalWinner || false,
-                  // Determine the current stage
-                  currentStage: submissionData.globalWinner ? "Global" : 
-                               submissionData.countryWinner ? "Country" : 
-                               submissionData.schoolWinner ? "School" : 
-                               submissionData.classWinner ? "Class" : "-"
-                };
-              }
-            } catch (submissionErr) {
-              console.error(`Error fetching submission ${participant.submissionId}:`, submissionErr);
-            }
-          }
-          return { 
-            ...participant, 
-            submissionTitle: participant.hasSubmitted ? "Untitled" : "-",
-            voteCount: 0,
-            classWinner: false,
-            schoolWinner: false,
-            countryWinner: false,
-            globalWinner: false,
-            currentStage: "-"
-          };
-        })
-      );
-      
-      setParticipants(participantsWithDetails);
+      // The participant data now includes all the fields we need directly from the API
+      setParticipants(data);
     } catch (err) {
       console.error('Error fetching participants:', err);
       setError('Failed to load participants data');
@@ -581,12 +545,13 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
                         onClick={() => {
                           // Send reminder email
                           if (!participant.hasSubmitted && eventId) {
+                            // Now we need to use userId instead of id since we're working with submission-based entries
                             fetch(`/api/events/${eventId}/reminder`, {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
                               },
-                              body: JSON.stringify({ userId: participant.id }),
+                              body: JSON.stringify({ userId: participant.userId }),
                             })
                               .then((res) => {
                                 if (res.ok) {

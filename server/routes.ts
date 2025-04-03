@@ -2971,24 +2971,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all submissions for this event
       const eventSubmissions = await storage.getSubmissionsByEvent(eventId);
       
-      // Format participant data
-      const participants = userIds.map(userId => {
-        const user = allUsers.find(u => u.id === userId);
-        if (!user) return null;
+      // CRITICAL CHANGE: Create a participant entry for EACH SUBMISSION (not each user)
+      // This ensures we can properly track vote counts and winner status for each submission
+      let participants = [];
+      
+      // First add entries for users who have submitted
+      for (const submission of eventSubmissions) {
+        const user = allUsers.find(u => u.id === submission.userId);
+        if (!user) continue;
         
         // Find user's school and class
         const school = allSchools.find(s => s.id === user.schoolId);
         const classInfo = allClasses.find(c => c.id === user.classId);
         
         // Find registration for this user
-        const registration = registrations.find(r => r.userId === userId);
+        const registration = registrations.find(r => r.userId === user.id);
         
-        // Check if user has submitted
-        const submission = eventSubmissions.find(s => s.userId === userId);
-        const hasSubmitted = !!submission;
+        // Get votes for this submission
+        const voteCount = await storage.getVoteCountForSubmission(submission.id);
         
-        return {
-          id: user.id,
+        participants.push({
+          id: submission.id, // Important: Now using submission ID as primary identifier
+          userId: user.id,
           name: user.fullName,
           email: user.email,
           schoolId: user.schoolId,
@@ -2997,11 +3001,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           className: classInfo ? classInfo.name : 'Unknown',
           gradeLevel: user.gradeLevel || classInfo?.gradeLevel || 'Unknown',
           registrationDate: registration?.registeredAt,
-          hasSubmitted,
-          submissionId: submission?.id || null
-        };
-      }).filter(Boolean);
+          hasSubmitted: true,
+          submissionId: submission.id,
+          submissionTitle: submission.title || "Untitled",
+          submissionDate: submission.submittedAt,
+          voteCount: voteCount,
+          classWinner: submission.classWinner || false,
+          schoolWinner: submission.schoolWinner || false,
+          countryWinner: submission.countryWinner || false,
+          globalWinner: submission.globalWinner || false,
+          currentStage: submission.globalWinner ? "Global" : 
+                         submission.countryWinner ? "Country" : 
+                         submission.schoolWinner ? "School" : 
+                         submission.classWinner ? "Class" : "-"
+        });
+      }
       
+      // Now add entries for users who registered but haven't submitted
+      for (const registration of registrations) {
+        // Skip users who have already submitted (we already added them above)
+        if (eventSubmissions.some(s => s.userId === registration.userId)) {
+          continue;
+        }
+        
+        const user = allUsers.find(u => u.id === registration.userId);
+        if (!user) continue;
+        
+        // Find user's school and class
+        const school = allSchools.find(s => s.id === user.schoolId);
+        const classInfo = allClasses.find(c => c.id === user.classId);
+        
+        participants.push({
+          id: `user-${user.id}`, // Using a different ID format for non-submissions
+          userId: user.id,
+          name: user.fullName,
+          email: user.email,
+          schoolId: user.schoolId,
+          schoolName: school ? school.name : 'Unknown',
+          classId: user.classId,
+          className: classInfo ? classInfo.name : 'Unknown',
+          gradeLevel: user.gradeLevel || classInfo?.gradeLevel || 'Unknown',
+          registrationDate: registration?.registeredAt,
+          hasSubmitted: false,
+          submissionId: null,
+          submissionTitle: "-",
+          voteCount: 0,
+          classWinner: false,
+          schoolWinner: false,
+          countryWinner: false,
+          globalWinner: false,
+          currentStage: "-"
+        });
+      }
+      
+      console.log(`Returning ${participants.length} participants with submission details for event ${eventId}`);
       res.json(participants);
     } catch (error) {
       console.error('Error fetching participants:', error);
