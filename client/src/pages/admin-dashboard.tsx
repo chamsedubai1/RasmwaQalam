@@ -399,21 +399,199 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
   return (
     <div className="w-full mx-auto">
       {filterFields}
-      <div className="overflow-x-auto w-full">
+      
+      {/* Card-based layout for better space utilization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {sortedParticipants.map((participant) => (
+          <div 
+            key={participant.id} 
+            className={`p-4 rounded-lg border ${
+              participant.classWinner ? "bg-blue-50 border-blue-200" :
+              participant.schoolWinner ? "bg-purple-50 border-purple-200" :
+              participant.countryWinner ? "bg-amber-50 border-amber-200" :
+              participant.globalWinner ? "bg-emerald-50 border-emerald-200" : 
+              "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-900">{participant.name}</h3>
+                <div className="text-sm text-gray-500">
+                  {participant.schoolName} • {participant.className} • Grade {participant.gradeLevel}
+                </div>
+              </div>
+              
+              <div className="flex space-x-2">
+                {participant.hasSubmitted && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        window.open(`/submission/${participant.submissionId}`, '_blank');
+                      }}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Award className="h-3.5 w-3.5 mr-1" />
+                          Mark Winner
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'class')}
+                          disabled={isMarkingWinner}
+                        >
+                          Class Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'school')}
+                          disabled={isMarkingWinner}
+                        >
+                          School Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'country')}
+                          disabled={isMarkingWinner}
+                        >
+                          Country Winner
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => markAsWinner(participant.submissionId, 'global')}
+                          disabled={isMarkingWinner}
+                        >
+                          Global Winner
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                )}
+                
+                {!participant.hasSubmitted && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Send reminder email
+                      if (!participant.hasSubmitted && eventId) {
+                        // Now we need to use userId instead of id since we're working with submission-based entries
+                        fetch(`/api/events/${eventId}/reminder`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ userId: participant.userId }),
+                        })
+                          .then((res) => {
+                            if (res.ok) {
+                              toast({
+                                title: "Reminder Sent",
+                                description: `Email reminder sent to ${participant.name}`,
+                              });
+                            } else {
+                              throw new Error('Failed to send reminder');
+                            }
+                          })
+                          .catch((error) => {
+                            toast({
+                              title: "Error",
+                              description: "Failed to send reminder",
+                              variant: "destructive",
+                            });
+                          });
+                      }
+                    }}
+                  >
+                    <Mail className="h-3.5 w-3.5 mr-1" />
+                    Send Reminder
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Submission information and statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <div>
+                <h4 className="text-xs uppercase font-medium text-gray-500 mb-1">Submission Details</h4>
+                {participant.hasSubmitted ? (
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-gray-500">Title:</span>
+                      <p className="text-sm font-medium">{participant.submissionTitle}</p>
+                    </div>
+                    <div className="flex space-x-4">
+                      <div>
+                        <span className="text-xs text-gray-500">Stage:</span>
+                        <p className="text-sm font-medium capitalize">{participant.currentStage}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500">Votes:</span>
+                        <p className="text-sm font-medium">{participant.voteCount}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Submitted:</span>
+                      <p className="text-sm font-medium">{participant.submittedAt ? new Date(participant.submittedAt).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-2 px-3 bg-gray-50 rounded-md text-gray-500 text-sm italic">
+                    No submission yet
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="text-xs uppercase font-medium text-gray-500 mb-1">Winner Status</h4>
+                {participant.hasSubmitted ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Badge variant="outline" className={`${participant.classWinner ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                      Class {participant.classWinner ? "Winner ✓" : "Stage"}
+                    </Badge>
+                    <Badge variant="outline" className={`${participant.schoolWinner ? "bg-purple-100 text-purple-800 border-purple-200" : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                      School {participant.schoolWinner ? "Winner ✓" : "Stage"}
+                    </Badge>
+                    <Badge variant="outline" className={`${participant.countryWinner ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                      Country {participant.countryWinner ? "Winner ✓" : "Stage"}
+                    </Badge>
+                    <Badge variant="outline" className={`${participant.globalWinner ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                      Global {participant.globalWinner ? "Winner ✓" : "Stage"}
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="py-2 px-3 bg-gray-50 rounded-md text-gray-500 text-sm italic">
+                    Not applicable
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Additional participant information */}
+            <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+              <span>Registered: {participant.registrationDate ? new Date(participant.registrationDate).toLocaleDateString() : 'N/A'}</span>
+              <span className="mx-2">•</span>
+              <span>ID: {participant.userId}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Traditional table view for mobile - Hidden on larger screens */}
+      <div className="overflow-x-auto w-full mt-4 lg:hidden">
         <table className="w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <SortableHeader label="Name" field="name" />
               <SortableHeader label="School" field="school" />
-              <SortableHeader label="Class" field="class" />
-              <SortableHeader label="Grade" field="grade" />
-              <SortableHeader label="Registration Date" field="registrationDate" />
-              <SortableHeader label="Submission Title" field="submissionTitle" />
+              <SortableHeader label="Submission" field="submissionTitle" />
               <SortableHeader label="Votes" field="voteCount" />
-              <SortableHeader label="Event Stage" field="stage" />
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Winner Status
-              </th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -421,163 +599,74 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedParticipants.map((participant) => (
-              <tr key={participant.id} className={
-                // Highlight winners with background color based on their current stage
+              <tr key={`table-${participant.id}`} className={
                 participant.classWinner ? "bg-blue-50" :
                 participant.schoolWinner ? "bg-purple-50" :
                 participant.countryWinner ? "bg-amber-50" :
                 participant.globalWinner ? "bg-emerald-50" : ""
               }>
-                <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                   {participant.name}
                 </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
                   {participant.schoolName}
                 </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {participant.className}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {participant.gradeLevel}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {participant.registrationDate 
-                    ? new Date(participant.registrationDate).toLocaleDateString() 
-                    : 'N/A'}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
                   {participant.hasSubmitted ? participant.submissionTitle : '-'}
                 </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
                   {participant.hasSubmitted ? participant.voteCount : '-'}
                 </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {participant.hasSubmitted ? participant.currentStage : '-'}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {participant.hasSubmitted ? (
-                    <div className="flex flex-wrap gap-1">
-                      {participant.classWinner && (
-                        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-                          Class
-                        </Badge>
-                      )}
-                      {participant.schoolWinner && (
-                        <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-                          School
-                        </Badge>
-                      )}
-                      {participant.countryWinner && (
-                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
-                          Country
-                        </Badge>
-                      )}
-                      {participant.globalWinner && (
-                        <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                          Global
-                        </Badge>
-                      )}
-                      {!participant.classWinner && !participant.schoolWinner && 
-                       !participant.countryWinner && !participant.globalWinner && "-"}
-                    </div>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="flex space-x-2">
-                    {participant.hasSubmitted && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.open(`/submission/${participant.submissionId}`, '_blank');
-                          }}
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1" />
-                          View
-                        </Button>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Award className="h-3.5 w-3.5 mr-1" />
-                              Mark Winner
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => markAsWinner(participant.submissionId, 'class')}
-                              disabled={isMarkingWinner}
-                            >
-                              Class Winner
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => markAsWinner(participant.submissionId, 'school')}
-                              disabled={isMarkingWinner}
-                            >
-                              School Winner
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => markAsWinner(participant.submissionId, 'country')}
-                              disabled={isMarkingWinner}
-                            >
-                              Country Winner
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => markAsWinner(participant.submissionId, 'global')}
-                              disabled={isMarkingWinner}
-                            >
-                              Global Winner
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
-                    )}
-                    
-                    {!participant.hasSubmitted && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // Send reminder email
-                          if (!participant.hasSubmitted && eventId) {
-                            // Now we need to use userId instead of id since we're working with submission-based entries
-                            fetch(`/api/events/${eventId}/reminder`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({ userId: participant.userId }),
-                            })
-                              .then((res) => {
-                                if (res.ok) {
-                                  toast({
-                                    title: "Reminder Sent",
-                                    description: `Email reminder sent to ${participant.name}`,
-                                  });
-                                } else {
-                                  throw new Error('Failed to send reminder');
-                                }
-                              })
-                              .catch((error) => {
+                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (participant.hasSubmitted) {
+                        window.open(`/submission/${participant.submissionId}`, '_blank');
+                      } else {
+                        // Send reminder email
+                        if (eventId) {
+                          fetch(`/api/events/${eventId}/reminder`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ userId: participant.userId }),
+                          })
+                            .then((res) => {
+                              if (res.ok) {
                                 toast({
-                                  title: "Error",
-                                  description: "Failed to send reminder",
-                                  variant: "destructive",
+                                  title: "Reminder Sent",
+                                  description: `Email reminder sent to ${participant.name}`,
                                 });
+                              } else {
+                                throw new Error('Failed to send reminder');
+                              }
+                            })
+                            .catch((error) => {
+                              toast({
+                                title: "Error",
+                                description: "Failed to send reminder",
+                                variant: "destructive",
                               });
-                          }
-                        }}
-                      >
+                            });
+                        }
+                      }
+                    }}
+                  >
+                    {participant.hasSubmitted ? (
+                      <>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        View
+                      </>
+                    ) : (
+                      <>
                         <Mail className="h-3.5 w-3.5 mr-1" />
                         Remind
-                      </Button>
+                      </>
                     )}
-                  </div>
+                  </Button>
                 </td>
               </tr>
             ))}
