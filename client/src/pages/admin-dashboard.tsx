@@ -1146,6 +1146,7 @@ const AdminDashboard: React.FC = () => {
       }
       
       const data = await response.json();
+      console.log("Voting history API response:", data);
       
       // Process the raw API data into a format suitable for the UI
       const processedData = {
@@ -1157,81 +1158,98 @@ const AdminDashboard: React.FC = () => {
         classStage: {
           // Basic stats
           totalSubmissions: data.stats.totalSubmissions,
-          totalVotes: data.history.classStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          totalVotes: data.history.classStage.winners.length > 0 
+            ? data.history.classStage.winners.reduce((sum: number, winner: any) => sum + (winner.voteCount || 0), 0)
+            : 0,
           winnersCount: data.history.classStage.winners.length,
           completed: data.history.classStage.completed,
           
-          // Format winners data for UI
-          winners: data.history.classStage.winners.map((winner: any) => ({
-            id: winner.id,
-            studentName: winner.userFullName,
-            className: winner.className,
-            schoolName: winner.schoolName,
-            gradeLevel: winner.gradeLevel,
-            voteCount: winner.voteCount,
-            thumbnail: winner.thumbnail,
-            title: winner.title
-          }))
+          // Format winners data for UI - Handle empty arrays safely
+          winners: Array.isArray(data.history.classStage.winners) 
+            ? data.history.classStage.winners.map((winner: any) => ({
+                id: winner.id,
+                studentName: winner.userFullName,
+                className: winner.className,
+                schoolName: winner.schoolName,
+                gradeLevel: winner.gradeLevel,
+                voteCount: winner.voteCount || 0,
+                thumbnail: winner.thumbnail,
+                title: winner.title
+              }))
+            : []
         },
         
         // School stage
         schoolStage: {
           totalSubmissions: data.history.schoolStage.winners.length,
-          totalVotes: data.history.schoolStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          totalVotes: data.history.schoolStage.winners.length > 0
+            ? data.history.schoolStage.winners.reduce((sum: number, winner: any) => sum + (winner.voteCount || 0), 0)
+            : 0,
           winnersCount: data.history.schoolStage.winners.length,
           completed: data.history.schoolStage.completed,
           
-          winners: data.history.schoolStage.winners.map((winner: any) => ({
-            id: winner.id,
-            studentName: winner.userFullName,
-            className: winner.className,
-            schoolName: winner.schoolName,
-            gradeLevel: winner.gradeLevel,
-            voteCount: winner.voteCount,
-            thumbnail: winner.thumbnail,
-            title: winner.title
-          }))
+          winners: Array.isArray(data.history.schoolStage.winners)
+            ? data.history.schoolStage.winners.map((winner: any) => ({
+                id: winner.id,
+                studentName: winner.userFullName,
+                className: winner.className,
+                schoolName: winner.schoolName,
+                gradeLevel: winner.gradeLevel,
+                voteCount: winner.voteCount || 0,
+                thumbnail: winner.thumbnail,
+                title: winner.title
+              }))
+            : []
         },
         
         // Country stage
         countryStage: {
           totalSubmissions: data.history.countryStage.winners.length,
-          totalVotes: data.history.countryStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          totalVotes: data.history.countryStage.winners.length > 0
+            ? data.history.countryStage.winners.reduce((sum: number, winner: any) => sum + (winner.voteCount || 0), 0)
+            : 0,
           winnersCount: data.history.countryStage.winners.length,
           completed: data.history.countryStage.completed,
           
-          winners: data.history.countryStage.winners.map((winner: any) => ({
-            id: winner.id,
-            studentName: winner.userFullName,
-            className: winner.className,
-            schoolName: winner.schoolName,
-            gradeLevel: winner.gradeLevel,
-            voteCount: winner.voteCount,
-            thumbnail: winner.thumbnail,
-            title: winner.title
-          }))
+          winners: Array.isArray(data.history.countryStage.winners)
+            ? data.history.countryStage.winners.map((winner: any) => ({
+                id: winner.id,
+                studentName: winner.userFullName,
+                className: winner.className,
+                schoolName: winner.schoolName,
+                gradeLevel: winner.gradeLevel,
+                voteCount: winner.voteCount || 0,
+                thumbnail: winner.thumbnail,
+                title: winner.title
+              }))
+            : []
         },
         
         // Global stage
         globalStage: {
           totalSubmissions: data.history.globalStage.winners.length,
-          totalVotes: data.history.globalStage.winners.reduce((sum: number, winner: any) => sum + winner.voteCount, 0),
+          totalVotes: data.history.globalStage.winners.length > 0
+            ? data.history.globalStage.winners.reduce((sum: number, winner: any) => sum + (winner.voteCount || 0), 0)
+            : 0,
           winnersCount: data.history.globalStage.winners.length,
           completed: data.history.globalStage.completed,
           
-          winners: data.history.globalStage.winners.map((winner: any) => ({
-            id: winner.id,
-            studentName: winner.userFullName,
-            className: winner.className,
-            schoolName: winner.schoolName,
-            gradeLevel: winner.gradeLevel,
-            voteCount: winner.voteCount,
-            thumbnail: winner.thumbnail,
-            title: winner.title
-          }))
+          winners: Array.isArray(data.history.globalStage.winners)
+            ? data.history.globalStage.winners.map((winner: any) => ({
+                id: winner.id,
+                studentName: winner.userFullName,
+                className: winner.className,
+                schoolName: winner.schoolName,
+                gradeLevel: winner.gradeLevel,
+                voteCount: winner.voteCount || 0,
+                thumbnail: winner.thumbnail,
+                title: winner.title
+              }))
+            : []
         }
       };
       
+      console.log("Processed voting history data:", processedData);
       setVotingHistoryData(processedData);
     } catch (error) {
       console.error("Error fetching voting history:", error);

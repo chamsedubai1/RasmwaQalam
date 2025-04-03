@@ -1952,6 +1952,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get overall statistics for reports
+  apiRouter.get('/reports/statistics', async (req, res) => {
+    try {
+      const allSchools = await storage.getAllSchools();
+      const allClasses = await storage.getAllClasses();
+      const allSubmissions = await storage.getAllSubmissions();
+      const allEvents = await storage.getAllEvents();
+      
+      // Process school statistics
+      const schoolStats = await Promise.all(allSchools.map(async (school) => {
+        // Get classes for this school
+        const schoolClasses = allClasses.filter(c => c.schoolId === school.id);
+        
+        // Get teachers and students for this school
+        const teachersCount = (await storage.getUsersByRole('teacher')).filter(t => 
+          schoolClasses.some(c => c.id === t.classId)
+        ).length;
+        
+        const studentsCount = (await storage.getUsersByRole('student')).filter(s => 
+          schoolClasses.some(c => c.id === s.classId)
+        ).length;
+        
+        // Get submissions for this school
+        const schoolSubmissions = allSubmissions.filter(sub => {
+          const classIds = schoolClasses.map(c => c.id);
+          return classIds.includes(sub.classId);
+        });
+        
+        // Get winners for this school
+        const schoolWinners = schoolSubmissions.filter(sub => 
+          sub.schoolWinner === true || sub.countryWinner === true || sub.globalWinner === true
+        );
+        
+        return {
+          id: school.id,
+          name: school.name,
+          classesCount: schoolClasses.length,
+          teachersCount,
+          studentsCount,
+          submissionsCount: schoolSubmissions.length,
+          winnersCount: schoolWinners.length,
+          hasWinner: schoolWinners.length > 0
+        };
+      }));
+      
+      // Process class statistics
+      const classStats = await Promise.all(allClasses.map(async (cls) => {
+        // Get school name
+        const school = await storage.getSchool(cls.schoolId);
+        const schoolName = school ? school.name : 'Unknown School';
+        
+        // Get students for this class
+        const students = await storage.getUsersByClass(cls.id);
+        
+        // Get submissions for this class
+        const classSubmissions = allSubmissions.filter(sub => sub.classId === cls.id);
+        
+        // Calculate total votes for this class's submissions
+        let totalVotes = 0;
+        for (const sub of classSubmissions) {
+          totalVotes += await storage.getVoteCountForSubmission(sub.id);
+        }
+        
+        // Get winners from this class
+        const classWinners = classSubmissions.filter(sub => 
+          sub.classWinner === true || sub.schoolWinner === true || 
+          sub.countryWinner === true || sub.globalWinner === true
+        );
+        
+        return {
+          id: cls.id,
+          name: cls.name,
+          schoolId: cls.schoolId,
+          schoolName,
+          gradeLevel: cls.gradeLevel,
+          studentsCount: students.length,
+          submissionsCount: classSubmissions.length,
+          totalVotes,
+          winnersCount: classWinners.length,
+          hasWinner: classWinners.length > 0
+        };
+      }));
+      
+      res.json({
+        schoolStats,
+        classStats
+      });
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      res.status(500).json({ message: 'Failed to fetch statistics' });
+    }
+  });
+
   apiRouter.delete('/submissions/:id', async (req, res) => {
     try {
       const submissionId = Number(req.params.id);
