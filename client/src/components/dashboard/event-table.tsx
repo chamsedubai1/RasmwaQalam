@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Users } from "lucide-react";
+import { BarChart2, Users } from "lucide-react";
 
 interface EventTableProps {
   events: any[];
@@ -19,6 +19,7 @@ interface EventTableProps {
   isAdmin?: boolean;
   onEdit?: (eventData: any) => void;
   onManageParticipants?: (eventId: number) => void;
+  onViewVotingHistory?: (eventId: number) => void;
 }
 
 const EventTable: React.FC<EventTableProps> = ({ 
@@ -26,7 +27,8 @@ const EventTable: React.FC<EventTableProps> = ({
   isLoading,
   isAdmin = false,
   onEdit,
-  onManageParticipants
+  onManageParticipants,
+  onViewVotingHistory
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -234,6 +236,25 @@ const EventTable: React.FC<EventTableProps> = ({
                         >
                           <Users className="h-3.5 w-3.5 mr-1" />
                           Manage Participants
+                        </Button>
+                        
+                        {/* Voting History Button */}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => {
+                            if (onViewVotingHistory) {
+                              onViewVotingHistory(event.id);
+                            } else {
+                              toast({
+                                description: "Voting history view not implemented",
+                              });
+                            }
+                          }}
+                        >
+                          <BarChart2 className="h-3.5 w-3.5 mr-1" />
+                          Voting History
                         </Button>
                       </>
                     )}

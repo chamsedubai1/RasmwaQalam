@@ -25,7 +25,8 @@ import {
   insertEventSchema,
   insertRegistrationSchema,
   insertSubmissionSchema,
-  insertVoteSchema
+  insertVoteSchema,
+  Submission
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1241,7 +1242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
                 const userGradeLevel = userClass ? userClass.gradeLevel : null;
                 
-                console.log(`User grade level for school stage: ${userGradeLevel}`);
+                console.log(`CRITICAL - User grade level for school stage: ${userGradeLevel}, School ID: ${currentUser.schoolId}, Class ID: ${currentUser.classId}`);
                 
                 if (userGradeLevel) {
                   // Get all classes with the same grade level in this school
@@ -1249,7 +1250,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
                   const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
                   
-                  console.log(`Classes with grade level ${userGradeLevel} in school ${currentUser.schoolId}:`, sameGradeClassIds);
+                  console.log(`SCHOOL STAGE - Classes with grade level "${userGradeLevel}" in school ${currentUser.schoolId}:`, 
+                    sameGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel }))
+                  );
+                  
+                  // Also log classes with different grade levels for debug purposes
+                  const differentGradeClasses = allClasses.filter(cls => cls.gradeLevel !== userGradeLevel);
+                  console.log(`SCHOOL STAGE - Classes with different grade levels in the same school:`, 
+                    differentGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel }))
+                  );
                   
                   // Get users from these classes (only same grade level in same school)
                   const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
@@ -1258,12 +1267,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   );
                   const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
                   
-                  console.log(`Users in same grade (${userGradeLevel}) in same school:`, sameGradeUserIds);
+                  console.log(`SCHOOL STAGE - Students in same grade (${userGradeLevel}) in same school (${currentUser.schoolId}):`, 
+                    sameGradeUsers.map(u => ({ id: u.id, name: u.fullName, classId: u.classId }))
+                  );
+                  
+                  // Before filtering, log which submissions would be excluded
+                  const excludedSubmissions = submissions.filter(sub => !sameGradeUserIds.includes(sub.userId));
+                  if (excludedSubmissions.length > 0) {
+                    console.log(`SCHOOL STAGE FILTERING - These submissions will be EXCLUDED as they're from different grades:`, 
+                      excludedSubmissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                    );
+                  }
                   
                   // Filter submissions to only include class winners from the same grade level in the same school
                   const beforeSchoolFilter = submissions.length;
                   submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
-                  console.log(`Filtered class winners to same grade in same school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                  console.log(`SCHOOL STAGE FILTERING - Filtered class winners to same grade in same school: ${beforeSchoolFilter} -> ${submissions.length}`);
+                  
+                  // Log the final submissions being shown
+                  console.log(`SCHOOL STAGE FILTERING - Final submissions for voting:`, 
+                    submissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                  );
                 }
               }
               break;
@@ -1277,7 +1301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const userClass = currentUser.classId ? await storage.getClass(currentUser.classId) : null;
               const userGradeLevel = userClass ? userClass.gradeLevel : null;
               
-              console.log(`User grade level for country stage: ${userGradeLevel}`);
+              console.log(`CRITICAL - User grade level for country stage: ${userGradeLevel}, Class ID: ${currentUser.classId}`);
               
               if (userGradeLevel) {
                 // Get all classes with the same grade level across all schools
@@ -1285,7 +1309,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
                 const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
                 
-                console.log(`All classes with grade level ${userGradeLevel} across all schools:`, sameGradeClassIds);
+                console.log(`COUNTRY STAGE - Classes with grade level "${userGradeLevel}" across all schools:`, 
+                  sameGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel, schoolId: c.schoolId }))
+                );
                 
                 // Get all users from these classes (same grade level across all schools)
                 const allUsers = await storage.getAllUsers();
@@ -1294,12 +1320,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
                 const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
                 
-                console.log(`Users in same grade (${userGradeLevel}) across all schools:`, sameGradeUserIds);
+                console.log(`COUNTRY STAGE - Students in same grade (${userGradeLevel}) across all schools:`, 
+                  sameGradeUsers.map(u => ({ id: u.id, name: u.fullName, classId: u.classId, schoolId: u.schoolId }))
+                );
+                
+                // Before filtering, log which submissions would be excluded
+                const excludedSubmissions = submissions.filter(sub => !sameGradeUserIds.includes(sub.userId));
+                if (excludedSubmissions.length > 0) {
+                  console.log(`COUNTRY STAGE FILTERING - These submissions will be EXCLUDED as they're from different grades:`, 
+                    excludedSubmissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                  );
+                }
                 
                 // Filter submissions to only include school winners from the same grade level across all schools
                 const beforeCountryFilter = submissions.length;
                 submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
-                console.log(`Filtered school winners to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
+                console.log(`COUNTRY STAGE FILTERING - Filtered school winners to same grade across all schools: ${beforeCountryFilter} -> ${submissions.length}`);
+                
+                // Log the final submissions being shown
+                console.log(`COUNTRY STAGE FILTERING - Final submissions for voting:`, 
+                  submissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                );
               }
               break;
               
@@ -1671,6 +1712,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error promoting event:', error);
       res.status(500).json({ message: 'Failed to promote event' });
+    }
+  });
+  
+  // NEW ENDPOINT: Get event voting history (for teacher and admin dashboards)
+  apiRouter.get('/events/:id/voting-history', async (req, res) => {
+    try {
+      const eventId = Number(req.params.id);
+      
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Get all submissions for this event
+      const allSubmissions = await storage.getSubmissionsByEvent(eventId);
+      
+      // Organize submissions by stage
+      const classStageWinners = allSubmissions.filter(sub => sub.classWinner === true);
+      const schoolStageWinners = allSubmissions.filter(sub => sub.schoolWinner === true);
+      const countryStageWinners = allSubmissions.filter(sub => sub.countryWinner === true);
+      const globalStageWinners = allSubmissions.filter(sub => sub.globalWinner === true);
+      
+      // For each submission, get the vote count and user details
+      const processSubmissions = async (submissions: Submission[]) => {
+        return await Promise.all(
+          submissions.map(async (sub) => {
+            const voteCount = await storage.getVoteCountForSubmission(sub.id);
+            const user = await storage.getUser(sub.userId);
+            const userFullName = user ? user.fullName : 'Anonymous';
+            
+            // Get class name if available
+            let className = 'Unknown Class';
+            let schoolName = 'Unknown School';
+            let gradeLevel = 'Unknown Grade';
+            
+            if (user?.classId) {
+              const userClass = await storage.getClass(user.classId);
+              className = userClass ? userClass.name : 'Unknown Class';
+              gradeLevel = userClass ? userClass.gradeLevel : 'Unknown Grade';
+              
+              if (userClass?.schoolId) {
+                const school = await storage.getSchool(userClass.schoolId);
+                schoolName = school ? school.name : 'Unknown School';
+              }
+            }
+            
+            return {
+              id: sub.id,
+              title: sub.title,
+              voteCount,
+              userFullName,
+              userId: sub.userId,
+              contentType: sub.contentType,
+              thumbnail: sub.contentType === 'image' ? sub.content : null,
+              className,
+              schoolName,
+              gradeLevel
+            };
+          })
+        );
+      };
+      
+      // Get enhanced data for each stage
+      const classStageResults = await processSubmissions(classStageWinners);
+      const schoolStageResults = await processSubmissions(schoolStageWinners);
+      const countryStageResults = await processSubmissions(countryStageWinners);
+      const globalStageResults = await processSubmissions(globalStageWinners);
+      
+      // Get overall event statistics
+      const totalSubmissions = allSubmissions.length;
+      const validatedSubmissions = allSubmissions.filter(sub => sub.validated === true).length;
+      const rejectedSubmissions = allSubmissions.filter(sub => sub.validated === false).length;
+      const pendingSubmissions = allSubmissions.filter(sub => sub.validated === null).length;
+      
+      res.json({
+        event: {
+          id: event.id,
+          name: event.name,
+          currentStage: event.stage, 
+          status: event.status
+        },
+        stats: {
+          totalSubmissions,
+          validatedSubmissions,
+          rejectedSubmissions,
+          pendingSubmissions,
+          classWinners: classStageWinners.length,
+          schoolWinners: schoolStageWinners.length,
+          countryWinners: countryStageWinners.length,
+          globalWinners: globalStageWinners.length
+        },
+        history: {
+          classStage: {
+            winners: classStageResults.sort((a, b) => b.voteCount - a.voteCount),
+            completed: event.stage !== 'class'
+          },
+          schoolStage: {
+            winners: schoolStageResults.sort((a, b) => b.voteCount - a.voteCount),
+            completed: ['school', 'country', 'global'].includes(event.stage)
+          },
+          countryStage: {
+            winners: countryStageResults.sort((a, b) => b.voteCount - a.voteCount),
+            completed: ['country', 'global'].includes(event.stage)
+          },
+          globalStage: {
+            winners: globalStageResults.sort((a, b) => b.voteCount - a.voteCount),
+            completed: event.stage === 'global' && event.status === 'closed'
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching event voting history:', error);
+      res.status(500).json({ message: 'Failed to fetch event voting history' });
     }
   });
   

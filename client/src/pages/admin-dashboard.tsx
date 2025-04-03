@@ -708,6 +708,11 @@ const AdminDashboard: React.FC = () => {
   // Participants management dialog
   const [showParticipantsDialog, setShowParticipantsDialog] = useState(false);
   
+  // Voting history dialog
+  const [showVotingHistoryDialog, setShowVotingHistoryDialog] = useState(false);
+  const [votingHistoryData, setVotingHistoryData] = useState<any>(null);
+  const [isLoadingVotingHistory, setIsLoadingVotingHistory] = useState(false);
+  
   // Always include hooks before any early returns to avoid React errors
   
   // Fetch all users
@@ -1159,6 +1164,33 @@ const AdminDashboard: React.FC = () => {
   const handleManageParticipants = (eventId: number) => {
     setSelectedEventId(eventId);
     setShowParticipantsDialog(true);
+  };
+  
+  const handleViewVotingHistory = async (eventId: number) => {
+    setSelectedEventId(eventId);
+    setShowVotingHistoryDialog(true);
+    setIsLoadingVotingHistory(true);
+    setVotingHistoryData(null);
+    
+    try {
+      const response = await fetch(`/api/events/${eventId}/voting-history`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch voting history: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setVotingHistoryData(data);
+    } catch (error) {
+      console.error("Error fetching voting history:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to fetch voting history",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVotingHistory(false);
+    }
   };
   
   // Update event mutation
@@ -1910,6 +1942,7 @@ const AdminDashboard: React.FC = () => {
                 isAdmin={true}
                 onEdit={handleEditEvent}
                 onManageParticipants={handleManageParticipants}
+                onViewVotingHistory={handleViewVotingHistory}
               />
             </CardContent>
           </Card>
