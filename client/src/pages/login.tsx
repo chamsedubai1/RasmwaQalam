@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setUserRole } = useUserRole();
-  const { setUser } = useUser();
+  const { user, setUser } = useUser();
   const [activeTab, setActiveTab] = useState("login");
   const [registrationRole, setRegistrationRole] = useState("student");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -27,6 +27,30 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Effect to check if user is already logged in
+  useEffect(() => {
+    // If user is already logged in, redirect to the appropriate page
+    if (user) {
+      switch (user.role) {
+        case "admin":
+          setLocation("/admin");
+          break;
+        case "teacher":
+          setLocation("/teacher");
+          break;
+        case "student":
+          setLocation("/");
+          break;
+        default:
+          break;
+      }
+    }
+    
+    // Always clear login form fields when component mounts
+    setLoginUsername("");
+    setLoginPassword("");
+  }, [user, setLocation]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
