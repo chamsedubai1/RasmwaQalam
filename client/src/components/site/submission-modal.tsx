@@ -387,7 +387,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                          <SelectItem value="openai">OpenAI</SelectItem>
+                          <SelectItem value="claude">Claude (Anthropic)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -406,8 +406,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                        <SelectItem value="openai">OpenAI</SelectItem>
-                        <SelectItem value="stability">Stability AI</SelectItem>
+                        <SelectItem value="stability">Stability AI (Enhanced by Claude)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

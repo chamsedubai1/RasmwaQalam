@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from "express";
 import { z } from "zod";
-import { generatePoem as generateOpenAIPoem, generateImage as generateOpenAIImage } from "./openai";
+import * as anthropic from "./anthropic";
 import { generateText as generateHuggingFaceText, generateImage as generateHuggingFaceImage } from "./huggingface";
 import { generateImage as generateStabilityImage } from "./stability";
 import multer from "multer";
@@ -19,15 +19,16 @@ import crypto from "crypto";
 // AI service selection
 const AI_SERVICE = {
   OPENAI: 'openai',
+  CLAUDE: 'claude',
   HUGGING_FACE: 'huggingface',
   STABILITY: 'stability'
 };
 
 // Default AI service to use for text generation
-const DEFAULT_TEXT_SERVICE = AI_SERVICE.HUGGING_FACE;
+const DEFAULT_TEXT_SERVICE = AI_SERVICE.CLAUDE;
 
 // Default AI service to use for image generation
-const DEFAULT_IMAGE_SERVICE = AI_SERVICE.HUGGING_FACE;
+const DEFAULT_IMAGE_SERVICE = AI_SERVICE.STABILITY;
 import { 
   insertUserSchema,
   insertSchoolSchema,
@@ -2348,18 +2349,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Use Hugging Face (free open-source AI)
             poem = await generateHuggingFaceText(prompt, style);
             break;
-          case AI_SERVICE.OPENAI:
-            // Use OpenAI
-            poem = await generateOpenAIPoem(prompt, style);
+          case AI_SERVICE.CLAUDE:
+            // Use Claude (Anthropic AI)
+            poem = await anthropic.generatePoem(prompt, style);
             break;
           default:
             // Default to Hugging Face as fallback
             poem = await generateHuggingFaceText(prompt, style);
         }
       } catch (serviceError: any) {
-        // Check if this is a quota exceeded error from OpenAI
-        if (serviceError.message === "QUOTA_EXCEEDED" && aiService === AI_SERVICE.OPENAI) {
-          console.log("OpenAI quota exceeded, falling back to Hugging Face");
+        // Check if this is a quota exceeded error from Claude
+        if (serviceError.message === "QUOTA_EXCEEDED" && aiService === AI_SERVICE.CLAUDE) {
+          console.log("Claude AI quota exceeded, falling back to Hugging Face");
           // Fall back to Hugging Face
           poem = await generateHuggingFaceText(prompt, style);
           aiService = AI_SERVICE.HUGGING_FACE;
@@ -2397,22 +2398,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let usedFallback = false;
       
       try {
+        // For all services, try to enhance the prompt with Claude first
+        let enhancedPrompt = prompt;
+        try {
+          if (process.env.ANTHROPIC_API_KEY) {
+            enhancedPrompt = await anthropic.enhanceImagePrompt(prompt);
+            console.log("Enhanced prompt with Claude:", enhancedPrompt);
+          }
+        } catch (enhanceError) {
+          console.error("Error enhancing prompt, using original:", enhanceError);
+          enhancedPrompt = prompt; // fallback to original prompt if enhancement fails
+        }
+        
         switch (aiService) {
           case AI_SERVICE.HUGGING_FACE:
             // Use Hugging Face (free open-source AI)
-            imageUrl = await generateHuggingFaceImage(prompt);
-            break;
-          case AI_SERVICE.OPENAI:
-            // Use OpenAI
-            imageUrl = await generateOpenAIImage(prompt);
+            imageUrl = await generateHuggingFaceImage(enhancedPrompt);
             break;
           case AI_SERVICE.STABILITY:
             // Use Stability AI
-            imageUrl = await generateStabilityImage(prompt);
+            imageUrl = await generateStabilityImage(enhancedPrompt);
             break;
           default:
             // Default to Hugging Face as fallback
-            imageUrl = await generateHuggingFaceImage(prompt);
+            imageUrl = await generateHuggingFaceImage(enhancedPrompt);
         }
       } catch (serviceError: any) {
         // Check if this is a quota exceeded error from OpenAI
