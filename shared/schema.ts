@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'admin']);
+export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'secondaryTeacher', 'admin']);
 export const eventTypeEnum = pgEnum('event_type', ['poetry', 'painting']);
 export const eventStatusEnum = pgEnum('event_status', ['upcoming', 'open', 'closed']);
 export const eventStageEnum = pgEnum('event_stage', ['class', 'school', 'country', 'global']);
@@ -103,6 +103,16 @@ export const votes = pgTable("votes", {
   votedAt: timestamp("voted_at").defaultNow(),
 });
 
+// Secondary Teacher Assignments table
+export const secondaryTeacherAssignments = pgTable("secondary_teacher_assignments", {
+  id: serial("id").primaryKey(),
+  teacherId: integer("teacher_id").notNull(), // Primary teacher who approved the assignment
+  secondaryTeacherId: integer("secondary_teacher_id").notNull(), // Secondary teacher being assigned
+  classId: integer("class_id").notNull(), // The class being assigned to the secondary teacher
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
 // Insert schemas
 // Validate password: min 8 chars, at least 1 uppercase, 1 number, 2 special chars
 const passwordValidator = z.string()
@@ -140,6 +150,7 @@ export const insertEventSchema = createInsertSchema(events, {
 export const insertRegistrationSchema = createInsertSchema(registrations);
 export const insertSubmissionSchema = createInsertSchema(submissions);
 export const insertVoteSchema = createInsertSchema(votes);
+export const insertSecondaryTeacherAssignmentSchema = createInsertSchema(secondaryTeacherAssignments);
 
 // Export types
 export type User = typeof users.$inferSelect;
@@ -165,3 +176,6 @@ export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 
 export type Vote = typeof votes.$inferSelect;
 export type InsertVote = z.infer<typeof insertVoteSchema>;
+
+export type SecondaryTeacherAssignment = typeof secondaryTeacherAssignments.$inferSelect;
+export type InsertSecondaryTeacherAssignment = z.infer<typeof insertSecondaryTeacherAssignmentSchema>;

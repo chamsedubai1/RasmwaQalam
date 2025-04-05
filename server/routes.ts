@@ -40,9 +40,11 @@ import {
   insertRegistrationSchema,
   insertSubmissionSchema,
   insertVoteSchema,
+  insertSecondaryTeacherAssignmentSchema,
   Submission,
   School,
-  Class
+  Class,
+  SecondaryTeacherAssignment
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -731,7 +733,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         classes = await storage.getAllClasses();
       }
       
-      res.json(classes);
+      // Enhance class data with related entities
+      const enhancedClasses = await Promise.all(classes.map(async (cls) => {
+        const school = cls.schoolId ? await storage.getSchool(cls.schoolId) : null;
+        const teacher = cls.teacherId ? await storage.getUser(cls.teacherId) : null;
+        
+        return {
+          ...cls,
+          schoolName: school ? school.name : null,
+          teacherName: teacher ? teacher.fullName : null
+        };
+      }));
+      
+      res.json(enhancedClasses);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch classes' });
     }
@@ -745,8 +759,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Class not found' });
       }
       
-      res.json(classData);
+      // Get related school and teacher information
+      const school = classData.schoolId ? await storage.getSchool(classData.schoolId) : null;
+      const teacher = classData.teacherId ? await storage.getUser(classData.teacherId) : null;
+      
+      // Get secondary teacher assignments for this class
+      const secondaryTeacherAssignments = await storage.getSecondaryTeacherAssignmentsByClass(classData.id);
+      
+      // Get secondary teachers information
+      const secondaryTeachers = await Promise.all(
+        secondaryTeacherAssignments.map(async (assignment) => {
+          const teacher = await storage.getUser(assignment.secondaryTeacherId);
+          return {
+            id: assignment.id,
+            teacherId: assignment.secondaryTeacherId,
+            teacherName: teacher ? teacher.fullName : 'Unknown',
+            assignedAt: assignment.assignedAt,
+            isActive: assignment.isActive
+          };
+        })
+      );
+      
+      // Get students in this class
+      const students = await storage.getUsersByClass(classData.id);
+      
+      // Enhanced class data with additional information
+      const enhancedClassData = {
+        ...classData,
+        schoolName: school ? school.name : null,
+        teacherName: teacher ? teacher.fullName : null,
+        secondaryTeachers: secondaryTeachers,
+        studentCount: students.length
+      };
+      
+      res.json(enhancedClassData);
     } catch (error) {
+      console.error('Error fetching class details:', error);
       res.status(500).json({ message: 'Failed to fetch class' });
     }
   });
@@ -3739,6 +3787,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Secondary Teacher Assignment routes
+  apiRouter.get('/secondary-teacher-assignments', async (req, res) => {
+    try {
+      const { teacherId, classId, secondaryTeacherId } = req.query;
+      
+      let assignments: SecondaryTeacherAssignment[] = [];
+      
+      if (teacherId) {
+        // Get assignments where this teacher is the primary teacher
+        assignments = await storage.getSecondaryTeacherAssignmentsByTeacher(Number(teacherId));
+      } else if (secondaryTeacherId) {
+        // We need to find all classes assigned to this secondary teacher
+        const classesForSecondaryTeacher = await storage.getClassesBySecondaryTeacher(Number(secondaryTeacherId));
+        
+        // For each class, get the secondary teacher assignment
+        const assignmentPromises = classesForSecondaryTeacher.map(async (cls) => {
+          const classAssignments = await storage.getSecondaryTeacherAssignmentsByClass(cls.id);
+          return classAssignments.filter(a => a.secondaryTeacherId === Number(secondaryTeacherId));
+        });
+        
+        // Flatten the array of arrays into a single array
+        const assignmentArrays = await Promise.all(assignmentPromises);
+        assignments = assignmentArrays.flat();
+      } else if (classId) {
+        // Get all assignments for this class
+        assignments = await storage.getSecondaryTeacherAssignmentsByClass(Number(classId));
+      } else {
+        // No specific filter, get all assignments (should be admin only)
+        // Implement pagination here if the dataset is large
+        const allAssignments = [];
+        const classes = await storage.getAllClasses();
+        
+        for (const cls of classes) {
+          const classAssignments = await storage.getSecondaryTeacherAssignmentsByClass(cls.id);
+          allAssignments.push(...classAssignments);
+        }
+        
+        assignments = allAssignments;
+      }
+      
+      // Enhance the assignments with teacher names, class names, etc.
+      const enhancedAssignments = await Promise.all(assignments.map(async (assignment) => {
+        const teacher = await storage.getUser(assignment.teacherId);
+        const secondaryTeacher = await storage.getUser(assignment.secondaryTeacherId);
+        const cls = await storage.getClass(assignment.classId);
+        
+        return {
+          ...assignment,
+          teacherName: teacher ? teacher.fullName : "Unknown Teacher",
+          secondaryTeacherName: secondaryTeacher ? secondaryTeacher.fullName : "Unknown Teacher",
+          className: cls ? cls.name : "Unknown Class",
+          gradeLevel: cls ? cls.gradeLevel : null
+        };
+      }));
+      
+      res.json(enhancedAssignments);
+    } catch (error) {
+      console.error('Error fetching secondary teacher assignments:', error);
+      res.status(500).json({ message: 'Failed to fetch secondary teacher assignments' });
+    }
+  });
+  
+  apiRouter.get('/secondary-teacher-assignments/:id', async (req, res) => {
+    try {
+      const assignment = await storage.getSecondaryTeacherAssignment(Number(req.params.id));
+      
+      if (!assignment) {
+        return res.status(404).json({ message: 'Secondary teacher assignment not found' });
+      }
+      
+      // Get additional information
+      const teacher = await storage.getUser(assignment.teacherId);
+      const secondaryTeacher = await storage.getUser(assignment.secondaryTeacherId);
+      const cls = await storage.getClass(assignment.classId);
+      
+      const enhancedAssignment = {
+        ...assignment,
+        teacherName: teacher ? teacher.fullName : "Unknown Teacher",
+        secondaryTeacherName: secondaryTeacher ? secondaryTeacher.fullName : "Unknown Teacher",
+        className: cls ? cls.name : "Unknown Class",
+        gradeLevel: cls ? cls.gradeLevel : null
+      };
+      
+      res.json(enhancedAssignment);
+    } catch (error) {
+      console.error('Error fetching secondary teacher assignment:', error);
+      res.status(500).json({ message: 'Failed to fetch secondary teacher assignment' });
+    }
+  });
+  
+  apiRouter.post('/secondary-teacher-assignments', async (req, res) => {
+    try {
+      // Validate data
+      const assignmentData = insertSecondaryTeacherAssignmentSchema.parse({
+        ...req.body,
+        isActive: true,
+        assignedAt: new Date()
+      });
+      
+      // Check if the class exists
+      const cls = await storage.getClass(assignmentData.classId);
+      if (!cls) {
+        return res.status(404).json({ 
+          message: 'Class not found',
+          field: 'classId'
+        });
+      }
+      
+      // Check if the teacher exists
+      const teacher = await storage.getUser(assignmentData.teacherId);
+      if (!teacher || teacher.role !== 'teacher') {
+        return res.status(404).json({ 
+          message: 'Teacher not found or not a teacher',
+          field: 'teacherId'
+        });
+      }
+      
+      // Check if the secondary teacher exists
+      const secondaryTeacher = await storage.getUser(assignmentData.secondaryTeacherId);
+      if (!secondaryTeacher || secondaryTeacher.role !== 'secondaryTeacher') {
+        return res.status(404).json({ 
+          message: 'Secondary teacher not found or not a secondary teacher',
+          field: 'secondaryTeacherId'
+        });
+      }
+      
+      // Check if this assignment already exists
+      const existingAssignments = await storage.getSecondaryTeacherAssignmentsByClass(assignmentData.classId);
+      const existingAssignment = existingAssignments.find(
+        a => a.teacherId === assignmentData.teacherId && 
+             a.secondaryTeacherId === assignmentData.secondaryTeacherId
+      );
+      
+      if (existingAssignment) {
+        return res.status(409).json({ 
+          message: 'This secondary teacher is already assigned to this class',
+          field: 'secondaryTeacherId'
+        });
+      }
+      
+      // Create the assignment
+      const assignment = await storage.createSecondaryTeacherAssignment(assignmentData);
+      
+      // Return with additional information
+      const enhancedAssignment = {
+        ...assignment,
+        teacherName: teacher.fullName,
+        secondaryTeacherName: secondaryTeacher.fullName,
+        className: cls.name,
+        gradeLevel: cls.gradeLevel
+      };
+      
+      res.status(201).json(enhancedAssignment);
+    } catch (error) {
+      console.error('Error creating secondary teacher assignment:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Invalid assignment data', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Failed to create secondary teacher assignment' });
+    }
+  });
+  
+  apiRouter.delete('/secondary-teacher-assignments/:id', async (req, res) => {
+    try {
+      const assignment = await storage.getSecondaryTeacherAssignment(Number(req.params.id));
+      
+      if (!assignment) {
+        return res.status(404).json({ message: 'Secondary teacher assignment not found' });
+      }
+      
+      const deleted = await storage.deleteSecondaryTeacherAssignment(Number(req.params.id));
+      
+      if (!deleted) {
+        return res.status(500).json({ message: 'Failed to delete secondary teacher assignment' });
+      }
+      
+      res.status(200).json({ message: 'Secondary teacher assignment deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting secondary teacher assignment:', error);
+      res.status(500).json({ message: 'Failed to delete secondary teacher assignment' });
+    }
+  });
+  
+  // Get classes for a specific secondary teacher
+  apiRouter.get('/secondary-teacher/:id/classes', async (req, res) => {
+    try {
+      const secondaryTeacherId = Number(req.params.id);
+      
+      // Get the secondary teacher user to confirm they exist
+      const secondaryTeacher = await storage.getUser(secondaryTeacherId);
+      if (!secondaryTeacher || secondaryTeacher.role !== 'secondaryTeacher') {
+        return res.status(404).json({ message: 'Secondary teacher not found' });
+      }
+      
+      // Get all assignment entries for this secondary teacher
+      const assignments = Array.from(await storage.getSecondaryTeacherAssignmentsBySecondaryTeacher(secondaryTeacherId));
+      
+      // Get the actual class objects
+      const classPromises = assignments.map(async (assignment) => {
+        if (!assignment) return null;
+        return await storage.getClass(assignment.classId);
+      });
+      
+      const classes = (await Promise.all(classPromises)).filter(Boolean) as Class[];
+      
+      // Enhance class data with school and teacher information
+      const enhancedClasses = (await Promise.all(classes.map(async (cls) => {
+        if (!cls) {
+          return null;
+        }
+        
+        console.log('Class info:', cls);
+        
+        const school = cls.schoolId ? await storage.getSchool(cls.schoolId) : null;
+        console.log('School info:', school);
+        
+        const teacher = cls.teacherId ? await storage.getUser(cls.teacherId) : null;
+        console.log('Teacher info:', teacher);
+        
+        return {
+          ...cls,
+          schoolId: cls.schoolId || null,
+          teacherId: cls.teacherId || null,
+          schoolName: school ? school.name : null,
+          teacherName: teacher ? teacher.fullName : null
+        };
+      }))).filter(Boolean);
+      
+      res.json(enhancedClasses);
+    } catch (error) {
+      console.error('Error fetching classes for secondary teacher:', error);
+      res.status(500).json({ message: 'Failed to fetch classes for secondary teacher' });
+    }
+  });
+
   // Middleware to track request statistics
   apiRouter.use((req, res, next) => {
     const startTime = performance.now();

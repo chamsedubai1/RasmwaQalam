@@ -6,7 +6,8 @@ import {
   events, Event, InsertEvent,
   registrations, Registration, InsertRegistration,
   submissions, Submission, InsertSubmission,
-  votes, Vote, InsertVote
+  votes, Vote, InsertVote,
+  secondaryTeacherAssignments, SecondaryTeacherAssignment, InsertSecondaryTeacherAssignment
 } from "@shared/schema";
 
 export interface IStorage {
@@ -86,6 +87,15 @@ export interface IStorage {
   createVote(vote: InsertVote): Promise<Vote>;
   deleteVote(id: number): Promise<boolean>;
   getVoteCountForSubmission(submissionId: number): Promise<number>;
+  
+  // Secondary Teacher Assignment methods
+  getSecondaryTeacherAssignment(id: number): Promise<SecondaryTeacherAssignment | undefined>;
+  getSecondaryTeacherAssignmentsByTeacher(teacherId: number): Promise<SecondaryTeacherAssignment[]>;
+  getSecondaryTeacherAssignmentsBySecondaryTeacher(secondaryTeacherId: number): Promise<SecondaryTeacherAssignment[]>;
+  getSecondaryTeacherAssignmentsByClass(classId: number): Promise<SecondaryTeacherAssignment[]>;
+  getClassesBySecondaryTeacher(secondaryTeacherId: number): Promise<Class[]>;
+  createSecondaryTeacherAssignment(assignment: InsertSecondaryTeacherAssignment): Promise<SecondaryTeacherAssignment>;
+  deleteSecondaryTeacherAssignment(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -97,6 +107,7 @@ export class MemStorage implements IStorage {
   private registrations: Map<number, Registration>;
   private submissions: Map<number, Submission>;
   private votes: Map<number, Vote>;
+  private secondaryTeacherAssignments: Map<number, SecondaryTeacherAssignment>;
   
   private userCounter: number;
   private schoolCounter: number;
@@ -106,6 +117,7 @@ export class MemStorage implements IStorage {
   private registrationCounter: number;
   private submissionCounter: number;
   private voteCounter: number;
+  private secondaryTeacherAssignmentCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -116,6 +128,7 @@ export class MemStorage implements IStorage {
     this.registrations = new Map();
     this.submissions = new Map();
     this.votes = new Map();
+    this.secondaryTeacherAssignments = new Map();
     
     this.userCounter = 1;
     this.schoolCounter = 1;
@@ -125,6 +138,7 @@ export class MemStorage implements IStorage {
     this.registrationCounter = 1;
     this.submissionCounter = 1;
     this.voteCounter = 1;
+    this.secondaryTeacherAssignmentCounter = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -297,6 +311,16 @@ export class MemStorage implements IStorage {
       isActive: true
     });
     
+    const secondaryTeacher1 = this.createUser({
+      username: "secondary1",
+      password: "secondary123",
+      fullName: "Sarah Johnson",
+      email: "s.johnson@school.edu",
+      role: "secondaryTeacher",
+      schoolId: school1.id,
+      isActive: true
+    });
+    
     const student1 = this.createUser({
       username: "student1",
       password: "student123",
@@ -429,6 +453,14 @@ export class MemStorage implements IStorage {
     
     // Set some submissions as validated for testing
     this.validateSubmission(sub1.id, true);
+    
+    // Create a sample secondary teacher assignment
+    this.createSecondaryTeacherAssignment({
+      classId: class1.id,
+      teacherId: teacher1.id,
+      secondaryTeacherId: secondaryTeacher1.id,
+      isActive: true
+    });
   }
 
   // User methods
@@ -795,6 +827,50 @@ export class MemStorage implements IStorage {
 
   async getVoteCountForSubmission(submissionId: number): Promise<number> {
     return (await this.getVotesBySubmission(submissionId)).length;
+  }
+  
+  // Secondary Teacher Assignment methods
+  async getSecondaryTeacherAssignment(id: number): Promise<SecondaryTeacherAssignment | undefined> {
+    return this.secondaryTeacherAssignments.get(id);
+  }
+  
+  async getSecondaryTeacherAssignmentsByTeacher(teacherId: number): Promise<SecondaryTeacherAssignment[]> {
+    return Array.from(this.secondaryTeacherAssignments.values())
+      .filter(assignment => assignment.teacherId === teacherId);
+  }
+  
+  async getSecondaryTeacherAssignmentsBySecondaryTeacher(secondaryTeacherId: number): Promise<SecondaryTeacherAssignment[]> {
+    return Array.from(this.secondaryTeacherAssignments.values())
+      .filter(assignment => assignment.secondaryTeacherId === secondaryTeacherId);
+  }
+  
+  async getSecondaryTeacherAssignmentsByClass(classId: number): Promise<SecondaryTeacherAssignment[]> {
+    return Array.from(this.secondaryTeacherAssignments.values())
+      .filter(assignment => assignment.classId === classId);
+  }
+  
+  async getClassesBySecondaryTeacher(secondaryTeacherId: number): Promise<Class[]> {
+    // Get assignments where the user is a secondary teacher
+    const assignments = Array.from(this.secondaryTeacherAssignments.values())
+      .filter(assignment => assignment.secondaryTeacherId === secondaryTeacherId);
+    
+    // Extract class IDs from these assignments
+    const classIds = assignments.map(assignment => assignment.classId);
+    
+    // Return all classes that match these IDs
+    return Array.from(this.classes.values())
+      .filter(cls => classIds.includes(cls.id));
+  }
+  
+  async createSecondaryTeacherAssignment(assignmentData: InsertSecondaryTeacherAssignment): Promise<SecondaryTeacherAssignment> {
+    const id = this.secondaryTeacherAssignmentCounter++;
+    const assignment: SecondaryTeacherAssignment = { ...assignmentData, id };
+    this.secondaryTeacherAssignments.set(id, assignment);
+    return assignment;
+  }
+  
+  async deleteSecondaryTeacherAssignment(id: number): Promise<boolean> {
+    return this.secondaryTeacherAssignments.delete(id);
   }
 }
 
