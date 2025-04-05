@@ -738,10 +738,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const school = cls.schoolId ? await storage.getSchool(cls.schoolId) : null;
         const teacher = cls.teacherId ? await storage.getUser(cls.teacherId) : null;
         
+        // Get secondary teacher assignments for this class
+        const secondaryTeacherAssignments = await storage.getSecondaryTeacherAssignmentsByClass(cls.id);
+        
+        // Get secondary teachers information
+        const secondaryTeachers = await Promise.all(
+          secondaryTeacherAssignments.map(async (assignment) => {
+            const teacher = await storage.getUser(assignment.secondaryTeacherId);
+            return {
+              id: assignment.id,
+              teacherId: assignment.secondaryTeacherId,
+              teacherName: teacher ? teacher.fullName : 'Unknown',
+              assignedAt: assignment.assignedAt,
+              isActive: assignment.isActive
+            };
+          })
+        );
+        
+        // Get students count in this class
+        const students = await storage.getUsersByClass(cls.id);
+        
         return {
           ...cls,
+          school: school ? {
+            id: school.id,
+            name: school.name
+          } : null,
           schoolName: school ? school.name : null,
-          teacherName: teacher ? teacher.fullName : null
+          teacher: teacher ? {
+            id: teacher.id,
+            fullName: teacher.fullName,
+            email: teacher.email
+          } : null,
+          teacherName: teacher ? teacher.fullName : null,
+          secondaryTeachers: secondaryTeachers,
+          studentCount: students.length
         };
       }));
       
@@ -786,10 +817,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enhanced class data with additional information
       const enhancedClassData = {
         ...classData,
+        school: school ? {
+          id: school.id,
+          name: school.name
+        } : null,
         schoolName: school ? school.name : null,
+        teacher: teacher ? {
+          id: teacher.id,
+          fullName: teacher.fullName,
+          email: teacher.email
+        } : null,
         teacherName: teacher ? teacher.fullName : null,
         secondaryTeachers: secondaryTeachers,
-        studentCount: students.length
+        studentCount: students.length,
+        // Student details (without sensitive information)
+        students: students.map(student => ({
+          id: student.id,
+          fullName: student.fullName,
+          email: student.email,
+          gradeLevel: student.gradeLevel
+        }))
       };
       
       res.json(enhancedClassData);
@@ -1532,7 +1579,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const event = await storage.getEvent(sub.eventId);
           const eventName = event ? event.name : `Event #${sub.eventId}`;
           
-          return { ...sub, voteCount, hasVoted, userFullName, eventName };
+          // Get class and school information if available
+          let classData = null;
+          let schoolData = null;
+          let teacherData = null;
+          
+          if (sub.classId) {
+            classData = await storage.getClass(sub.classId);
+            if (classData) {
+              teacherData = await storage.getUser(classData.teacherId);
+              if (classData.schoolId) {
+                schoolData = await storage.getSchool(classData.schoolId);
+              }
+            }
+          } else if (user && user.classId) {
+            // If submission doesn't have classId but user does
+            classData = await storage.getClass(user.classId);
+            if (classData) {
+              teacherData = await storage.getUser(classData.teacherId);
+              if (classData.schoolId) {
+                schoolData = await storage.getSchool(classData.schoolId);
+              }
+            }
+          }
+          
+          // Return enhanced submission data
+          return { 
+            ...sub, 
+            voteCount, 
+            hasVoted, 
+            userFullName, 
+            eventName,
+            user: user ? {
+              id: user.id,
+              fullName: user.fullName,
+              role: user.role,
+              classId: user.classId,
+              schoolId: user.schoolId,
+              gradeLevel: user.gradeLevel
+            } : null,
+            event: event ? {
+              id: event.id,
+              name: event.name,
+              type: event.type,
+              stage: event.stage,
+              status: event.status
+            } : null,
+            class: classData ? {
+              id: classData.id,
+              name: classData.name,
+              gradeLevel: classData.gradeLevel
+            } : null,
+            school: schoolData ? {
+              id: schoolData.id,
+              name: schoolData.name
+            } : null,
+            teacher: teacherData ? {
+              id: teacherData.id,
+              fullName: teacherData.fullName
+            } : null,
+            statusText: sub.validated === null 
+              ? 'Pending' 
+              : sub.validated 
+                ? 'Approved' 
+                : 'Rejected',
+            winnerStatus: {
+              class: sub.classWinner,
+              school: sub.schoolWinner,
+              country: sub.countryWinner,
+              global: sub.globalWinner
+            }
+          };
         })
       );
       
@@ -1555,14 +1672,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(submission.userId);
       const event = await storage.getEvent(submission.eventId);
       
+      // Get detailed information about the class and school
+      let classData = null;
+      let schoolData = null;
+      let teacherData = null;
+      
+      if (submission.classId) {
+        classData = await storage.getClass(submission.classId);
+        if (classData) {
+          teacherData = await storage.getUser(classData.teacherId);
+          if (classData.schoolId) {
+            schoolData = await storage.getSchool(classData.schoolId);
+          }
+        }
+      }
+      
+      // Get votes for this submission with voter information
+      const votes = await storage.getVotesBySubmission(submission.id);
+      const votesWithDetails = await Promise.all(votes.map(async (vote) => {
+        const voter = await storage.getUser(vote.voterId);
+        return {
+          ...vote,
+          voterName: voter ? voter.fullName : 'Unknown',
+          voterRole: voter ? voter.role : 'unknown'
+        };
+      }));
+      
       // Format the data to match the frontend expectations
       const extendedSubmission = {
         ...submission,
         voteCount,
-        userFullName: user ? user.fullName : 'Unknown User',
+        votes: votesWithDetails,
+        user: user ? {
+          id: user.id,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email,
+          schoolId: user.schoolId,
+          classId: user.classId,
+          gradeLevel: user.gradeLevel
+        } : null,
+        event: event ? {
+          id: event.id,
+          name: event.name,
+          description: event.description,
+          type: event.type,
+          status: event.status,
+          stage: event.stage,
+          startDate: event.startDate,
+          endDate: event.endDate
+        } : null,
+        class: classData ? {
+          id: classData.id,
+          name: classData.name,
+          gradeLevel: classData.gradeLevel
+        } : null,
+        school: schoolData ? {
+          id: schoolData.id,
+          name: schoolData.name
+        } : null,
+        teacher: teacherData ? {
+          id: teacherData.id,
+          fullName: teacherData.fullName
+        } : null,
         eventName: event ? event.name : 'Unknown Event',
+        userFullName: user ? user.fullName : 'Unknown User',
         type: event ? event.type : undefined,
-        imageUrl: submission.content.startsWith('data:image') ? submission.content : undefined
+        imageUrl: submission.content.startsWith('data:image') ? submission.content : undefined,
+        winnerStatus: {
+          class: submission.classWinner,
+          school: submission.schoolWinner,
+          country: submission.countryWinner,
+          global: submission.globalWinner
+        },
+        statusText: submission.validated === null 
+          ? 'Pending' 
+          : submission.validated 
+            ? 'Approved' 
+            : 'Rejected'
       };
       
       res.json(extendedSubmission);
@@ -1703,14 +1890,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get additional data for the response
       const voteCount = await storage.getVoteCountForSubmission(submissionId);
       const user = await storage.getUser(submission.userId);
+      const event = await storage.getEvent(submission.eventId);
       
       console.log(`Submission ${submissionId} updated validation status:`, updatedSubmission.validated);
+      
+      // Get detailed information about the class and school
+      let classData = null;
+      let schoolData = null;
+      let teacherData = null;
+      
+      if (submission.classId) {
+        classData = await storage.getClass(submission.classId);
+        if (classData) {
+          teacherData = await storage.getUser(classData.teacherId);
+          if (classData.schoolId) {
+            schoolData = await storage.getSchool(classData.schoolId);
+          }
+        }
+      } else if (user && user.classId) {
+        // If submission doesn't have classId but user does
+        classData = await storage.getClass(user.classId);
+        if (classData) {
+          teacherData = await storage.getUser(classData.teacherId);
+          if (classData.schoolId) {
+            schoolData = await storage.getSchool(classData.schoolId);
+          }
+        }
+      }
       
       res.json({
         ...updatedSubmission,
         voteCount,
         userFullName: user ? user.fullName : 'Unknown User',
-        message: validationValue ? 'Submission approved' : 'Submission rejected'
+        message: validationValue ? 'Submission approved' : 'Submission rejected',
+        user: user ? {
+          id: user.id,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email,
+          schoolId: user.schoolId,
+          classId: user.classId,
+          gradeLevel: user.gradeLevel
+        } : null,
+        event: event ? {
+          id: event.id,
+          name: event.name,
+          type: event.type,
+          stage: event.stage,
+          status: event.status
+        } : null,
+        class: classData ? {
+          id: classData.id,
+          name: classData.name,
+          gradeLevel: classData.gradeLevel
+        } : null,
+        school: schoolData ? {
+          id: schoolData.id,
+          name: schoolData.name
+        } : null,
+        teacher: teacherData ? {
+          id: teacherData.id,
+          fullName: teacherData.fullName
+        } : null,
+        statusText: updatedSubmission.validated === null 
+          ? 'Pending' 
+          : updatedSubmission.validated 
+            ? 'Approved' 
+            : 'Rejected',
+        winnerStatus: {
+          class: updatedSubmission.classWinner,
+          school: updatedSubmission.schoolWinner,
+          country: updatedSubmission.countryWinner,
+          global: updatedSubmission.globalWinner
+        }
       });
     } catch (error) {
       console.error('Error validating submission:', error);
