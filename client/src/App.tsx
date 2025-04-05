@@ -17,6 +17,7 @@ import Partners from "@/pages/partners";
 import CreArt from "@/pages/creart";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminMonitoring from "@/pages/admin-monitoring";
 import SubmissionView from "@/pages/submission-view";
 import Login from "@/pages/login";
 import UploadTest from "@/pages/upload-test";
@@ -66,6 +67,12 @@ function Router() {
           <Route path="/admin">
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/admin/monitoring">
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminMonitoring />
             </ProtectedRoute>
           </Route>
           

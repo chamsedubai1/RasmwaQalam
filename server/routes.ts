@@ -15,6 +15,8 @@ import { setupUploadRoutes, setupStaticUploads } from "./uploads";
 import session from "express-session";
 import { generateCaptcha, validateCaptcha, requireCaptcha, captchaStore } from "./captcha";
 import crypto from "crypto";
+import { performance } from "perf_hooks";
+import { monitoring } from "./monitoring";
 
 // AI service selection
 const AI_SERVICE = {
@@ -3603,6 +3605,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error generating statistics:', error);
       res.status(500).json({ error: 'Failed to generate statistics' });
     }
+  });
+  
+  // Add monitoring endpoint for system performance and security
+  apiRouter.get('/monitoring/system', async (req, res) => {
+    try {
+      const startTime = performance.now();
+      
+      // Get system info from monitoring service
+      const systemInfo = monitoring.getSystemInfo();
+      
+      // Get database connection status
+      const dbConnectionStatus = {
+        isConnected: true,
+        connectionTime: 0,
+        error: null as string | null,
+      };
+      
+      try {
+        const dbStartTime = performance.now();
+        // Simple DB query to test connection
+        await storage.getAllUsers();
+        dbConnectionStatus.connectionTime = performance.now() - dbStartTime;
+      } catch (dbError: any) {
+        dbConnectionStatus.isConnected = false;
+        dbConnectionStatus.error = dbError.message;
+      }
+      
+      // Get API service health
+      const apiServices = [
+        { name: 'Anthropic Claude', type: 'AI', status: process.env.ANTHROPIC_API_KEY ? 'configured' : 'not configured' },
+        { name: 'OpenAI', type: 'AI', status: process.env.OPENAI_API_KEY ? 'configured' : 'not configured' },
+        { name: 'Stability.ai', type: 'AI', status: process.env.STABILITY_API_KEY ? 'configured' : 'not configured' },
+        { name: 'Hugging Face', type: 'AI', status: process.env.HUGGING_FACE_API_KEY ? 'configured' : 'not configured' },
+      ];
+      
+      // Get monitoring data from our service
+      const recentErrors = monitoring.getErrorLog();
+      const requestStats = monitoring.getRequestStats();
+      
+      // User activity metrics
+      const userActivity = {
+        activeUsers: {
+          last24Hours: 0,
+          last7Days: 0,
+          last30Days: 0
+        },
+        submissions: {
+          last24Hours: 0,
+          last7Days: 0,
+          last30Days: 0
+        },
+        logins: {
+          last24Hours: 0,
+          last7Days: 0,
+          last30Days: 0
+        }
+      };
+      
+      // Security metrics
+      const securityMetrics = {
+        failedLoginAttempts: {
+          last24Hours: 0,
+          last7Days: 0
+        },
+        suspiciousActivities: []
+      };
+      
+      // Calculate response time for this monitoring request
+      const responseTime = performance.now() - startTime;
+      
+      res.json({
+        timestamp: new Date().toISOString(),
+        systemInfo,
+        dbConnectionStatus,
+        apiServices,
+        recentErrors,
+        requestStats,
+        userActivity,
+        securityMetrics,
+        responseTime
+      });
+    } catch (error: any) {
+      console.error('Error generating monitoring data:', error);
+      res.status(500).json({ error: 'Failed to generate monitoring data' });
+    }
+  });
+  
+  // Middleware to track request statistics
+  apiRouter.use((req, res, next) => {
+    const startTime = performance.now();
+    const endpoint = req.path;
+    
+    // Track request start
+    monitoring.trackRequestStart(endpoint);
+    
+    // Override end function to capture response status and time
+    const originalEnd = res.end;
+    
+    // Using any here to work around TypeScript signature complexity
+    (res as any).end = function(...args: any[]) {
+      const responseTime = performance.now() - startTime;
+      
+      // Track request completion
+      monitoring.trackRequestEnd(endpoint, res.statusCode, responseTime);
+      
+      // Log error for 4xx and 5xx responses
+      if (res.statusCode >= 400) {
+        const errorEntry = {
+          timestamp: new Date().toISOString(),
+          endpoint,
+          method: req.method,
+          statusCode: res.statusCode,
+          responseTime,
+          ip: req.ip || 'unknown',
+          userAgent: req.get('user-agent')
+        };
+        
+        // Add to error log
+        monitoring.addErrorEntry(errorEntry);
+      }
+      
+      // Call the original end function
+      return originalEnd.apply(this, args);
+    };
+    
+    next();
   });
 
   // Register API routes

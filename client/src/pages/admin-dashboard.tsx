@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ActivitySquare } from "lucide-react";
 import {
   Tabs,
   TabsContent,
@@ -1919,8 +1919,19 @@ const AdminDashboard: React.FC = () => {
               <h1 className="text-3xl font-bold font-heading mb-2">Admin Dashboard</h1>
               <p className="text-blue-100">Manage users, schools, classes, events and view reports</p>
             </div>
-            <div className="hidden md:block">
-              <UserCog className="h-16 w-16 text-white/30" />
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                onClick={() => window.location.href = '/admin/monitoring'}
+              >
+                <ActivitySquare className="h-4 w-4 mr-2" />
+                System Monitoring
+              </Button>
+              <div className="hidden md:block">
+                <UserCog className="h-16 w-16 text-white/30" />
+              </div>
             </div>
           </div>
         </div>
