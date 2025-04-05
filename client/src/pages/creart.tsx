@@ -34,7 +34,8 @@ import {
   CheckCircle2,
   Star,
   Plus,
-  Check
+  Check,
+  Lightbulb
 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,7 +56,7 @@ const CreArt: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState("events");
+  const [activeTab, setActiveTab] = useState("prompts");
   
   // Always include all hooks before any early returns to avoid the
   // "Rendered fewer hooks than expected" error
@@ -378,8 +379,15 @@ const CreArt: React.FC = () => {
       </div>
       
       {/* Tabs Navigation */}
-      <Tabs defaultValue="events" value={activeTab} onValueChange={setActiveTab} className="mb-8">
-        <TabsList className="grid w-full grid-cols-3 bg-white rounded-xl p-1 shadow-sm border border-blue-100">
+      <Tabs defaultValue="prompts" value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <TabsList className="grid w-full grid-cols-4 bg-white rounded-xl p-1 shadow-sm border border-blue-100">
+          <TabsTrigger 
+            value="prompts" 
+            className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
+          >
+            <Lightbulb className="h-4 w-4" />
+            <span>Prompts Tutorials</span>
+          </TabsTrigger>
           <TabsTrigger 
             value="events" 
             className="flex items-center justify-center gap-2 rounded-lg py-3 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
@@ -403,6 +411,128 @@ const CreArt: React.FC = () => {
             <span>{currentEventStage.charAt(0).toUpperCase() + currentEventStage.slice(1)} Voting</span>
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="prompts" className="mt-4">
+          <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
+            <div className="flex items-center mb-4">
+              <Lightbulb className="h-5 w-5 text-blue-600 mr-2" />
+              <h2 className="text-xl font-semibold font-heading text-blue-800">Prompts Tutorials</h2>
+            </div>
+            
+            <div className="prose max-w-none prose-blue">
+              <h3 className="text-lg font-medium text-blue-700 border-b pb-2 border-blue-100 mt-6">What is a Prompt?</h3>
+              <p>
+                A prompt is a set of instructions you give to an AI system to guide it in creating the output you want. 
+                The more detailed and specific your prompt, the better results you'll get.
+              </p>
+              
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 my-4">
+                <h4 className="font-medium text-blue-800 mb-2">💡 Key Components of a Good Prompt</h4>
+                <ul className="list-disc ml-5 space-y-1">
+                  <li><span className="font-medium">Be specific</span> about what you want to create</li>
+                  <li><span className="font-medium">Include details</span> about style, mood, colors, or elements</li>
+                  <li><span className="font-medium">Use descriptive adjectives</span> to refine the output</li>
+                  <li><span className="font-medium">Mention inspirations</span> (artists, styles, or movements)</li>
+                </ul>
+              </div>
+              
+              <h3 className="text-lg font-medium text-blue-700 border-b pb-2 border-blue-100 mt-8">Poetry Prompt Techniques</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div className="border border-blue-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white">
+                  <h4 className="font-medium text-blue-800 mb-2">❌ Weak Poetry Prompt</h4>
+                  <div className="bg-white p-3 rounded border border-blue-100 text-gray-600">
+                    "Write a poem about spring."
+                  </div>
+                  <p className="text-sm mt-2 text-blue-700">
+                    Too vague, doesn't specify emotion, style, or special elements.
+                  </p>
+                </div>
+                
+                <div className="border border-blue-200 rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-white">
+                  <h4 className="font-medium text-blue-800 mb-2">✅ Strong Poetry Prompt</h4>
+                  <div className="bg-white p-3 rounded border border-blue-100 text-gray-600">
+                    "Write a hopeful sonnet about spring awakening, using imagery of melting snow, new buds, and returning birds. Include subtle references to renewal and second chances. Use a gentle, flowing rhythm."
+                  </div>
+                  <p className="text-sm mt-2 text-blue-700">
+                    Specifies form (sonnet), mood (hopeful), specific imagery, themes, and rhythm.
+                  </p>
+                </div>
+              </div>
+              
+              <h3 className="text-lg font-medium text-blue-700 border-b pb-2 border-blue-100 mt-8">Artwork Prompt Techniques</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div className="border border-blue-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white">
+                  <h4 className="font-medium text-blue-800 mb-2">❌ Weak Art Prompt</h4>
+                  <div className="bg-white p-3 rounded border border-blue-100 text-gray-600">
+                    "Make an image of a futuristic city."
+                  </div>
+                  <p className="text-sm mt-2 text-blue-700">
+                    Too general, doesn't specify style, mood, lighting, or unique elements.
+                  </p>
+                </div>
+                
+                <div className="border border-blue-200 rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-white">
+                  <h4 className="font-medium text-blue-800 mb-2">✅ Strong Art Prompt</h4>
+                  <div className="bg-white p-3 rounded border border-blue-100 text-gray-600">
+                    "Create a detailed digital illustration of a futuristic Dubai skyline in the year 2150, with massive vertical gardens, flying vehicles, and solar-powered towers. Use a vibrant sunset palette with golden light reflecting on glass structures. Style inspired by a mix of cyberpunk and solarpunk aesthetic with hyper-realistic details."
+                  </div>
+                  <p className="text-sm mt-2 text-blue-700">
+                    Specifies medium, subject, time period, specific elements, color palette, lighting, and artistic style.
+                  </p>
+                </div>
+              </div>
+              
+              <h3 className="text-lg font-medium text-blue-700 border-b pb-2 border-blue-100 mt-8">Advanced Prompt Strategies</h3>
+              
+              <div className="mt-4 space-y-4">
+                <div className="border-l-4 border-blue-400 pl-4 py-1">
+                  <h4 className="font-medium text-blue-800">Use Emotional Language</h4>
+                  <p className="text-sm text-gray-700">
+                    Include words that evoke specific emotions: "create a melancholic, haunting poem" or "design a joyful, exuberant scene"
+                  </p>
+                </div>
+                
+                <div className="border-l-4 border-blue-400 pl-4 py-1">
+                  <h4 className="font-medium text-blue-800">Reference Specific Styles</h4>
+                  <p className="text-sm text-gray-700">
+                    For poetry: "in the style of Shakespeare's sonnets" or "like Rumi's spiritual verses"<br/>
+                    For art: "in the style of Van Gogh's Starry Night" or "using Picasso's cubist approach"
+                  </p>
+                </div>
+                
+                <div className="border-l-4 border-blue-400 pl-4 py-1">
+                  <h4 className="font-medium text-blue-800">Add Technical Specifications</h4>
+                  <p className="text-sm text-gray-700">
+                    For poetry: specify rhyme scheme, verse type, or meter<br/>
+                    For art: specify camera angle, lighting type, rendering style, or perspective
+                  </p>
+                </div>
+                
+                <div className="border-l-4 border-blue-400 pl-4 py-1">
+                  <h4 className="font-medium text-blue-800">Be Culturally Relevant</h4>
+                  <p className="text-sm text-gray-700">
+                    Include elements of local culture, landmarks, or traditions to make your creation more meaningful and connected to UAE heritage
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-5 rounded-lg mt-8">
+                <h3 className="text-lg font-medium text-blue-800 mb-2">Try These Prompt Templates</h3>
+                <div className="space-y-3">
+                  <div className="bg-white/80 p-3 rounded border border-blue-200">
+                    <span className="font-medium text-blue-700">Poetry:</span> "Write a [type of poem] about [subject] that explores the theme of [theme]. Use imagery related to [specific images] and evoke a feeling of [emotion]. Include a reference to [cultural element]."
+                  </div>
+                  
+                  <div className="bg-white/80 p-3 rounded border border-blue-200">
+                    <span className="font-medium text-blue-700">Artwork:</span> "Create a [medium] of [subject] in a [style] style. Include [specific elements] and use a color palette of [colors]. The lighting should be [lighting description] and the mood should feel [mood]."
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
         
         <TabsContent value="events" className="mt-4">
           <div className="bg-white rounded-lg shadow-lg border border-blue-100 p-6">
