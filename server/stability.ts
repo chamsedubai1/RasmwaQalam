@@ -1,11 +1,31 @@
-import * as stabilityClient from 'stability-client';
+// Import functions, types from stability-client
 import { Readable } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import stabilityClient from 'stability-client';
 
-// Direct reference to the generate function
-const stabilityGenerate = stabilityClient.generate;
+// Extract the generate function
+const { generate } = stabilityClient;
+
+// Define types matching stability-client's type structure
+interface ImageData {
+  buffer: Buffer;
+  filePath: string;
+  seed: number;
+  mimeType: string;
+  classifications: {
+    realizedAction: number;
+  };
+}
+
+interface ResponseData {
+  isOk: boolean;
+  status: string;
+  code: number;
+  message: string;
+  trailers: any;
+}
 
 // Create a temporary directory for Stability AI images if needed
 const tmpDir = path.join(os.tmpdir(), 'stability-ai-images');
@@ -57,19 +77,19 @@ export async function generateImage(prompt: string): Promise<string> {
       let imageData: Buffer | null = null;
       
       // Call the Stability API
-      const generation = stabilityGenerate(stabilityOptions);
+      const generation = generate(stabilityOptions);
       
       // Handle image generation events
-      generation.on('image', (result) => {
-        console.log(`Stability AI generated image with seed ${result.seed}`);
-        imageData = result.buffer;
+      generation.on('image', (data: ImageData) => {
+        console.log(`Stability AI generated image with seed ${data.seed}`);
+        imageData = data.buffer;
       });
       
       // Handle completion or error
-      generation.on('end', (result) => {
-        if (!result.isOk) {
-          console.error(`Stability AI generation failed: ${result.message}`);
-          return reject(new Error(`Image generation failed: ${result.message}`));
+      generation.on('end', (data: ResponseData) => {
+        if (!data.isOk) {
+          console.error(`Stability AI generation failed: ${data.message || 'Unknown error'}`);
+          return reject(new Error(`Image generation failed: ${data.message || 'Unknown error'}`));
         }
         
         if (!imageData) {

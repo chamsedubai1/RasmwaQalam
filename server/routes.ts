@@ -38,7 +38,9 @@ import {
   insertRegistrationSchema,
   insertSubmissionSchema,
   insertVoteSchema,
-  Submission
+  Submission,
+  School,
+  Class
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1907,8 +1909,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const globalStageWinners = allSubmissions.filter(sub => sub.globalWinner === true);
 
       // For teacher view, we need to filter data based on their class
-      let classInfo = null;
-      let schoolInfo = null;
+      let classInfo: Class | null = null; 
+      let schoolInfo: School | null = null;
       let filteredClassWinners = classStageWinners;
       let filteredSchoolWinners = schoolStageWinners;
 
@@ -2113,7 +2115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get submissions for this school
         const schoolSubmissions = allSubmissions.filter(sub => {
           const classIds = schoolClasses.map(c => c.id);
-          return classIds.includes(sub.classId);
+          return sub.classId !== null && classIds.includes(sub.classId);
         });
         
         // Get winners for this school
