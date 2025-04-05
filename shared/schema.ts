@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   classId: integer("class_id"),
   gradeLevel: text("grade_level"),
   isActive: boolean("is_active").notNull().default(true),
+  lastLoginDate: timestamp("last_login_date"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Schools table

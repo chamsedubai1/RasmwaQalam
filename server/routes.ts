@@ -68,8 +68,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Account is locked or inactive' });
       }
       
+      // Update the last login date
+      const updatedUser = await storage.updateUser(user.id, { 
+        lastLoginDate: new Date() 
+      });
+      
+      if (!updatedUser) {
+        console.error('Failed to update lastLoginDate for user:', user.id);
+      }
+      
       // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
+      const { password: _, ...userWithoutPassword } = updatedUser || user;
       res.json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
@@ -3644,32 +3653,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recentErrors = monitoring.getErrorLog();
       const requestStats = monitoring.getRequestStats();
       
-      // User activity metrics
+      // User activity metrics - Get real data from our storage
+      const users = await storage.getAllUsers();
+      const submissions = await storage.getAllSubmissions();
+      const events = await storage.getAllEvents();
+      
+      // Calculate the dates for time periods
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Calculate active user counts based on user lastLoginDate
+      const activeUsers = {
+        last24Hours: users.filter(user => 
+          user.lastLoginDate && new Date(user.lastLoginDate) >= oneDayAgo
+        ).length,
+        last7Days: users.filter(user => 
+          user.lastLoginDate && new Date(user.lastLoginDate) >= sevenDaysAgo
+        ).length,
+        last30Days: users.filter(user => 
+          user.lastLoginDate && new Date(user.lastLoginDate) >= thirtyDaysAgo
+        ).length
+      };
+      
+      // Calculate submission counts
+      const submissionCounts = {
+        last24Hours: submissions.filter(sub => 
+          sub.submittedAt && new Date(sub.submittedAt) >= oneDayAgo
+        ).length,
+        last7Days: submissions.filter(sub => 
+          sub.submittedAt && new Date(sub.submittedAt) >= sevenDaysAgo
+        ).length,
+        last30Days: submissions.filter(sub => 
+          sub.submittedAt && new Date(sub.submittedAt) >= thirtyDaysAgo
+        ).length
+      };
+      
+      // Get login count from the request stats for API login endpoint
+      const loginEndpoint = '/api/auth/login';
+      const loginStats = requestStats.endpoints[loginEndpoint] || {
+        totalRequests: 0,
+        successfulRequests: 0,
+        failedRequests: 0
+      };
+      
       const userActivity = {
-        activeUsers: {
-          last24Hours: 0,
-          last7Days: 0,
-          last30Days: 0
-        },
-        submissions: {
-          last24Hours: 0,
-          last7Days: 0,
-          last30Days: 0
-        },
+        activeUsers,
+        submissions: submissionCounts,
         logins: {
-          last24Hours: 0,
-          last7Days: 0,
-          last30Days: 0
+          last24Hours: loginStats.successfulRequests || 0,
+          last7Days: loginStats.successfulRequests || 0,
+          last30Days: loginStats.successfulRequests || 0
         }
       };
       
-      // Security metrics
+      // Security metrics - Get real data
       const securityMetrics = {
         failedLoginAttempts: {
-          last24Hours: 0,
-          last7Days: 0
+          last24Hours: loginStats.failedRequests || 0,
+          last7Days: loginStats.failedRequests || 0
         },
-        suspiciousActivities: []
+        suspiciousActivities: recentErrors
+          .filter(err => err.statusCode === 401 || err.statusCode === 403)
+          .map(err => `${err.method} ${err.endpoint} failed with ${err.statusCode} at ${new Date(err.timestamp).toLocaleString()}`)
       };
       
       // Calculate response time for this monitoring request
