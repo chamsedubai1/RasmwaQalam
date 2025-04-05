@@ -41,6 +41,8 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [description, setDescription] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [poetryStyle, setPoetryStyle] = useState<string>("free");
+  const [aiImageService, setAiImageService] = useState<string>("huggingface");
+  const [aiTextService, setAiTextService] = useState<string>("huggingface");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
@@ -79,10 +81,12 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
 
   interface PoemResponse {
     content: string;
+    service?: string;
   }
 
   interface ImageResponse {
     imageUrl: string;
+    service?: string;
   }
 
   // Generate poem using AI
@@ -90,14 +94,18 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     mutationFn: async () => {
       return apiRequest<PoemResponse>('POST', '/api/ai/generate-poem', {
         prompt: aiPrompt,
-        style: poetryStyle
+        style: poetryStyle,
+        service: aiTextService
       });
     },
     onSuccess: (data: PoemResponse) => {
       setContent(data.content);
+      const serviceName = data.service === 'openai' ? 'OpenAI' : 
+                         data.service === 'huggingface' ? 'Hugging Face' : 
+                         'AI';
       toast({
         title: "Poetry Generated",
-        description: "Your AI-generated poem is ready for review",
+        description: `Your ${serviceName}-generated poem is ready for review`,
       });
       setIsGenerating(false);
     },
@@ -115,14 +123,19 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const generateImageMutation = useMutation({
     mutationFn: async () => {
       return apiRequest<ImageResponse>('POST', '/api/ai/generate-image', {
-        prompt: aiPrompt
+        prompt: aiPrompt,
+        service: aiImageService
       });
     },
     onSuccess: (data: ImageResponse) => {
       setContent(data.imageUrl);
+      const serviceName = data.service === 'openai' ? 'OpenAI' : 
+                         data.service === 'huggingface' ? 'Hugging Face' : 
+                         data.service === 'stability' ? 'Stability AI' : 
+                         'AI';
       toast({
         title: "Artwork Generated",
-        description: "Your AI-generated artwork is ready for review",
+        description: `Your ${serviceName}-generated artwork is ready for review`,
       });
       setIsGenerating(false);
     },
@@ -229,6 +242,8 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     setDescription("");
     setAiPrompt("");
     setPoetryStyle("free");
+    setAiImageService("huggingface");
+    setAiTextService("huggingface");
     onClose();
   };
 
@@ -322,20 +337,57 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                 </div>
                 
                 {contentType === "text" && (
+                  <>
+                    <div className="w-full">
+                      <Label htmlFor="poetry-style">Poetry Style</Label>
+                      <Select
+                        value={poetryStyle}
+                        onValueChange={setPoetryStyle}
+                      >
+                        <SelectTrigger id="poetry-style" className="w-full">
+                          <SelectValue placeholder="Select style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free Verse</SelectItem>
+                          <SelectItem value="haiku">Haiku</SelectItem>
+                          <SelectItem value="sonnet">Sonnet</SelectItem>
+                          <SelectItem value="limerick">Limerick</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="w-full">
+                      <Label htmlFor="text-ai-service">AI Service</Label>
+                      <Select
+                        value={aiTextService}
+                        onValueChange={setAiTextService}
+                      >
+                        <SelectTrigger id="text-ai-service" className="w-full">
+                          <SelectValue placeholder="Select AI service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
+                          <SelectItem value="openai">OpenAI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                
+                {contentType === "image" && (
                   <div className="w-full">
-                    <Label htmlFor="poetry-style">Poetry Style</Label>
+                    <Label htmlFor="image-ai-service">AI Service</Label>
                     <Select
-                      value={poetryStyle}
-                      onValueChange={setPoetryStyle}
+                      value={aiImageService}
+                      onValueChange={setAiImageService}
                     >
-                      <SelectTrigger id="poetry-style" className="w-full">
-                        <SelectValue placeholder="Select style" />
+                      <SelectTrigger id="image-ai-service" className="w-full">
+                        <SelectValue placeholder="Select AI service" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="free">Free Verse</SelectItem>
-                        <SelectItem value="haiku">Haiku</SelectItem>
-                        <SelectItem value="sonnet">Sonnet</SelectItem>
-                        <SelectItem value="limerick">Limerick</SelectItem>
+                        <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="stability">Stability AI</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

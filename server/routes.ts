@@ -5,6 +5,7 @@ import express from "express";
 import { z } from "zod";
 import { generatePoem as generateOpenAIPoem, generateImage as generateOpenAIImage } from "./openai";
 import { generateText as generateHuggingFaceText, generateImage as generateHuggingFaceImage } from "./huggingface";
+import { generateImage as generateStabilityImage } from "./stability";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import * as fs from "fs";
@@ -15,8 +16,18 @@ import session from "express-session";
 import { generateCaptcha, validateCaptcha, requireCaptcha, captchaStore } from "./captcha";
 import crypto from "crypto";
 
-// Set this to true to use Hugging Face (free open-source AI) instead of OpenAI
-const USE_HUGGING_FACE = true;
+// AI service selection
+const AI_SERVICE = {
+  OPENAI: 'openai',
+  HUGGING_FACE: 'huggingface',
+  STABILITY: 'stability'
+};
+
+// Default AI service to use for text generation
+const DEFAULT_TEXT_SERVICE = AI_SERVICE.HUGGING_FACE;
+
+// Default AI service to use for image generation
+const DEFAULT_IMAGE_SERVICE = AI_SERVICE.HUGGING_FACE;
 import { 
   insertUserSchema,
   insertSchoolSchema,
@@ -2320,22 +2331,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Content Generation routes
   apiRouter.post('/ai/generate-poem', async (req, res) => {
     try {
-      const { prompt, style } = req.body;
+      const { prompt, style, service } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: 'Prompt is required' });
       }
       
+      // Use the specified service or fall back to the default
+      const aiService = service || DEFAULT_TEXT_SERVICE;
       let poem;
-      if (USE_HUGGING_FACE) {
-        // Use Hugging Face (free open-source AI)
-        poem = await generateHuggingFaceText(prompt, style);
-      } else {
-        // Use OpenAI
-        poem = await generateOpenAIPoem(prompt, style);
+      
+      switch (aiService) {
+        case AI_SERVICE.HUGGING_FACE:
+          // Use Hugging Face (free open-source AI)
+          poem = await generateHuggingFaceText(prompt, style);
+          break;
+        case AI_SERVICE.OPENAI:
+          // Use OpenAI
+          poem = await generateOpenAIPoem(prompt, style);
+          break;
+        default:
+          // Default to Hugging Face as fallback
+          poem = await generateHuggingFaceText(prompt, style);
       }
       
-      res.json({ content: poem });
+      res.json({ content: poem, service: aiService });
     } catch (error) {
       console.error('Error generating poem:', error);
       res.status(500).json({ message: 'Failed to generate poem' });
@@ -2344,22 +2364,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post('/ai/generate-image', async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, service } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: 'Prompt is required' });
       }
       
+      // Use the specified service or fall back to the default
+      const aiService = service || DEFAULT_IMAGE_SERVICE;
       let imageUrl;
-      if (USE_HUGGING_FACE) {
-        // Use Hugging Face (free open-source AI)
-        imageUrl = await generateHuggingFaceImage(prompt);
-      } else {
-        // Use OpenAI
-        imageUrl = await generateOpenAIImage(prompt);
+      
+      switch (aiService) {
+        case AI_SERVICE.HUGGING_FACE:
+          // Use Hugging Face (free open-source AI)
+          imageUrl = await generateHuggingFaceImage(prompt);
+          break;
+        case AI_SERVICE.OPENAI:
+          // Use OpenAI
+          imageUrl = await generateOpenAIImage(prompt);
+          break;
+        case AI_SERVICE.STABILITY:
+          // Use Stability AI
+          imageUrl = await generateStabilityImage(prompt);
+          break;
+        default:
+          // Default to Hugging Face as fallback
+          imageUrl = await generateHuggingFaceImage(prompt);
       }
       
-      res.json({ imageUrl });
+      res.json({ imageUrl, service: aiService });
     } catch (error) {
       console.error('Error generating image:', error);
       res.status(500).json({ message: 'Failed to generate image' });
