@@ -8,6 +8,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param prompt User's prompt for the poem
  * @param style Optional style for the poem (e.g., "haiku", "sonnet")
  * @returns Generated poem text
+ * @throws Error if generation fails and no fallback is available
  */
 export async function generatePoem(prompt: string, style?: string): Promise<string> {
   try {
@@ -31,8 +32,14 @@ export async function generatePoem(prompt: string, style?: string): Promise<stri
     });
     
     return response.choices[0].message.content || "Sorry, I couldn't generate a poem at this time.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating poem:", error);
+    
+    // Check for quota/rate limit errors to provide specific error for front-end handling
+    if (error?.code === 'insufficient_quota' || error?.code === 'rate_limit_exceeded') {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    
     throw new Error("Failed to generate poem. Please try again later.");
   }
 }
@@ -76,6 +83,7 @@ async function generateImageDescription(prompt: string): Promise<string> {
  * Generates an image based on the given prompt
  * @param prompt User's prompt for the image
  * @returns URL of the generated image
+ * @throws Error if generation fails and no fallback is available
  */
 export async function generateImage(prompt: string): Promise<string> {
   try {
@@ -91,8 +99,14 @@ export async function generateImage(prompt: string): Promise<string> {
     });
     
     return response.data[0].url || "";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating image:", error);
+    
+    // Check for quota/rate limit errors to provide specific error for front-end handling
+    if (error?.code === 'insufficient_quota' || error?.code === 'rate_limit_exceeded') {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    
     throw new Error("Failed to generate image. Please try again later.");
   }
 }

@@ -2338,24 +2338,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use the specified service or fall back to the default
-      const aiService = service || DEFAULT_TEXT_SERVICE;
+      let aiService = service || DEFAULT_TEXT_SERVICE;
       let poem;
+      let usedFallback = false;
       
-      switch (aiService) {
-        case AI_SERVICE.HUGGING_FACE:
-          // Use Hugging Face (free open-source AI)
+      try {
+        switch (aiService) {
+          case AI_SERVICE.HUGGING_FACE:
+            // Use Hugging Face (free open-source AI)
+            poem = await generateHuggingFaceText(prompt, style);
+            break;
+          case AI_SERVICE.OPENAI:
+            // Use OpenAI
+            poem = await generateOpenAIPoem(prompt, style);
+            break;
+          default:
+            // Default to Hugging Face as fallback
+            poem = await generateHuggingFaceText(prompt, style);
+        }
+      } catch (serviceError: any) {
+        // Check if this is a quota exceeded error from OpenAI
+        if (serviceError.message === "QUOTA_EXCEEDED" && aiService === AI_SERVICE.OPENAI) {
+          console.log("OpenAI quota exceeded, falling back to Hugging Face");
+          // Fall back to Hugging Face
           poem = await generateHuggingFaceText(prompt, style);
-          break;
-        case AI_SERVICE.OPENAI:
-          // Use OpenAI
-          poem = await generateOpenAIPoem(prompt, style);
-          break;
-        default:
-          // Default to Hugging Face as fallback
-          poem = await generateHuggingFaceText(prompt, style);
+          aiService = AI_SERVICE.HUGGING_FACE;
+          usedFallback = true;
+        } else {
+          // If it's a different error or from a different service, rethrow it
+          throw serviceError;
+        }
       }
       
-      res.json({ content: poem, service: aiService });
+      const response = { 
+        content: poem, 
+        service: aiService,
+        usedFallback: usedFallback
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error('Error generating poem:', error);
       res.status(500).json({ message: 'Failed to generate poem' });
@@ -2371,28 +2392,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use the specified service or fall back to the default
-      const aiService = service || DEFAULT_IMAGE_SERVICE;
+      let aiService = service || DEFAULT_IMAGE_SERVICE;
       let imageUrl;
+      let usedFallback = false;
       
-      switch (aiService) {
-        case AI_SERVICE.HUGGING_FACE:
-          // Use Hugging Face (free open-source AI)
+      try {
+        switch (aiService) {
+          case AI_SERVICE.HUGGING_FACE:
+            // Use Hugging Face (free open-source AI)
+            imageUrl = await generateHuggingFaceImage(prompt);
+            break;
+          case AI_SERVICE.OPENAI:
+            // Use OpenAI
+            imageUrl = await generateOpenAIImage(prompt);
+            break;
+          case AI_SERVICE.STABILITY:
+            // Use Stability AI
+            imageUrl = await generateStabilityImage(prompt);
+            break;
+          default:
+            // Default to Hugging Face as fallback
+            imageUrl = await generateHuggingFaceImage(prompt);
+        }
+      } catch (serviceError: any) {
+        // Check if this is a quota exceeded error from OpenAI
+        if (serviceError.message === "QUOTA_EXCEEDED") {
+          console.log(`${aiService} quota exceeded, falling back to Hugging Face`);
+          
+          // Fall back to Hugging Face for any service that fails with quota issue
           imageUrl = await generateHuggingFaceImage(prompt);
-          break;
-        case AI_SERVICE.OPENAI:
-          // Use OpenAI
-          imageUrl = await generateOpenAIImage(prompt);
-          break;
-        case AI_SERVICE.STABILITY:
-          // Use Stability AI
-          imageUrl = await generateStabilityImage(prompt);
-          break;
-        default:
-          // Default to Hugging Face as fallback
-          imageUrl = await generateHuggingFaceImage(prompt);
+          aiService = AI_SERVICE.HUGGING_FACE;
+          usedFallback = true;
+        } else {
+          // If it's a different error, rethrow it
+          throw serviceError;
+        }
       }
       
-      res.json({ imageUrl, service: aiService });
+      const response = {
+        imageUrl, 
+        service: aiService,
+        usedFallback: usedFallback
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error('Error generating image:', error);
       res.status(500).json({ message: 'Failed to generate image' });

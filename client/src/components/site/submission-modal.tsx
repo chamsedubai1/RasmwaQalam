@@ -82,11 +82,13 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   interface PoemResponse {
     content: string;
     service?: string;
+    usedFallback?: boolean;
   }
 
   interface ImageResponse {
     imageUrl: string;
     service?: string;
+    usedFallback?: boolean;
   }
 
   // Generate poem using AI
@@ -103,10 +105,19 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       const serviceName = data.service === 'openai' ? 'OpenAI' : 
                          data.service === 'huggingface' ? 'Hugging Face' : 
                          'AI';
-      toast({
-        title: "Poetry Generated",
-        description: `Your ${serviceName}-generated poem is ready for review`,
-      });
+      
+      if (data.usedFallback) {
+        toast({
+          title: "Poetry Generated with Fallback",
+          description: `OpenAI quota exceeded - your poem was generated using ${serviceName} instead`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Poetry Generated",
+          description: `Your ${serviceName}-generated poem is ready for review`,
+        });
+      }
       setIsGenerating(false);
     },
     onError: (error: any) => {
@@ -133,10 +144,19 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                          data.service === 'huggingface' ? 'Hugging Face' : 
                          data.service === 'stability' ? 'Stability AI' : 
                          'AI';
-      toast({
-        title: "Artwork Generated",
-        description: `Your ${serviceName}-generated artwork is ready for review`,
-      });
+      
+      if (data.usedFallback) {
+        toast({
+          title: "Artwork Generated with Fallback",
+          description: `${aiImageService === 'openai' ? 'OpenAI' : 'Stability AI'} quota exceeded - your artwork was generated using ${serviceName} instead`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Artwork Generated",
+          description: `Your ${serviceName}-generated artwork is ready for review`,
+        });
+      }
       setIsGenerating(false);
     },
     onError: (error: any) => {
