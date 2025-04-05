@@ -2447,9 +2447,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       res.json(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating image:', error);
-      res.status(500).json({ message: 'Failed to generate image' });
+      
+      // Extract and format a more user-friendly error message
+      let errorMessage = 'Failed to generate image';
+      
+      if (error && error.message) {
+        if (error.message.includes('not have enough balance')) {
+          errorMessage = 'Your Stability.ai account has insufficient funds. Please add funds to your account or try using a different image generation service.';
+        } else if (error.message.includes('QUOTA_EXCEEDED')) {
+          errorMessage = 'API quota exceeded. Please try again later or use a different AI service.';
+        } else if (error.message.includes('API key')) {
+          errorMessage = 'API configuration issue. Please check your API key settings.';
+        } else {
+          // Include original error message for better debugging
+          errorMessage = `Failed to generate image: ${error.message}`;
+        }
+      }
+      
+      res.status(500).json({ 
+        message: errorMessage,
+        originalError: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        service: req.body.aiService
+      });
     }
   });
 
