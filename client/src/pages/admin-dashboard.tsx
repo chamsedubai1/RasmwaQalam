@@ -34,6 +34,7 @@ import UserTable from "@/components/dashboard/user-table";
 import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
 import StudentTable from "@/components/dashboard/student-table";
+import SecondaryTeacherManagement from "@/components/dashboard/secondary-teacher-management";
 import {
   Dialog,
   DialogContent,
@@ -2028,6 +2029,10 @@ const AdminDashboard: React.FC = () => {
             <Briefcase className="h-4 w-4" />
             <span>Partners</span>
           </TabsTrigger>
+          <TabsTrigger value="secondaryTeachers" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <UserCog className="h-4 w-4" />
+            <span>Secondary Teachers</span>
+          </TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
             <PieChart className="h-4 w-4" />
             <span>Reports</span>
@@ -2638,6 +2643,15 @@ const AdminDashboard: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="secondaryTeachers">
+          <SecondaryTeacherManagement onRefreshData={() => {
+            toast({
+              title: "Success",
+              description: "Secondary teacher assignments refreshed",
+            });
+          }} />
         </TabsContent>
         
         <TabsContent value="reports">

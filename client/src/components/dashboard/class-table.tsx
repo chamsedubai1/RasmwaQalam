@@ -164,13 +164,14 @@ const ClassTable: React.FC<ClassTableProps> = ({
             <TableHead>Grade</TableHead>
             <TableHead>Students</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Role</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {classes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-6">
+              <TableCell colSpan={6} className="text-center py-6">
                 No classes found
               </TableCell>
             </TableRow>
@@ -190,6 +191,15 @@ const ClassTable: React.FC<ClassTableProps> = ({
                       cls.isLocked ? "bg-red-500" : "bg-green-500"
                     }`}></span>
                     {cls.isLocked ? "Locked" : "Active"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    cls.isSecondaryTeacher || cls.secondaryTeacherIds?.length > 0
+                      ? "bg-purple-100 text-purple-800" 
+                      : "bg-blue-100 text-blue-800"
+                  }`}>
+                    {cls.isSecondaryTeacher || cls.secondaryTeacherIds?.length > 0 ? "Secondary" : "Primary"}
                   </div>
                 </TableCell>
                 <TableCell>

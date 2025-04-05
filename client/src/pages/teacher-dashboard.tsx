@@ -98,9 +98,12 @@ const TeacherDashboard: React.FC = () => {
   // Debug output for teacher data from API
   console.log("Current teacher data from API:", currentUserFromApi);
   
-  // Fetch class assigned to this teacher
+  // Fetch classes based on teacher role
   const { data: classes = [], isLoading: isLoadingClasses, refetch: refetchClasses } = useQuery<any[]>({
-    queryKey: [`/api/classes?teacherId=${teacherId}`],
+    queryKey: [userRole === "teacher" 
+      ? `/api/classes?teacherId=${teacherId}` 
+      : `/api/classes?secondaryTeacherId=${teacherId}`
+    ],
     enabled: !!teacherId,
   });
   
@@ -233,7 +236,7 @@ const TeacherDashboard: React.FC = () => {
   });
   
   // Teacher role check - moved after all hooks to avoid React errors
-  if (userRole !== "teacher") {
+  if (userRole !== "teacher" && userRole !== "secondaryTeacher") {
     return <Redirect to="/" />;
   }
   
