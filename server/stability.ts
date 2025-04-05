@@ -12,10 +12,10 @@ const { generate } = stabilityClient;
 interface ImageData {
   buffer: Buffer;
   filePath: string;
-  seed: number;
-  mimeType: string;
-  classifications: {
-    realizedAction: number;
+  seed?: number;
+  mimeType?: string;
+  classifications?: {
+    realizedAction?: number;
   };
 }
 
@@ -81,14 +81,28 @@ export async function generateImage(prompt: string): Promise<string> {
       
       // Handle image generation events
       generation.on('image', (data: ImageData) => {
-        console.log(`Stability AI generated image with seed ${data.seed}`);
-        imageData = data.buffer;
+        // Log the seed if available, otherwise just log that we received an image
+        if (data.seed) {
+          console.log(`Stability AI generated image with seed ${data.seed}`);
+        } else {
+          console.log(`Stability AI generated image successfully`);
+        }
+        
+        // Store the image buffer
+        if (data.buffer) {
+          imageData = data.buffer;
+        } else {
+          console.warn('Received image data but buffer is missing');
+        }
       });
       
       // Handle completion or error
       generation.on('end', (data: ResponseData) => {
-        if (!data.isOk) {
-          const errorMsg = data.message || 'Unknown error';
+        // Add more detailed logging for debugging
+        console.log(`Stability AI generation ended with status: ${data.status}, code: ${data.code}, isOk: ${data.isOk}`);
+        
+        if (!data || !data.isOk) {
+          const errorMsg = data?.message || 'Unknown error';
           console.error(`Stability AI generation failed: ${errorMsg}`);
           
           // Check for specific error about insufficient balance
@@ -99,25 +113,37 @@ export async function generateImage(prompt: string): Promise<string> {
             ));
           }
           
-          return reject(new Error(`Image generation failed: ${errorMsg}`));
+          return resolve(generatePlaceholderImage(
+            prompt + "\n\nNote: Image generation failed with Stability.ai. " + errorMsg
+          ));
         }
         
         if (!imageData) {
-          return reject(new Error('No image was generated'));
+          console.error('No image data received despite successful response');
+          return resolve(generatePlaceholderImage(
+            prompt + "\n\nNote: Image generation completed but no image data was received."
+          ));
         }
         
-        // Convert the image buffer to a base64 data URL
-        const base64Data = imageData.toString('base64');
-        resolve(`data:image/png;base64,${base64Data}`);
-        
-        // Clean up the temporary file if it exists
         try {
-          const filePath = path.join(tmpDir, `${filename}.png`);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+          // Convert the image buffer to a base64 data URL
+          const base64Data = imageData.toString('base64');
+          resolve(`data:image/png;base64,${base64Data}`);
+          
+          // Clean up the temporary file if it exists
+          try {
+            const filePath = path.join(tmpDir, `${filename}.png`);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          } catch (cleanupError) {
+            console.warn('Failed to clean up temporary image file:', cleanupError);
           }
-        } catch (cleanupError) {
-          console.warn('Failed to clean up temporary image file:', cleanupError);
+        } catch (conversionError) {
+          console.error('Error converting image data to base64:', conversionError);
+          return resolve(generatePlaceholderImage(
+            prompt + "\n\nNote: Image was generated but couldn't be processed correctly."
+          ));
         }
       });
     });
@@ -165,15 +191,15 @@ function generatePlaceholderImage(prompt: string): string {
       </foreignObject>
       
       <text x="50%" y="520" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#e74c3c">
-        Stability.ai account has insufficient funds
+        Image Generation Error
       </text>
       
       <text x="50%" y="550" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#666">
-        Please visit stability.ai to add funds to your account
+        Please try using a different image generation service
       </text>
       
       <text x="50%" y="580" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#666">
-        or try using a different image generation service
+        or try again with a different prompt
       </text>
     </svg>
   `;
