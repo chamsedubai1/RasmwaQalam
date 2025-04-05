@@ -42,7 +42,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [aiPrompt, setAiPrompt] = useState("");
   const [poetryStyle, setPoetryStyle] = useState<string>("free");
   const [aiImageService, setAiImageService] = useState<string>("huggingface");
-  const [aiTextService, setAiTextService] = useState<string>("huggingface");
+  const [aiTextService, setAiTextService] = useState<string>("claude");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
@@ -104,12 +104,13 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       setContent(data.content);
       const serviceName = data.service === 'openai' ? 'OpenAI' : 
                          data.service === 'huggingface' ? 'Hugging Face' : 
+                         data.service === 'claude' ? 'Claude (Anthropic)' : 
                          'AI';
       
       if (data.usedFallback) {
         toast({
           title: "Poetry Generated with Fallback",
-          description: `OpenAI quota exceeded - your poem was generated using ${serviceName} instead`,
+          description: `Claude (Anthropic) quota exceeded - your poem was generated using ${serviceName} instead`,
           variant: "destructive"
         });
       } else {
@@ -148,7 +149,9 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       if (data.usedFallback) {
         toast({
           title: "Artwork Generated with Fallback",
-          description: `${aiImageService === 'openai' ? 'OpenAI' : 'Stability AI'} quota exceeded - your artwork was generated using ${serviceName} instead`,
+          description: `${aiImageService === 'openai' ? 'OpenAI' : 
+                                   aiImageService === 'stability' ? 'Stability AI (Enhanced by Claude)' : 
+                                   'Selected service'} quota exceeded - your artwork was generated using ${serviceName} instead`,
           variant: "destructive"
         });
       } else {
@@ -263,7 +266,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     setAiPrompt("");
     setPoetryStyle("free");
     setAiImageService("huggingface");
-    setAiTextService("huggingface");
+    setAiTextService("claude");
     onClose();
   };
 
