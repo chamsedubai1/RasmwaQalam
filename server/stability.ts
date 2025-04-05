@@ -1,163 +1,106 @@
 // Import functions, types from stability-client
-import { Readable } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import stabilityClient from 'stability-client';
-
-// Extract the generate function
-const { generate } = stabilityClient;
-
-// Define types matching stability-client's type structure
-interface ImageData {
-  buffer: Buffer;
-  filePath: string;
-  seed?: number;
-  mimeType?: string;
-  classifications?: {
-    realizedAction?: number;
-  };
-}
-
-interface ResponseData {
-  isOk: boolean;
-  status: string;
-  code: number;
-  message: string;
-  trailers: any;
-}
-
-// Create a temporary directory for Stability AI images if needed
-const tmpDir = path.join(os.tmpdir(), 'stability-ai-images');
-if (!fs.existsSync(tmpDir)) {
-  fs.mkdirSync(tmpDir, { recursive: true });
-}
+import fetch from 'node-fetch';
+import { Readable } from 'stream';
 
 /**
- * Converts a base64 string to a readable stream
- * @param base64 Base64 string to convert
- * @returns Readable stream
- */
-function base64ToStream(base64: string): Readable {
-  const buffer = Buffer.from(base64.split(',')[1], 'base64');
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  return stream;
-}
-
-/**
- * Generates an image based on the given prompt using Stability.ai's API
- * @param prompt User's prompt for the image
+ * A simpler, direct implementation of Stability.ai image generation
+ * @param prompt User's prompt for the image generation
  * @returns Base64 data URL of the generated image
  */
 export async function generateImage(prompt: string): Promise<string> {
   try {
+    // Check API key
     if (!process.env.STABILITY_API_KEY) {
       throw new Error('STABILITY_API_KEY environment variable is not set');
     }
 
-    return new Promise((resolve, reject) => {
-      // Create a unique filename for this generation
-      const filename = `stability-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    console.log(`Starting stability.ai image generation for prompt: "${prompt.substring(0, 50)}..."`);
+    
+    // Direct API call to Stability.ai
+    const engineId = 'stable-diffusion-xl-1024-v1-0';
+    const response = await fetch(
+      `https://api.stability.ai/v1/generation/${engineId}/text-to-image`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${process.env.STABILITY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          text_prompts: [{ text: prompt }],
+          cfg_scale: 7,
+          height: 1024,
+          width: 1024,
+          samples: 1,
+          steps: 30,
+        }),
+      }
+    );
+    
+    // Check for API errors
+    if (!response.ok) {
+      let errorMessage;
+      try {
+        const errorJson = await response.json() as any;
+        errorMessage = errorJson?.message || `Status: ${response.status} ${response.statusText}`;
+      } catch (e) {
+        errorMessage = await response.text();
+      }
       
-      // Configure the Stability API request
-      const stabilityOptions = {
-        prompt: prompt,
-        apiKey: process.env.STABILITY_API_KEY as string, // Type assertion to assure TypeScript that this is not undefined
-        outDir: tmpDir,
-        width: 1024,
-        height: 1024,
-        samples: 1,
-        steps: 30,
-        cfgScale: 7.0,
-        engine: 'stable-diffusion-xl-1024-v1-0',
-      };
-
-      let imageData: Buffer | null = null;
+      console.error(`Stability API error: ${errorMessage}`);
       
-      // Call the Stability API
-      const generation = generate(stabilityOptions);
+      // Check for insufficient balance
+      if (errorMessage.includes('not have enough balance')) {
+        return generatePlaceholderImage(
+          prompt + "\n\nNote: Image couldn't be generated with Stability.ai due to insufficient account balance."
+        );
+      }
       
-      // Handle image generation events
-      generation.on('image', (data: ImageData) => {
-        // Log the seed if available, otherwise just log that we received an image
-        if (data.seed) {
-          console.log(`Stability AI generated image with seed ${data.seed}`);
-        } else {
-          console.log(`Stability AI generated image successfully`);
-        }
-        
-        // Store the image buffer
-        if (data.buffer) {
-          imageData = data.buffer;
-        } else {
-          console.warn('Received image data but buffer is missing');
-        }
-      });
-      
-      // Handle completion or error
-      generation.on('end', (data: ResponseData) => {
-        // Add more detailed logging for debugging
-        console.log(`Stability AI generation ended with status: ${data.status}, code: ${data.code}, isOk: ${data.isOk}`);
-        
-        if (!data || !data.isOk) {
-          const errorMsg = data?.message || 'Unknown error';
-          console.error(`Stability AI generation failed: ${errorMsg}`);
-          
-          // Check for specific error about insufficient balance
-          if (errorMsg.includes('not have enough balance')) {
-            console.warn('Stability.ai account has insufficient balance. Using fallback image generation.');
-            return resolve(generatePlaceholderImage(
-              prompt + "\n\nNote: Image couldn't be generated with Stability.ai due to insufficient account balance."
-            ));
-          }
-          
-          return resolve(generatePlaceholderImage(
-            prompt + "\n\nNote: Image generation failed with Stability.ai. " + errorMsg
-          ));
-        }
-        
-        if (!imageData) {
-          console.error('No image data received despite successful response');
-          return resolve(generatePlaceholderImage(
-            prompt + "\n\nNote: Image generation completed but no image data was received."
-          ));
-        }
-        
-        try {
-          // Convert the image buffer to a base64 data URL
-          const base64Data = imageData.toString('base64');
-          resolve(`data:image/png;base64,${base64Data}`);
-          
-          // Clean up the temporary file if it exists
-          try {
-            const filePath = path.join(tmpDir, `${filename}.png`);
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-            }
-          } catch (cleanupError) {
-            console.warn('Failed to clean up temporary image file:', cleanupError);
-          }
-        } catch (conversionError) {
-          console.error('Error converting image data to base64:', conversionError);
-          return resolve(generatePlaceholderImage(
-            prompt + "\n\nNote: Image was generated but couldn't be processed correctly."
-          ));
-        }
-      });
-    });
+      return generatePlaceholderImage(
+        prompt + "\n\nNote: Stability.ai API error: " + errorMessage
+      );
+    }
+    
+    // Parse the successful response
+    const result = await response.json() as any;
+    
+    if (!result || !result.artifacts || !Array.isArray(result.artifacts) || result.artifacts.length === 0) {
+      console.error('No artifacts found in stability.ai response');
+      return generatePlaceholderImage(
+        prompt + "\n\nNote: No images were generated. The API returned an empty result."
+      );
+    }
+    
+    // Get the first artifact with a valid base64 image
+    for (const artifact of result.artifacts) {
+      if (artifact && typeof artifact.base64 === 'string') {
+        console.log(`Successfully generated image with seed ${artifact.seed || 'unknown'}`);
+        return `data:image/png;base64,${artifact.base64}`;
+      }
+    }
+    
+    // If we reached here, we didn't find a valid image
+    console.error('No valid base64 image found in stability.ai response');
+    return generatePlaceholderImage(
+      prompt + "\n\nNote: Image generation completed but no valid image data was found."
+    );
+    
   } catch (error: any) {
     console.error('Error generating image with Stability.ai:', error);
-    
-    // Use a placeholder image if the API call fails
-    return generatePlaceholderImage(prompt);
+    return generatePlaceholderImage(
+      prompt + "\n\nNote: Error during image generation: " + (error instanceof Error ? error.message : String(error))
+    );
   }
 }
 
 /**
  * Fallback function to generate a placeholder image
- * Only used if the API call fails
+ * @param prompt The original prompt with additional error info
+ * @returns SVG image as data URL
  */
 function generatePlaceholderImage(prompt: string): string {
   // Enhanced SVG placeholder with gradient background and better styling
