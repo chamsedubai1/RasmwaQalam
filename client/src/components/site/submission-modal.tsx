@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -17,11 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CloudUpload, Sparkles, PenLine, Loader2 } from "lucide-react";
+import { CloudUpload, Sparkles, PenLine, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SubmissionModalProps {
   eventId: number | null;
@@ -44,6 +45,37 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const { toast } = useToast();
   const { user } = useUser();
   const queryClient = useQueryClient();
+  
+  // Define event interface
+  interface EventData {
+    id: number;
+    name: string;
+    type: string;
+    stage: string;
+    status: string;
+    description?: string;
+  }
+  
+  // Fetch event details to determine allowed content type
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery<EventData>({
+    queryKey: [`/api/events/${eventId}`],
+    enabled: !!eventId && isOpen
+  });
+  
+  // Set content type when event data changes
+  useEffect(() => {
+    if (eventData && eventData.type) {
+      const evType = eventData.type.toLowerCase();
+      if (evType === "poetry") {
+        setContentType("text");
+      } else if (evType === "painting") {
+        setContentType("image");
+      }
+    }
+  }, [eventData]);
+  
+  // Extract event type for UI display
+  const eventType = eventData?.type?.toLowerCase() || null;
 
   interface PoemResponse {
     content: string;
@@ -204,7 +236,15 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-heading">Submit Your Artwork</DialogTitle>
+          <DialogTitle className="text-xl font-heading">
+            {isLoadingEvent 
+              ? "Submit Your Work" 
+              : eventType === "poetry" 
+                ? "Submit Your Poetry" 
+                : eventType === "painting" 
+                  ? "Submit Your Artwork" 
+                  : "Submit Your Work"}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="overflow-y-auto pr-2 flex-grow">
@@ -220,20 +260,44 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
               />
             </div>
             
+            {/* Content Type selection - disabled when event type is specific */}
             <div className="grid gap-2 w-full">
               <Label htmlFor="submission-type">Content Type</Label>
-              <Select
-                value={contentType}
-                onValueChange={(value: "text" | "image") => setContentType(value)}
-              >
-                <SelectTrigger id="submission-type" className="w-full">
-                  <SelectValue placeholder="Select content type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Text/Poetry</SelectItem>
-                  <SelectItem value="image">Image/Artwork</SelectItem>
-                </SelectContent>
-              </Select>
+              {isLoadingEvent ? (
+                <div className="flex items-center justify-center h-10 bg-blue-50 rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                  <span className="text-sm text-blue-600">Loading event details...</span>
+                </div>
+              ) : eventType === "poetry" || eventType === "painting" ? (
+                <>
+                  <div className="flex items-center border rounded-md p-2 bg-blue-50 border-blue-200">
+                    <div className="h-9 flex items-center px-3 text-blue-800">
+                      {eventType === "poetry" ? "Text/Poetry" : "Image/Artwork"}
+                    </div>
+                  </div>
+                  <Alert className="mt-2 bg-blue-50 border-blue-200">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-sm text-blue-700">
+                      {eventType === "poetry" 
+                        ? "This poetry event only accepts text submissions." 
+                        : "This painting event only accepts image submissions."}
+                    </AlertDescription>
+                  </Alert>
+                </>
+              ) : (
+                <Select
+                  value={contentType}
+                  onValueChange={(value: "text" | "image") => setContentType(value)}
+                >
+                  <SelectTrigger id="submission-type" className="w-full">
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Text/Poetry</SelectItem>
+                    <SelectItem value="image">Image/Artwork</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* AI Generation Section */}

@@ -1511,7 +1511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'User is not registered for this event' });
       }
       
-      // Get the event to check its stage
+      // Get the event to check its stage and type
       const event = await storage.getEvent(submissionData.eventId);
       if (!event) {
         return res.status(404).json({ message: 'Event not found' });
@@ -1536,6 +1536,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Enforce content type based on event type
+      if (event.type && typeof event.type === 'string') {
+        const eventType = event.type.toLowerCase();
+        
+        // Poetry events only accept text submissions
+        if (eventType === 'poetry' && submissionData.contentType !== 'text') {
+          return res.status(400).json({ 
+            message: 'Poetry events only accept text submissions',
+            eventType: eventType,
+            submittedContentType: submissionData.contentType
+          });
+        }
+        
+        // Painting events only accept image submissions
+        if (eventType === 'painting' && submissionData.contentType !== 'image') {
+          return res.status(400).json({ 
+            message: 'Painting events only accept image submissions',
+            eventType: eventType,
+            submittedContentType: submissionData.contentType
+          });
+        }
+      }
+      
       // Check if user already has 3 submissions for this event
       const existingSubmissions = await storage.getSubmissionsByUserAndEvent(
         submissionData.userId, 
@@ -1549,6 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const submission = await storage.createSubmission(submissionData);
       res.status(201).json(submission);
     } catch (error) {
+      console.error('Error creating submission:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Invalid submission data', errors: error.errors });
       }
