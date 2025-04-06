@@ -423,8 +423,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If schoolId is provided, get users from that school
         users = await storage.getUsersBySchool(Number(schoolId));
       } else if (role) {
-        // If role is provided, get users with that specific role
-        users = await storage.getUsersByRole(String(role));
+        // If role is provided, check if it's a comma-separated list
+        if (typeof role === 'string' && role.includes(',')) {
+          // Handle multiple roles (e.g., "teacher,secondaryTeacher")
+          const roles = role.split(',').map(r => r.trim());
+          const usersByRole = await Promise.all(
+            roles.map(r => storage.getUsersByRole(r))
+          );
+          // Flatten the array of arrays and remove duplicates
+          users = Array.from(new Set(usersByRole.flat().map(u => u.id)))
+            .map(id => usersByRole.flat().find(u => u.id === id));
+        } else {
+          // Single role
+          users = await storage.getUsersByRole(String(role));
+        }
       } else {
         // If no filters provided, get all users
         users = await storage.getAllUsers();

@@ -35,6 +35,7 @@ import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
 import StudentTable from "@/components/dashboard/student-table";
 import SecondaryTeacherManagement from "@/components/dashboard/secondary-teacher-management";
+import TeacherRoleManagement from "@/components/dashboard/teacher-role-management";
 import {
   Dialog,
   DialogContent,
@@ -2029,8 +2030,12 @@ const AdminDashboard: React.FC = () => {
             <Briefcase className="h-4 w-4" />
             <span>Partners</span>
           </TabsTrigger>
-          <TabsTrigger value="secondaryTeachers" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+          <TabsTrigger value="teacherRoles" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
             <UserCog className="h-4 w-4" />
+            <span>Teacher Roles</span>
+          </TabsTrigger>
+          <TabsTrigger value="secondaryTeachers" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <Users className="h-4 w-4" />
             <span>Secondary Teachers</span>
           </TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
@@ -2643,6 +2648,17 @@ const AdminDashboard: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="teacherRoles">
+          <TeacherRoleManagement onRefreshData={() => {
+            toast({
+              title: "Success",
+              description: "Teacher roles refreshed",
+            });
+            // Refresh users list to reflect role changes
+            refetchUsers();
+          }} />
         </TabsContent>
         
         <TabsContent value="secondaryTeachers">
