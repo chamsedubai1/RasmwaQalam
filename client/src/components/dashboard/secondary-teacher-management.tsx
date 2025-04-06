@@ -256,6 +256,15 @@ const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({
       return;
     }
     
+    if (!selectedClass) {
+      toast({
+        title: "Missing class",
+        description: "Please select a class first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Check if this assignment already exists
     const existingAssignment = assignments.find(
       (a: any) => 

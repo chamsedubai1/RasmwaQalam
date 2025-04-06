@@ -1407,48 +1407,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`CRITICAL - User grade level for school stage: ${userGradeLevel}, School ID: ${currentUser.schoolId}, Class ID: ${currentUser.classId}`);
                 
                 if (userGradeLevel) {
-                  // Get all classes with the same grade level in this school
-                  const allClasses = await storage.getClassesBySchool(currentUser.schoolId);
-                  const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
-                  const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
+                  // IMPROVED FILTERING LOGIC:
+                  // 1. First, identify all users who have submissions
+                  const submissionUserIds: number[] = Array.from(new Set(submissions.map(sub => sub.userId)));
+                  console.log(`Users with class winner submissions: ${submissionUserIds.length}`);
                   
-                  console.log(`SCHOOL STAGE - Classes with grade level "${userGradeLevel}" in school ${currentUser.schoolId}:`, 
-                    sameGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel }))
+                  // 2. Get all users with their details
+                  const usersWithSubmissions = await Promise.all(
+                    submissionUserIds.map(userId => storage.getUser(userId))
                   );
                   
-                  // Also log classes with different grade levels for debug purposes
-                  const differentGradeClasses = allClasses.filter(cls => cls.gradeLevel !== userGradeLevel);
-                  console.log(`SCHOOL STAGE - Classes with different grade levels in the same school:`, 
-                    differentGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel }))
-                  );
+                  // 3. For each user, retrieve their class info to determine grade level
+                  interface UserClassDetails {
+                    userId: number;
+                    userName: string;
+                    classId: number;
+                    className: string;
+                    schoolId: number;
+                    gradeLevel: string;
+                  }
                   
-                  // Get users from these classes (only same grade level in same school)
-                  const allUsers = await storage.getUsersBySchool(currentUser.schoolId);
-                  const sameGradeUsers = allUsers.filter(usr => 
-                    usr.classId && sameGradeClassIds.includes(usr.classId)
-                  );
-                  const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
+                  const userClassDetailsMap = new Map<number, UserClassDetails>();
+                  for (const user of usersWithSubmissions) {
+                    if (user && user.classId) {
+                      const classInfo = await storage.getClass(user.classId);
+                      if (classInfo) {
+                        userClassDetailsMap.set(user.id, {
+                          userId: user.id,
+                          userName: user.fullName,
+                          classId: classInfo.id,
+                          className: classInfo.name,
+                          schoolId: classInfo.schoolId,
+                          gradeLevel: classInfo.gradeLevel
+                        });
+                      }
+                    }
+                  }
                   
-                  console.log(`SCHOOL STAGE - Students in same grade (${userGradeLevel}) in same school (${currentUser.schoolId}):`, 
-                    sameGradeUsers.map(u => ({ id: u.id, name: u.fullName, classId: u.classId }))
+                  // 4. Filter for users in the same school AND same grade level
+                  const sameGradeSchoolUserIds: number[] = [];
+                  userClassDetailsMap.forEach((details, userId) => {
+                    if (details.schoolId === currentUser.schoolId && details.gradeLevel === userGradeLevel) {
+                      sameGradeSchoolUserIds.push(userId);
+                    }
+                  });
+                  
+                  console.log(`SCHOOL STAGE - Found ${sameGradeSchoolUserIds.length} students in same grade (${userGradeLevel}) in same school (${currentUser.schoolId})`);
+                  
+                  // Debug logging for all users with submissions
+                  console.log(`SCHOOL STAGE - All user submissions class details:`, 
+                    Array.from(userClassDetailsMap.values()).map(details => ({
+                      userId: details.userId,
+                      userName: details.userName,
+                      classId: details.classId,
+                      className: details.className,
+                      schoolId: details.schoolId, 
+                      gradeLevel: details.gradeLevel
+                    }))
                   );
                   
                   // Before filtering, log which submissions would be excluded
-                  const excludedSubmissions = submissions.filter(sub => !sameGradeUserIds.includes(sub.userId));
+                  const excludedSubmissions = submissions.filter(sub => !sameGradeSchoolUserIds.includes(sub.userId));
                   if (excludedSubmissions.length > 0) {
-                    console.log(`SCHOOL STAGE FILTERING - These submissions will be EXCLUDED as they're from different grades:`, 
-                      excludedSubmissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                    console.log(`SCHOOL STAGE FILTERING - These submissions will be EXCLUDED as they're from different grades or schools:`, 
+                      excludedSubmissions.map(s => {
+                        const userDetails = userClassDetailsMap.get(s.userId);
+                        return {
+                          id: s.id,
+                          title: s.title,
+                          userId: s.userId,
+                          grade: userDetails?.gradeLevel,
+                          schoolId: userDetails?.schoolId
+                        };
+                      })
                     );
                   }
                   
                   // Filter submissions to only include class winners from the same grade level in the same school
                   const beforeSchoolFilter = submissions.length;
-                  submissions = submissions.filter(sub => sameGradeUserIds.includes(sub.userId));
+                  submissions = submissions.filter(sub => sameGradeSchoolUserIds.includes(sub.userId));
                   console.log(`SCHOOL STAGE FILTERING - Filtered class winners to same grade in same school: ${beforeSchoolFilter} -> ${submissions.length}`);
                   
                   // Log the final submissions being shown
                   console.log(`SCHOOL STAGE FILTERING - Final submissions for voting:`, 
-                    submissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                    submissions.map(s => {
+                      const userDetails = userClassDetailsMap.get(s.userId);
+                      return {
+                        id: s.id,
+                        title: s.title,
+                        userId: s.userId,
+                        userName: userDetails?.userName,
+                        grade: userDetails?.gradeLevel,
+                        schoolId: userDetails?.schoolId
+                      };
+                    })
                   );
                 }
               }
@@ -1466,31 +1518,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`CRITICAL - User grade level for country stage: ${userGradeLevel}, Class ID: ${currentUser.classId}`);
               
               if (userGradeLevel) {
-                // Get all classes with the same grade level across all schools
-                const allClasses = await storage.getAllClasses();
-                const sameGradeClasses = allClasses.filter(cls => cls.gradeLevel === userGradeLevel);
-                const sameGradeClassIds = sameGradeClasses.map(cls => cls.id);
+                // IMPROVED FILTERING LOGIC FOR COUNTRY STAGE:
+                // 1. First, identify all users who have submissions
+                const submissionUserIds: number[] = Array.from(new Set(submissions.map(sub => sub.userId)));
+                console.log(`Users with school winner submissions: ${submissionUserIds.length}`);
                 
-                console.log(`COUNTRY STAGE - Classes with grade level "${userGradeLevel}" across all schools:`, 
-                  sameGradeClasses.map(c => ({ id: c.id, name: c.name, grade: c.gradeLevel, schoolId: c.schoolId }))
+                // 2. Get all users with their details
+                const usersWithSubmissions = await Promise.all(
+                  submissionUserIds.map(userId => storage.getUser(userId))
                 );
                 
-                // Get all users from these classes (same grade level across all schools)
-                const allUsers = await storage.getAllUsers();
-                const sameGradeUsers = allUsers.filter(usr => 
-                  usr.classId && sameGradeClassIds.includes(usr.classId)
-                );
-                const sameGradeUserIds = sameGradeUsers.map(usr => usr.id);
+                // 3. For each user, retrieve their class info to determine grade level
+                interface UserClassDetails {
+                  userId: number;
+                  userName: string;
+                  classId: number;
+                  className: string;
+                  schoolId: number;
+                  gradeLevel: string;
+                }
                 
-                console.log(`COUNTRY STAGE - Students in same grade (${userGradeLevel}) across all schools:`, 
-                  sameGradeUsers.map(u => ({ id: u.id, name: u.fullName, classId: u.classId, schoolId: u.schoolId }))
+                const userClassDetailsMap = new Map<number, UserClassDetails>();
+                for (const user of usersWithSubmissions) {
+                  if (user && user.classId) {
+                    const classInfo = await storage.getClass(user.classId);
+                    if (classInfo) {
+                      userClassDetailsMap.set(user.id, {
+                        userId: user.id,
+                        userName: user.fullName,
+                        classId: classInfo.id,
+                        className: classInfo.name,
+                        schoolId: classInfo.schoolId,
+                        gradeLevel: classInfo.gradeLevel
+                      });
+                    }
+                  }
+                }
+                
+                // 4. Filter for users in the same grade level across all schools
+                const sameGradeUserIds: number[] = [];
+                userClassDetailsMap.forEach((details, userId) => {
+                  if (details.gradeLevel === userGradeLevel) {
+                    sameGradeUserIds.push(userId);
+                  }
+                });
+                
+                console.log(`COUNTRY STAGE - Found ${sameGradeUserIds.length} students in same grade (${userGradeLevel}) across all schools`);
+                
+                // Debug logging for all users with submissions
+                console.log(`COUNTRY STAGE - All user submissions class details:`, 
+                  Array.from(userClassDetailsMap.values()).map(details => ({
+                    userId: details.userId,
+                    userName: details.userName,
+                    classId: details.classId,
+                    className: details.className,
+                    schoolId: details.schoolId, 
+                    gradeLevel: details.gradeLevel
+                  }))
                 );
                 
                 // Before filtering, log which submissions would be excluded
                 const excludedSubmissions = submissions.filter(sub => !sameGradeUserIds.includes(sub.userId));
                 if (excludedSubmissions.length > 0) {
                   console.log(`COUNTRY STAGE FILTERING - These submissions will be EXCLUDED as they're from different grades:`, 
-                    excludedSubmissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                    excludedSubmissions.map(s => {
+                      const userDetails = userClassDetailsMap.get(s.userId);
+                      return {
+                        id: s.id,
+                        title: s.title,
+                        userId: s.userId,
+                        grade: userDetails?.gradeLevel,
+                        schoolId: userDetails?.schoolId
+                      };
+                    })
                   );
                 }
                 
@@ -1501,7 +1601,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Log the final submissions being shown
                 console.log(`COUNTRY STAGE FILTERING - Final submissions for voting:`, 
-                  submissions.map(s => ({ id: s.id, title: s.title, userId: s.userId }))
+                  submissions.map(s => {
+                    const userDetails = userClassDetailsMap.get(s.userId);
+                    return {
+                      id: s.id,
+                      title: s.title,
+                      userId: s.userId,
+                      userName: userDetails?.userName,
+                      grade: userDetails?.gradeLevel,
+                      schoolId: userDetails?.schoolId
+                    };
+                  })
                 );
               }
               break;
