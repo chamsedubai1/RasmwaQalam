@@ -53,10 +53,35 @@ export default function UsersTable({
   } = useQuery({
     queryKey: ['/api/users', buildQueryString()],
     queryFn: async () => {
-      const queryString = buildQueryString();
-      const endpoint = queryString ? `/api/users?${queryString}` : '/api/users';
-      const response = await apiRequest('GET', endpoint);
-      return response.json();
+      try {
+        const queryString = buildQueryString();
+        const endpoint = queryString ? `/api/users?${queryString}` : '/api/users';
+        const response = await apiRequest('GET', endpoint);
+        
+        // Safe parsing of response
+        try {
+          return await response.json();
+        } catch (jsonError) {
+          // If there's an error parsing JSON, try to get the response text
+          console.error("Error parsing JSON response:", jsonError);
+          
+          // If schoolFilter is provided, fall back to manual filtering
+          if (schoolFilter) {
+            console.log("Fetching teachers manually...");
+            // Get all users and filter in the client
+            const allUsersResponse = await apiRequest('GET', '/api/users');
+            const allUsers = await allUsersResponse.json();
+            console.log("Fetched teachers manually:", allUsers);
+            return allUsers.filter((user: any) => user.schoolId === schoolFilter);
+          }
+          
+          // Return empty array if all else fails
+          return [];
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new Error("Failed to fetch users. Please try again.");
+      }
     }
   });
 
@@ -64,8 +89,13 @@ export default function UsersTable({
   const { data: schools } = useQuery({
     queryKey: ['/api/schools'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/schools');
-      return response.json();
+      try {
+        const response = await apiRequest('GET', '/api/schools');
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching schools:", error);
+        return [];
+      }
     }
   });
 
@@ -73,8 +103,13 @@ export default function UsersTable({
   const { data: classes } = useQuery({
     queryKey: ['/api/classes'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/classes');
-      return response.json();
+      try {
+        const response = await apiRequest('GET', '/api/classes');
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+        return [];
+      }
     }
   });
 
