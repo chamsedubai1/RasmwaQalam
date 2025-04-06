@@ -44,6 +44,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface TeacherRoleManagementProps {
   onRefreshData?: () => void;
+  schoolFilter?: number;
+  isSchoolAdminView?: boolean;
 }
 
 interface Teacher {
@@ -60,7 +62,11 @@ interface Teacher {
   isActive: boolean;
 }
 
-const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefreshData }) => {
+const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ 
+  onRefreshData, 
+  schoolFilter,
+  isSchoolAdminView = false 
+}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +87,16 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
       
       try {
         console.log("Fetching teachers manually...");
-        const res = await fetch("/api/users?role=teacher,secondaryTeacher");
+        
+        // Build query string with role filter and optional school filter
+        let endpoint = "/api/users?role=teacher,secondaryTeacher";
+        
+        // Add school filter if provided
+        if (schoolFilter) {
+          endpoint += `&schoolId=${schoolFilter}`;
+        }
+        
+        const res = await fetch(endpoint);
         
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);
@@ -110,7 +125,7 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
     };
     
     fetchTeachers();
-  }, []);
+  }, [schoolFilter]);
   
   // Manually refetch teachers
   const refetchTeachers = async () => {
@@ -118,7 +133,15 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
     setError(null);
     
     try {
-      const res = await fetch("/api/users?role=teacher,secondaryTeacher");
+      // Build query string with role filter and optional school filter
+      let endpoint = "/api/users?role=teacher,secondaryTeacher";
+      
+      // Add school filter if provided
+      if (schoolFilter) {
+        endpoint += `&schoolId=${schoolFilter}`;
+      }
+      
+      const res = await fetch(endpoint);
       
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
@@ -292,7 +315,11 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Teacher Role Management</CardTitle>
+        <CardTitle>
+          {isSchoolAdminView 
+            ? "School Teachers Role Management" 
+            : "Teacher Role Management"}
+        </CardTitle>
         <div className="flex space-x-2">
           <div className="relative">
             <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-gray-500" />

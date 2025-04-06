@@ -67,6 +67,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user.isActive) {
+        // Provide specific message for school admin accounts awaiting approval
+        if (user.role === 'schoolAdmin') {
+          return res.status(403).json({ 
+            message: 'Your School Admin account is pending approval from the system administrator. Please check back later.' 
+          });
+        }
         return res.status(403).json({ message: 'Account is locked or inactive' });
       }
       
@@ -108,6 +114,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user.isActive) {
+        // Provide specific message for school admin accounts awaiting approval
+        if (user.role === 'schoolAdmin') {
+          return res.status(403).json({ 
+            message: 'Your School Admin account is pending approval from the system administrator. Please check back later.' 
+          });
+        }
         return res.status(403).json({ message: "Account is locked or inactive" });
       }
       
@@ -183,6 +195,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user.isActive) {
+        // Provide specific message for school admin accounts awaiting approval
+        if (user.role === 'schoolAdmin') {
+          return res.status(403).json({ 
+            message: 'Your School Admin account is pending approval from the system administrator. Please check back later.' 
+          });
+        }
         return res.status(403).json({ message: 'Account is locked or inactive' });
       }
       
@@ -350,10 +368,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post('/auth/register', requireCaptcha, async (req, res) => {
     try {
+      // Determine if the user should be active by default
+      // For schoolAdmin role, set isActive to false (requires admin approval)
+      const isActiveByDefault = req.body.role === 'schoolAdmin' ? false : true;
+      
       // Validate the user data
       const userData = insertUserSchema.parse({
         ...req.body,
-        isActive: true // Set to active by default
+        isActive: isActiveByDefault // Set active status based on role
       });
       
       // Check if username already exists
@@ -371,6 +393,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ 
           message: 'Email already exists. Please use a different email address.',
           field: 'email'
+        });
+      }
+      
+      // School Admin requires a school ID
+      if (userData.role === 'schoolAdmin' && !userData.schoolId) {
+        return res.status(400).json({
+          message: 'School Admin accounts must be associated with a school.',
+          field: 'schoolId'
         });
       }
       
@@ -396,6 +426,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return user without password
       const { password, ...userWithoutPassword } = user;
+      
+      // Special message for school admin registrations
+      if (userData.role === 'schoolAdmin') {
+        return res.status(201).json({
+          ...userWithoutPassword,
+          message: "Your School Admin account has been created but requires approval from the system administrator before you can log in."
+        });
+      }
+      
       res.status(201).json(userWithoutPassword);
     } catch (error) {
       console.error('Registration error:', error);
@@ -4164,7 +4203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Secondary Teacher Assignment routes
   apiRouter.get('/secondary-teacher-assignments', async (req, res) => {
     try {
-      const { teacherId, classId, secondaryTeacherId } = req.query;
+      const { teacherId, classId, secondaryTeacherId, schoolId } = req.query;
       
       let assignments: SecondaryTeacherAssignment[] = [];
       
@@ -4187,6 +4226,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (classId) {
         // Get all assignments for this class
         assignments = await storage.getSecondaryTeacherAssignmentsByClass(Number(classId));
+      } else if (schoolId) {
+        // Get all assignments for classes in this school
+        const allAssignments = [];
+        const classes = await storage.getClassesBySchool(Number(schoolId));
+        
+        for (const cls of classes) {
+          const classAssignments = await storage.getSecondaryTeacherAssignmentsByClass(cls.id);
+          allAssignments.push(...classAssignments);
+        }
+        
+        assignments = allAssignments;
       } else {
         // No specific filter, get all assignments (should be admin only)
         // Implement pagination here if the dataset is large

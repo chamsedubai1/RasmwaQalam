@@ -18,6 +18,7 @@ import CreArt from "@/pages/creart";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminMonitoring from "@/pages/admin-monitoring";
+import SchoolAdminDashboard from "@/pages/school-admin-dashboard";
 import SubmissionView from "@/pages/submission-view";
 import Login from "@/pages/login";
 import UploadTest from "@/pages/upload-test";
@@ -73,6 +74,12 @@ function Router() {
           <Route path="/admin/monitoring">
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminMonitoring />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/school-admin">
+            <ProtectedRoute allowedRoles={['schoolAdmin']}>
+              <SchoolAdminDashboard />
             </ProtectedRoute>
           </Route>
           

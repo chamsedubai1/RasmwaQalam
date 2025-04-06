@@ -49,9 +49,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SecondaryTeacherManagementProps {
   onRefreshData?: () => void;
+  schoolFilter?: number;
+  isSchoolAdminView?: boolean;
 }
 
-const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({ onRefreshData }) => {
+const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({ 
+  onRefreshData,
+  schoolFilter,
+  isSchoolAdminView = false
+}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddAssignmentDialog, setShowAddAssignmentDialog] = useState(false);
@@ -64,38 +70,74 @@ const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({
   const [sortField, setSortField] = useState<string>("className");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   
-  // Fetch all assignments
+  // Fetch all assignments, filtered by school if schoolFilter is provided
   const { 
     data: assignments = [], 
     isLoading: isLoadingAssignments,
     refetch: refetchAssignments
   } = useQuery<any[]>({
-    queryKey: ['/api/secondary-teacher-assignments'],
+    queryKey: ['/api/secondary-teacher-assignments', schoolFilter ? `school=${schoolFilter}` : ''],
+    queryFn: () => {
+      const url = schoolFilter 
+        ? `/api/secondary-teacher-assignments?schoolId=${schoolFilter}` 
+        : '/api/secondary-teacher-assignments';
+      return fetch(url).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch assignments');
+        return res.json();
+      });
+    },
   });
   
-  // Fetch all teachers
+  // Fetch all teachers, filtered by school if schoolFilter is provided
   const { 
     data: teachers = [], 
     isLoading: isLoadingTeachers 
   } = useQuery<any[]>({
-    queryKey: ['/api/users?role=teacher'],
+    queryKey: ['/api/users?role=teacher', schoolFilter ? `school=${schoolFilter}` : ''],
+    queryFn: () => {
+      const url = schoolFilter 
+        ? `/api/users?role=teacher&schoolId=${schoolFilter}` 
+        : '/api/users?role=teacher';
+      return fetch(url).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch teachers');
+        return res.json();
+      });
+    },
   });
   
-  // Fetch all secondary teachers
+  // Fetch all secondary teachers, filtered by school if schoolFilter is provided
   const { 
     data: secondaryTeachers = [], 
     isLoading: isLoadingSecondaryTeachers 
   } = useQuery<any[]>({
-    queryKey: ['/api/users?role=secondaryTeacher'],
+    queryKey: ['/api/users?role=secondaryTeacher', schoolFilter ? `school=${schoolFilter}` : ''],
+    queryFn: () => {
+      const url = schoolFilter 
+        ? `/api/users?role=secondaryTeacher&schoolId=${schoolFilter}` 
+        : '/api/users?role=secondaryTeacher';
+      return fetch(url).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch secondary teachers');
+        return res.json();
+      });
+    },
   });
   
-  // Fetch all classes
+  // Fetch all classes, filtered by school if schoolFilter is provided
   const { 
     data: classes = [], 
     isLoading: isLoadingClasses,
     refetch: refetchClasses 
   } = useQuery<any[]>({
-    queryKey: ['/api/classes'],
+    queryKey: ['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''],
+    queryFn: () => {
+      const url = schoolFilter 
+        ? `/api/classes?schoolId=${schoolFilter}` 
+        : '/api/classes';
+      return fetch(url).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch classes');
+        return res.json();
+      });
+    },
   });
 
   // Process classes to include teacher assignments
@@ -205,7 +247,12 @@ const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({
       // Refresh assignments list
       refetchAssignments();
       refetchClasses();
-      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/secondary-teacher-assignments', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
       if (onRefreshData) {
         onRefreshData();
       }
@@ -232,7 +279,12 @@ const SecondaryTeacherManagement: React.FC<SecondaryTeacherManagementProps> = ({
       // Refresh assignments list
       refetchAssignments();
       refetchClasses();
-      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/secondary-teacher-assignments', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
       if (onRefreshData) {
         onRefreshData();
       }

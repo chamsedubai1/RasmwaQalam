@@ -27,13 +27,17 @@ interface ClassTableProps {
   isLoading: boolean;
   onManage: (classId: number) => void;
   onEdit?: (classData: any) => void;
+  schoolFilter?: number;
+  isSchoolAdminView?: boolean;
 }
 
 const ClassTable: React.FC<ClassTableProps> = ({ 
   classes = [],
   isLoading,
   onManage,
-  onEdit
+  onEdit,
+  schoolFilter,
+  isSchoolAdminView = false
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,7 +53,7 @@ const ClassTable: React.FC<ClassTableProps> = ({
     },
     onSuccess: (updatedClass) => {
       // Immediately update the cache for this specific class
-      queryClient.setQueryData(['/api/classes'], (oldData: any[] | undefined) => {
+      queryClient.setQueryData(['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''], (oldData: any[] | undefined) => {
         if (!oldData) return oldData;
         
         return oldData.map(cls => 
@@ -58,7 +62,9 @@ const ClassTable: React.FC<ClassTableProps> = ({
       });
       
       // Also refetch to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
       
       // Show success message with the updated status
       toast({
@@ -86,7 +92,9 @@ const ClassTable: React.FC<ClassTableProps> = ({
         title: "Success",
         description: "Class deleted",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/classes', schoolFilter ? `school=${schoolFilter}` : ''] 
+      });
     },
     onError: (error: any) => {
       toast({
