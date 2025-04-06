@@ -62,10 +62,13 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
     isLoading: isLoadingTeachers,
     refetch: refetchTeachers 
   } = useQuery<any[]>({
-    queryKey: ['/api/users'],
+    queryKey: ['/api/users', 'teachers'],
     queryFn: async () => {
+      console.log("Fetching teachers only...");
       const res = await apiRequest("GET", "/api/users?role=teacher,secondaryTeacher");
-      return await res.json();
+      const data = await res.json();
+      console.log("Fetched teachers:", data);
+      return data;
     }
   });
 
@@ -81,7 +84,7 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
         description: `The teacher's role has been successfully updated.`,
       });
       setShowRoleChangeDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', 'teachers'] });
       if (onRefreshData) onRefreshData();
     },
     onError: (error: any) => {
