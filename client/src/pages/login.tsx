@@ -36,6 +36,9 @@ export default function LoginPage() {
         case "admin":
           setLocation("/admin");
           break;
+        case "schoolAdmin":
+          setLocation("/school-admin");
+          break;
         case "teacher":
           setLocation("/teacher");
           break;
@@ -103,6 +106,9 @@ export default function LoginPage() {
           case "admin":
             setLocation("/admin");
             break;
+          case "schoolAdmin":
+            setLocation("/school-admin");
+            break;
           case "teacher":
             setLocation("/teacher");
             break;
@@ -167,6 +173,9 @@ export default function LoginPage() {
         switch (response.role) {
           case "admin":
             setLocation("/admin");
+            break;
+          case "schoolAdmin":
+            setLocation("/school-admin");
             break;
           case "teacher":
             setLocation("/teacher");
@@ -275,7 +284,7 @@ export default function LoginPage() {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="register-as">Register as</Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <Button
                         type="button"
                         variant={registrationRole === "student" ? "default" : "outline"}
@@ -300,6 +309,18 @@ export default function LoginPage() {
                       >
                         Teacher
                       </Button>
+                      <Button
+                        type="button"
+                        variant={registrationRole === "schoolAdmin" ? "default" : "outline"}
+                        className={
+                          registrationRole === "schoolAdmin" 
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+                            : ""
+                        }
+                        onClick={() => setRegistrationRole("schoolAdmin")}
+                      >
+                        School Admin
+                      </Button>
                     </div>
                   </div>
                   
@@ -312,6 +333,7 @@ export default function LoginPage() {
                     <TeacherRegistrationForm 
                       onSubmit={handleRegister}
                       isRegistering={isRegistering}
+                      isSchoolAdmin={registrationRole === "schoolAdmin"}
                     />
                   )}
                 </div>

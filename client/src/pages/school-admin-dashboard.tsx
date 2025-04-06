@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, School, BookOpen, GraduationCap } from 'lucide-react';
+import { Loader2, Users, FileText, BookOpen, GraduationCap } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 // Import dashboard components
@@ -12,11 +12,13 @@ import UsersTable from '@/components/dashboard/users-table';
 import ClassTable from '@/components/dashboard/class-table';
 import SecondaryTeacherManagement from '@/components/dashboard/secondary-teacher-management';
 import TeacherRoleManagement from '@/components/dashboard/teacher-role-management';
+import { useUser } from '@/hooks/use-user';
 
 export default function SchoolAdminDashboard() {
   const [location, setLocation] = useState('/school-admin-dashboard');
   const [currentTab, setCurrentTab] = useState('overview');
   const [activeSchoolId, setActiveSchoolId] = useState<number | null>(null);
+  const { user } = useUser();
   
   // Get current user
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
@@ -34,6 +36,17 @@ export default function SchoolAdminDashboard() {
     },
     enabled: !!currentUser?.schoolId,
   });
+  
+  // Get school classes data
+  const { data: schoolClasses, isLoading: isLoadingClasses } = useQuery({
+    queryKey: ['/api/classes', activeSchoolId ? `school=${activeSchoolId}` : ''],
+    queryFn: async () => {
+      if (!activeSchoolId) return [];
+      const response = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
+      return response.json();
+    },
+    enabled: !!activeSchoolId,
+  });
 
   // Set the active school ID when user data is loaded
   useEffect(() => {
@@ -48,6 +61,34 @@ export default function SchoolAdminDashboard() {
     setLocation(`/school-admin-dashboard?tab=${value}`);
   };
 
+  // Get school users data
+  const { data: schoolUsers, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['/api/users', activeSchoolId ? `school=${activeSchoolId}` : ''],
+    queryFn: async () => {
+      if (!activeSchoolId) return [];
+      const response = await apiRequest('GET', `/api/users?schoolId=${activeSchoolId}`);
+      return response.json();
+    },
+    enabled: !!activeSchoolId,
+  });
+  
+  // Calculate statistics
+  // Get submission data
+  const { data: submissions, isLoading: isLoadingSubmissions } = useQuery({
+    queryKey: ['/api/submissions', activeSchoolId ? `school=${activeSchoolId}` : ''],
+    queryFn: async () => {
+      if (!activeSchoolId) return [];
+      const response = await apiRequest('GET', `/api/submissions?schoolId=${activeSchoolId}`);
+      return response.json();
+    },
+    enabled: !!activeSchoolId,
+  });
+  
+  const totalStudents = schoolUsers?.filter((u: any) => u.role === 'student')?.length || 0;
+  const totalTeachers = schoolUsers?.filter((u: any) => u.role === 'teacher' || u.role === 'secondaryTeacher')?.length || 0;
+  const totalClasses = schoolClasses?.length || 0;
+  const activeSubmissions = submissions?.filter((s: any) => s.status === 'approved')?.length || 0;
+  
   if (isLoadingUser || isLoadingSchool) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -102,7 +143,7 @@ export default function SchoolAdminDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Loading...</div>
+                <div className="text-2xl font-bold">{isLoadingUsers ? "..." : totalStudents}</div>
               </CardContent>
             </Card>
             <Card>
@@ -111,7 +152,7 @@ export default function SchoolAdminDashboard() {
                 <GraduationCap className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Loading...</div>
+                <div className="text-2xl font-bold">{isLoadingUsers ? "..." : totalTeachers}</div>
               </CardContent>
             </Card>
             <Card>
@@ -120,16 +161,16 @@ export default function SchoolAdminDashboard() {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Loading...</div>
+                <div className="text-2xl font-bold">{isLoadingClasses ? "..." : totalClasses}</div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Submissions</CardTitle>
-                <School className="h-4 w-4 text-muted-foreground" />
+                <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Loading...</div>
+                <div className="text-2xl font-bold">{isLoadingSubmissions ? "..." : activeSubmissions}</div>
               </CardContent>
             </Card>
           </div>
@@ -236,7 +277,16 @@ export default function SchoolAdminDashboard() {
             </CardHeader>
             <CardContent>
               {activeSchoolId ? (
-                <ClassTable schoolFilter={activeSchoolId} isSchoolAdminView={true} />
+                <ClassTable 
+                  schoolFilter={activeSchoolId} 
+                  isSchoolAdminView={true} 
+                  classes={schoolClasses || []} 
+                  isLoading={isLoadingClasses} 
+                  onManage={(classId) => {
+                    // For now this is a placeholder; we could implement class management later
+                    console.log(`Manage class ${classId}`);
+                  }} 
+                />
               ) : (
                 <div className="flex justify-center items-center p-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />

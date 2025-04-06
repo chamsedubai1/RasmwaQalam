@@ -18,11 +18,13 @@ import { PasswordStrength } from "@/components/ui/password-strength";
 interface TeacherRegistrationFormProps {
   onSubmit: (data: any) => Promise<void>;
   isRegistering: boolean;
+  isSchoolAdmin?: boolean;
 }
 
 const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({ 
   onSubmit, 
-  isRegistering 
+  isRegistering,
+  isSchoolAdmin = false
 }) => {
   // Form state
   const [username, setUsername] = useState("");
@@ -189,7 +191,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       password,
       fullName: `${firstName} ${lastName}`,
       email,
-      role: "teacher",
+      role: isSchoolAdmin ? "schoolAdmin" : "teacher",
       schoolId: parseInt(selectedSchool),
       subject, // Optional field
       captchaText // Include CAPTCHA text for validation on the server
@@ -311,56 +313,60 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
         </Select>
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="teacher-class" className={formErrors.selectedClass ? "text-red-500" : ""}>
-          Class (Optional) {formErrors.selectedClass && <span className="text-xs font-normal">- {formErrors.selectedClass}</span>}
-        </Label>
-        <Select 
-          value={selectedClass} 
-          onValueChange={setSelectedClass}
-          disabled={!selectedSchool || isLoadingClasses}
-        >
-          <SelectTrigger 
-            id="teacher-class"
-            className={formErrors.selectedClass ? "border-red-500 focus-visible:ring-red-500" : ""}
+      {!isSchoolAdmin && (
+        <div className="space-y-2">
+          <Label htmlFor="teacher-class" className={formErrors.selectedClass ? "text-red-500" : ""}>
+            Class (Optional) {formErrors.selectedClass && <span className="text-xs font-normal">- {formErrors.selectedClass}</span>}
+          </Label>
+          <Select 
+            value={selectedClass} 
+            onValueChange={setSelectedClass}
+            disabled={!selectedSchool || isLoadingClasses}
           >
-            <SelectValue placeholder={!selectedSchool ? "Select a school first" : "Select a class (optional)"} />
-          </SelectTrigger>
-          <SelectContent>
-            {isLoadingClasses ? (
-              <SelectItem value="loading" disabled>Loading classes...</SelectItem>
-            ) : !selectedSchool ? (
-              <SelectItem value="none" disabled>Select a school first</SelectItem>
-            ) : classes.length === 0 ? (
-              <SelectItem value="none" disabled>No available classes at this school</SelectItem>
-            ) : (
-              classes.map((classItem: ClassItem) => (
-                <SelectItem key={classItem.id} value={classItem.id.toString()}>
-                  {classItem.name} (Grade {classItem.gradeLevel})
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-        {selectedSchool && classes.length === 0 && !isLoadingClasses && (
-          <p className="text-xs text-amber-600 mt-1">
-            All classes at this school already have assigned teachers. Please select a different school.
-          </p>
-        )}
-      </div>
+            <SelectTrigger 
+              id="teacher-class"
+              className={formErrors.selectedClass ? "border-red-500 focus-visible:ring-red-500" : ""}
+            >
+              <SelectValue placeholder={!selectedSchool ? "Select a school first" : "Select a class (optional)"} />
+            </SelectTrigger>
+            <SelectContent>
+              {isLoadingClasses ? (
+                <SelectItem value="loading" disabled>Loading classes...</SelectItem>
+              ) : !selectedSchool ? (
+                <SelectItem value="none" disabled>Select a school first</SelectItem>
+              ) : classes.length === 0 ? (
+                <SelectItem value="none" disabled>No available classes at this school</SelectItem>
+              ) : (
+                classes.map((classItem: ClassItem) => (
+                  <SelectItem key={classItem.id} value={classItem.id.toString()}>
+                    {classItem.name} (Grade {classItem.gradeLevel})
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {selectedSchool && classes.length === 0 && !isLoadingClasses && (
+            <p className="text-xs text-amber-600 mt-1">
+              All classes at this school already have assigned teachers. Please select a different school.
+            </p>
+          )}
+        </div>
+      )}
       
-      <div className="space-y-2">
-        <Label htmlFor="teacher-subject" className={formErrors.subject ? "text-red-500" : ""}>
-          Subject (Optional) {formErrors.subject && <span className="text-xs font-normal">- {formErrors.subject}</span>}
-        </Label>
-        <Input 
-          id="teacher-subject" 
-          placeholder="What subject do you teach?"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className={formErrors.subject ? "border-red-500 focus-visible:ring-red-500" : ""}
-        />
-      </div>
+      {!isSchoolAdmin && (
+        <div className="space-y-2">
+          <Label htmlFor="teacher-subject" className={formErrors.subject ? "text-red-500" : ""}>
+            Subject (Optional) {formErrors.subject && <span className="text-xs font-normal">- {formErrors.subject}</span>}
+          </Label>
+          <Input 
+            id="teacher-subject" 
+            placeholder="What subject do you teach?"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className={formErrors.subject ? "border-red-500 focus-visible:ring-red-500" : ""}
+          />
+        </div>
+      )}
       
       <div className="space-y-2">
         <Label htmlFor="teacher-password" className={formErrors.password ? "text-red-500" : ""}>
@@ -409,7 +415,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
         disabled={isRegistering}
       >
-        {isRegistering ? "Creating Account..." : "Create Teacher Account"}
+        {isRegistering ? "Creating Account..." : isSchoolAdmin ? "Create School Admin Account" : "Create Teacher Account"}
       </Button>
     </form>
   );

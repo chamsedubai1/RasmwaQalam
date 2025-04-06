@@ -33,21 +33,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       
       if (typeof userObj.id === 'number' && 
           typeof userObj.username === 'string' && 
-          (userObj.role === 'student' || userObj.role === 'teacher' || userObj.role === 'admin')) {
+          (userObj.role === 'student' || userObj.role === 'teacher' || userObj.role === 'admin' || userObj.role === 'schoolAdmin')) {
         
         // Update user context with current user data from API
         setUser({
           id: userObj.id,
           username: userObj.username,
           fullName: userObj.fullName || userObj.username,
-          role: userObj.role as 'student' | 'teacher' | 'admin',
+          role: userObj.role as 'student' | 'teacher' | 'admin' | 'schoolAdmin',
           schoolId: userObj.schoolId || null,
           classId: userObj.classId || null,
           gradeLevel: userObj.gradeLevel || null
         });
         
         // Update user role context
-        setUserRole(userObj.role as 'student' | 'teacher' | 'admin');
+        setUserRole(userObj.role as 'student' | 'teacher' | 'admin' | 'schoolAdmin');
       }
     }
   }, [apiUser, setUser, setUserRole]);

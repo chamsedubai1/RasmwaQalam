@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type UserRole = "student" | "teacher" | "admin" | "";
+type UserRole = "student" | "teacher" | "admin" | "schoolAdmin" | "";
 
 interface UserRoleContextType {
   userRole: UserRole;
@@ -19,7 +19,7 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   useEffect(() => {
     // Load saved role from localStorage on initialization
     const savedRole = localStorage.getItem("userRole") as UserRole | null;
-    if (savedRole && ["student", "teacher", "admin"].includes(savedRole)) {
+    if (savedRole && ["student", "teacher", "admin", "schoolAdmin"].includes(savedRole)) {
       setUserRole(savedRole as UserRole);
     }
   }, []);

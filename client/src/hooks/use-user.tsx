@@ -4,7 +4,7 @@ type User = {
   id: number;
   username: string;
   fullName: string;
-  role: "student" | "teacher" | "admin";
+  role: "student" | "teacher" | "admin" | "schoolAdmin";
   schoolId: number | null;
   classId: number | null;
   gradeLevel: string | null;
@@ -30,7 +30,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (parsedUser && typeof parsedUser === 'object' && 
             typeof parsedUser.id === 'number' && 
             typeof parsedUser.username === 'string' &&
-            ['student', 'teacher', 'admin'].includes(parsedUser.role)) {
+            ['student', 'teacher', 'admin', 'schoolAdmin'].includes(parsedUser.role)) {
           setUser(parsedUser);
         }
       }
