@@ -66,8 +66,10 @@ export default function SchoolAdminDashboard() {
     queryKey: ['/api/users', activeSchoolId ? `school=${activeSchoolId}` : ''],
     queryFn: async () => {
       if (!activeSchoolId) return [];
-      const response = await apiRequest('GET', `/api/users?schoolId=${activeSchoolId}`);
-      return response.json();
+      const response = await apiRequest('GET', `/api/users`);
+      const allUsers = await response.json();
+      // Filter users by school ID in the client
+      return allUsers.filter((user: any) => user.schoolId === activeSchoolId);
     },
     enabled: !!activeSchoolId,
   });
@@ -77,11 +79,31 @@ export default function SchoolAdminDashboard() {
   const { data: submissions, isLoading: isLoadingSubmissions } = useQuery({
     queryKey: ['/api/submissions', activeSchoolId ? `school=${activeSchoolId}` : ''],
     queryFn: async () => {
-      if (!activeSchoolId) return [];
-      const response = await apiRequest('GET', `/api/submissions?schoolId=${activeSchoolId}`);
-      return response.json();
+      try {
+        if (!activeSchoolId) return [];
+        // Get users from this school first
+        const schoolUserIds = schoolUsers?.map((user: any) => user.id) || [];
+        if (schoolUserIds.length === 0) return [];
+        
+        // Get first event to use as parameter
+        const eventsResponse = await apiRequest('GET', `/api/events`);
+        const events = await eventsResponse.json();
+        if (!events || events.length === 0) return [];
+        
+        // Get first class to use as parameter
+        const classesResponse = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
+        const classes = await classesResponse.json();
+        if (!classes || classes.length === 0) return [];
+        
+        // Now get submissions with proper parameters
+        const response = await apiRequest('GET', `/api/submissions?eventId=${events[0].id}&classId=${classes[0].id}`);
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching submissions:", error);
+        return [];
+      }
     },
-    enabled: !!activeSchoolId,
+    enabled: !!activeSchoolId && !!schoolUsers,
   });
   
   const totalStudents = schoolUsers?.filter((u: any) => u.role === 'student')?.length || 0;
