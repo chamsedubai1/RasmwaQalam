@@ -827,6 +827,7 @@ const AdminDashboard: React.FC = () => {
   const [schoolName, setSchoolName] = useState("");
   const [schoolDescription, setSchoolDescription] = useState("");
   const [schoolWebsite, setSchoolWebsite] = useState("");
+  const [schoolCity, setSchoolCity] = useState("");
   const [schoolStatus, setSchoolStatus] = useState("true"); // active by default
   const [schoolImageUrl, setSchoolImageUrl] = useState("");
   const [showEditClassDialog, setShowEditClassDialog] = useState(false);
@@ -1556,6 +1557,15 @@ const AdminDashboard: React.FC = () => {
   const handleCreateSchool = () => {
     setShowCreateSchoolDialog(false);
     // In a real app, this would call the API to create a school
+    console.log({
+      name: schoolName,
+      description: schoolDescription,
+      websiteUrl: schoolWebsite,
+      city: schoolCity,
+      isActive: schoolStatus === "true",
+      imageUrl: schoolImageUrl
+    });
+    
     toast({
       title: "School Created",
       description: "School has been successfully created",
@@ -1572,6 +1582,7 @@ const AdminDashboard: React.FC = () => {
       name: schoolName,
       description: schoolDescription,
       websiteUrl: schoolWebsite,
+      city: schoolCity,
       isActive: schoolStatus === "true",
       imageUrl: schoolImageUrl
     });
@@ -1580,6 +1591,7 @@ const AdminDashboard: React.FC = () => {
     setSchoolName("");
     setSchoolDescription("");
     setSchoolWebsite("");
+    setSchoolCity("");
     setSchoolStatus("true");
     setSchoolImageUrl("");
     setSelectedSchoolId(null);
@@ -2484,6 +2496,7 @@ const AdminDashboard: React.FC = () => {
                                   setSchoolName(school.name || '');
                                   setSchoolDescription(school.description || '');
                                   setSchoolWebsite(school.websiteUrl || '');
+                                  setSchoolCity(school.city || '');
                                   setSchoolStatus(school.isActive ? 'true' : 'false');
                                   setSchoolImageUrl(school.imageUrl || '');
                                   
@@ -4528,6 +4541,40 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
+                <Label htmlFor="school-city">City</Label>
+                <Select 
+                  value={schoolCity}
+                  onValueChange={setSchoolCity}
+                >
+                  <SelectTrigger id="school-city">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* UAE Cities */}
+                    <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
+                    <SelectItem value="Dubai">Dubai</SelectItem>
+                    <SelectItem value="Sharjah">Sharjah</SelectItem>
+                    <SelectItem value="Ajman">Ajman</SelectItem>
+                    <SelectItem value="Fujairah">Fujairah</SelectItem>
+                    <SelectItem value="Ras Al Khaimah">Ras Al Khaimah</SelectItem>
+                    <SelectItem value="Umm Al Quwain">Umm Al Quwain</SelectItem>
+                    
+                    {/* Saudi Arabia Cities */}
+                    <SelectItem value="Riyadh">Riyadh</SelectItem>
+                    <SelectItem value="Jeddah">Jeddah</SelectItem>
+                    <SelectItem value="Mecca">Mecca</SelectItem>
+                    <SelectItem value="Medina">Medina</SelectItem>
+                    <SelectItem value="Dammam">Dammam</SelectItem>
+                    
+                    {/* Other GCC Cities */}
+                    <SelectItem value="Doha">Doha</SelectItem>
+                    <SelectItem value="Kuwait City">Kuwait City</SelectItem>
+                    <SelectItem value="Manama">Manama</SelectItem>
+                    <SelectItem value="Muscat">Muscat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="school-website">Website URL</Label>
                 <Input 
                   id="school-website" 
@@ -4536,21 +4583,21 @@ const AdminDashboard: React.FC = () => {
                   onChange={(e) => setSchoolWebsite(e.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="school-status">Status</Label>
-                <Select 
-                  value={schoolStatus}
-                  onValueChange={setSchoolStatus}
-                >
-                  <SelectTrigger id="school-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Active</SelectItem>
-                    <SelectItem value="false">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="school-status">Status</Label>
+              <Select 
+                value={schoolStatus}
+                onValueChange={setSchoolStatus}
+              >
+                <SelectTrigger id="school-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="school-image">School Logo/Image</Label>
@@ -4599,6 +4646,40 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
+                <Label htmlFor="edit-school-city">City</Label>
+                <Select 
+                  value={schoolCity}
+                  onValueChange={setSchoolCity}
+                >
+                  <SelectTrigger id="edit-school-city">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* UAE Cities */}
+                    <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
+                    <SelectItem value="Dubai">Dubai</SelectItem>
+                    <SelectItem value="Sharjah">Sharjah</SelectItem>
+                    <SelectItem value="Ajman">Ajman</SelectItem>
+                    <SelectItem value="Fujairah">Fujairah</SelectItem>
+                    <SelectItem value="Ras Al Khaimah">Ras Al Khaimah</SelectItem>
+                    <SelectItem value="Umm Al Quwain">Umm Al Quwain</SelectItem>
+                    
+                    {/* Saudi Arabia Cities */}
+                    <SelectItem value="Riyadh">Riyadh</SelectItem>
+                    <SelectItem value="Jeddah">Jeddah</SelectItem>
+                    <SelectItem value="Mecca">Mecca</SelectItem>
+                    <SelectItem value="Medina">Medina</SelectItem>
+                    <SelectItem value="Dammam">Dammam</SelectItem>
+                    
+                    {/* Other GCC Cities */}
+                    <SelectItem value="Doha">Doha</SelectItem>
+                    <SelectItem value="Kuwait City">Kuwait City</SelectItem>
+                    <SelectItem value="Manama">Manama</SelectItem>
+                    <SelectItem value="Muscat">Muscat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="edit-school-website">Website URL</Label>
                 <Input 
                   id="edit-school-website" 
@@ -4607,21 +4688,21 @@ const AdminDashboard: React.FC = () => {
                   onChange={(e) => setSchoolWebsite(e.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-school-status">Status</Label>
-                <Select 
-                  value={schoolStatus}
-                  onValueChange={setSchoolStatus}
-                >
-                  <SelectTrigger id="edit-school-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Active</SelectItem>
-                    <SelectItem value="false">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-school-status">Status</Label>
+              <Select 
+                value={schoolStatus}
+                onValueChange={setSchoolStatus}
+              >
+                <SelectTrigger id="edit-school-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-school-image">School Logo/Image</Label>

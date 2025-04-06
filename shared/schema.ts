@@ -24,11 +24,17 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define city enum for GCC cities
+export const cityEnum = pgEnum('city', ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Fujairah', 'Ras Al Khaimah', 'Umm Al Quwain', 
+                                     'Riyadh', 'Jeddah', 'Mecca', 'Medina', 'Dammam', 
+                                     'Doha', 'Kuwait City', 'Manama', 'Muscat']);
+
 // Schools table
 export const schools = pgTable("schools", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  city: text("city"), // City field added
   websiteUrl: text("website_url"),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
