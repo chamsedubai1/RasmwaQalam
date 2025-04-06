@@ -22,7 +22,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,11 +38,26 @@ import {
   Loader2, 
   RefreshCw,
   UserCog,
-  Users
+  AlertCircle
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface TeacherRoleManagementProps {
   onRefreshData?: () => void;
+}
+
+interface Teacher {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  role: string;
+  schoolId: number | null;
+  classId: number | null;
+  schoolName: string | null;
+  className: string | null;
+  gradeLevel: string | null;
+  isActive: boolean;
 }
 
 const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefreshData }) => {
@@ -52,70 +66,139 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<string>("fullName");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [showRoleChangeDialog, setShowRoleChangeDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [teacherData, setTeacherData] = useState<Teacher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Fetch all teachers (both primary and secondary)
-  const { 
-    data: teachers = [], 
-    isLoading: isLoadingTeachers,
-    refetch: refetchTeachers 
-  } = useQuery<any[]>({
-    queryKey: ['/api/users', 'teachers'],
-    queryFn: async () => {
-      console.log("Fetching teachers only...");
-      const res = await apiRequest("GET", "/api/users?role=teacher,secondaryTeacher");
-      const data = await res.json();
-      console.log("Fetched teachers:", data);
-      console.log("Teachers length:", data.length);
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      setIsLoading(true);
+      setError(null);
       
-      // Force to return empty array if it's not valid
-      if (!Array.isArray(data)) {
-        console.error("API returned non-array data:", data);
-        return [];
+      try {
+        console.log("Fetching teachers manually...");
+        const res = await fetch("/api/users?role=teacher,secondaryTeacher");
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log("Fetched teachers manually:", data);
+        
+        if (!Array.isArray(data)) {
+          throw new Error("API did not return an array");
+        }
+        
+        // Filter to include only teachers and secondary teachers
+        const teachersOnly = data.filter(user => 
+          user.role === "teacher" || user.role === "secondaryTeacher"
+        );
+        
+        console.log("Filtered teachers:", teachersOnly);
+        setTeacherData(teachersOnly);
+      } catch (err) {
+        console.error("Error fetching teachers:", err);
+        setError(err instanceof Error ? err.message : "Failed to load teachers");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeachers();
+  }, []);
+  
+  // Manually refetch teachers
+  const refetchTeachers = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const res = await fetch("/api/users?role=teacher,secondaryTeacher");
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
       }
       
-      return data;
+      const data = await res.json();
+      
+      if (!Array.isArray(data)) {
+        throw new Error("API did not return an array");
+      }
+      
+      // Filter to include only teachers and secondary teachers
+      const teachersOnly = data.filter(user => 
+        user.role === "teacher" || user.role === "secondaryTeacher"
+      );
+      
+      console.log("Refreshed teachers count:", teachersOnly.length);
+      setTeacherData(teachersOnly);
+      
+      toast({
+        title: "Teachers refreshed",
+        description: `Loaded ${teachersOnly.length} teachers`,
+      });
+    } catch (err) {
+      console.error("Error refreshing teachers:", err);
+      setError(err instanceof Error ? err.message : "Failed to refresh teachers");
+      
+      toast({
+        title: "Refresh failed",
+        description: err instanceof Error ? err.message : "Failed to refresh teachers",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   // Mutation for updating teacher role
-  const updateTeacherRoleMutation = useMutation({
-    mutationFn: async ({ teacherId, newRole }: { teacherId: number, newRole: string }) => {
-      const res = await apiRequest("PATCH", `/api/users/${teacherId}`, { role: newRole });
-      return await res.json();
-    },
-    onSuccess: () => {
+  const updateTeacherRole = async (teacherId: number, newRole: string) => {
+    try {
+      const res = await fetch(`/api/users/${teacherId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      
       toast({
         title: "Teacher role updated",
         description: `The teacher's role has been successfully updated.`,
       });
+      
       setShowRoleChangeDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/users', 'teachers'] });
+      await refetchTeachers();
+      
       if (onRefreshData) onRefreshData();
-    },
-    onError: (error: any) => {
+    } catch (err) {
+      console.error("Error updating teacher role:", err);
+      
       toast({
         title: "Failed to update teacher role",
-        description: error.message || "An error occurred while updating the teacher role.",
+        description: err instanceof Error ? err.message : "An error occurred while updating the teacher role.",
         variant: "destructive",
       });
     }
-  });
+  };
 
   // Handle role change
   const handleRoleChange = () => {
     if (!selectedTeacher || !selectedRole) return;
-    
-    updateTeacherRoleMutation.mutate({
-      teacherId: selectedTeacher.id,
-      newRole: selectedRole
-    });
+    updateTeacherRole(selectedTeacher.id, selectedRole);
   };
 
   // Handle opening the role change dialog
-  const openRoleChangeDialog = (teacher: any) => {
+  const openRoleChangeDialog = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setSelectedRole(teacher.role);
     setShowRoleChangeDialog(true);
@@ -132,7 +215,7 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
   };
 
   // Filter teachers based on search query
-  const filteredTeachers = teachers.filter((teacher: any) => {
+  const filteredTeachers = teacherData.filter((teacher) => {
     const searchText = searchQuery.toLowerCase();
     return (
       teacher.fullName.toLowerCase().includes(searchText) ||
@@ -145,17 +228,17 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
 
   // Sort the filtered teachers
   const sortedTeachers = [...filteredTeachers].sort((a, b) => {
-    let aValue = a[sortField] || "";
-    let bValue = b[sortField] || "";
+    let aValue = a[sortField as keyof Teacher] || "";
+    let bValue = b[sortField as keyof Teacher] || "";
     
     // Convert to strings if they aren't already
-    aValue = typeof aValue === "string" ? aValue.toLowerCase() : aValue.toString();
-    bValue = typeof bValue === "string" ? bValue.toLowerCase() : bValue.toString();
+    const aValueStr = typeof aValue === "string" ? aValue.toLowerCase() : String(aValue).toLowerCase();
+    const bValueStr = typeof bValue === "string" ? bValue.toLowerCase() : String(bValue).toLowerCase();
     
     if (sortDirection === "asc") {
-      return aValue > bValue ? 1 : -1;
+      return aValueStr > bValueStr ? 1 : -1;
     } else {
-      return aValue < bValue ? 1 : -1;
+      return aValueStr < bValueStr ? 1 : -1;
     }
   });
 
@@ -176,11 +259,33 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
     </TableHead>
   );
 
-  if (isLoadingTeachers) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error loading teachers</AlertTitle>
+        <AlertDescription>
+          {error}
+          <div className="mt-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={refetchTeachers}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Try Again
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -201,7 +306,7 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refetchTeachers()}
+            onClick={refetchTeachers}
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
@@ -209,56 +314,66 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
         </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-4">
+          <p className="text-sm text-gray-500">
+            Total teachers: <strong>{teacherData.length}</strong> (Primary: {teacherData.filter(t => t.role === "teacher").length}, Secondary: {teacherData.filter(t => t.role === "secondaryTeacher").length})
+          </p>
+        </div>
+        
         {sortedTeachers.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No teachers found. Please add teachers first.
+            {teacherData.length === 0 ? 
+              "No teachers found. Please add teachers first." : 
+              "No teachers match your search criteria. Try a different search term."}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableHeader label="Name" field="fullName" />
-                <SortableHeader label="Username" field="username" />
-                <SortableHeader label="Email" field="email" />
-                <SortableHeader label="Role" field="role" />
-                <SortableHeader label="School" field="schoolName" />
-                <SortableHeader label="Class" field="className" />
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedTeachers.map((teacher: any) => (
-                <TableRow key={teacher.id}>
-                  <TableCell className="font-medium">{teacher.fullName}</TableCell>
-                  <TableCell>{teacher.username}</TableCell>
-                  <TableCell>{teacher.email}</TableCell>
-                  <TableCell>
-                    {teacher.role === "teacher" ? (
-                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                        Primary Teacher
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
-                        Secondary Teacher
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{teacher.schoolName || "-"}</TableCell>
-                  <TableCell>{teacher.className || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openRoleChangeDialog(teacher)}
-                    >
-                      <UserCog className="h-4 w-4 mr-1" />
-                      Change Role
-                    </Button>
-                  </TableCell>
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableHeader label="Name" field="fullName" />
+                  <SortableHeader label="Username" field="username" />
+                  <SortableHeader label="Email" field="email" />
+                  <SortableHeader label="Role" field="role" />
+                  <SortableHeader label="School" field="schoolName" />
+                  <SortableHeader label="Class" field="className" />
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sortedTeachers.map((teacher) => (
+                  <TableRow key={teacher.id}>
+                    <TableCell className="font-medium">{teacher.fullName}</TableCell>
+                    <TableCell>{teacher.username}</TableCell>
+                    <TableCell>{teacher.email}</TableCell>
+                    <TableCell>
+                      {teacher.role === "teacher" ? (
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                          Primary Teacher
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+                          Secondary Teacher
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>{teacher.schoolName || "-"}</TableCell>
+                    <TableCell>{teacher.className || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openRoleChangeDialog(teacher)}
+                      >
+                        <UserCog className="h-4 w-4 mr-1" />
+                        Change Role
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
 
@@ -323,19 +438,10 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
                 </Button>
                 <Button
                   onClick={handleRoleChange}
-                  disabled={!selectedRole || selectedRole === selectedTeacher.role || updateTeacherRoleMutation.isPending}
+                  disabled={!selectedRole || selectedRole === selectedTeacher.role}
                 >
-                  {updateTeacherRoleMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <UserCog className="h-4 w-4 mr-1" />
-                      Update Role
-                    </>
-                  )}
+                  <UserCog className="h-4 w-4 mr-1" />
+                  Update Role
                 </Button>
               </div>
             </div>
