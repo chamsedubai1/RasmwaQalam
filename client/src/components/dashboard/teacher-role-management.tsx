@@ -68,6 +68,14 @@ const TeacherRoleManagement: React.FC<TeacherRoleManagementProps> = ({ onRefresh
       const res = await apiRequest("GET", "/api/users?role=teacher,secondaryTeacher");
       const data = await res.json();
       console.log("Fetched teachers:", data);
+      console.log("Teachers length:", data.length);
+      
+      // Force to return empty array if it's not valid
+      if (!Array.isArray(data)) {
+        console.error("API returned non-array data:", data);
+        return [];
+      }
+      
       return data;
     }
   });
