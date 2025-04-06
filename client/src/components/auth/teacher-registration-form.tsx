@@ -33,6 +33,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [subject, setSubject] = useState("");
@@ -45,6 +46,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     firstName?: string;
     lastName?: string;
     email?: string;
+    selectedCity?: string;
     selectedSchool?: string;
     selectedClass?: string;
     subject?: string;
@@ -65,6 +67,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     id: number;
     name: string;
     description?: string;
+    city?: string;
     isActive: boolean;
   }
   
@@ -115,6 +118,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       firstName?: string;
       lastName?: string;
       email?: string;
+      selectedCity?: string;
       selectedSchool?: string;
       selectedClass?: string;
       subject?: string;
@@ -139,6 +143,10 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       errors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       errors.email = "Email format is invalid";
+    }
+    
+    if (!selectedCity) {
+      errors.selectedCity = "City selection is required";
     }
     
     if (!selectedSchool) {
@@ -192,6 +200,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       fullName: `${firstName} ${lastName}`,
       email,
       role: isSchoolAdmin ? "schoolAdmin" : "teacher",
+      city: selectedCity,
       schoolId: parseInt(selectedSchool),
       subject, // Optional field
       captchaText // Include CAPTCHA text for validation on the server
@@ -212,6 +221,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       setFirstName("");
       setLastName("");
       setEmail("");
+      setSelectedCity("");
       setSelectedSchool("");
       setSelectedClass("");
       setSubject("");
@@ -281,6 +291,36 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       </div>
       
       <div className="space-y-2">
+        <Label htmlFor="teacher-city" className={formErrors.selectedCity ? "text-red-500" : ""}>
+          City {formErrors.selectedCity && <span className="text-xs font-normal">- {formErrors.selectedCity}</span>}
+        </Label>
+        <Select 
+          value={selectedCity} 
+          onValueChange={(value) => {
+            setSelectedCity(value);
+            setSelectedSchool(""); // Reset school selection when city changes
+            setSelectedClass("");   // Reset class selection when city changes
+          }}
+        >
+          <SelectTrigger 
+            id="teacher-city"
+            className={formErrors.selectedCity ? "border-red-500 focus-visible:ring-red-500" : ""}
+          >
+            <SelectValue placeholder="Select your city" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
+            <SelectItem value="Dubai">Dubai</SelectItem>
+            <SelectItem value="Sharjah">Sharjah</SelectItem>
+            <SelectItem value="Ajman">Ajman</SelectItem>
+            <SelectItem value="Riyadh">Riyadh</SelectItem>
+            <SelectItem value="Jeddah">Jeddah</SelectItem>
+            <SelectItem value="Doha">Doha</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
         <Label htmlFor="teacher-school" className={formErrors.selectedSchool ? "text-red-500" : ""}>
           School {formErrors.selectedSchool && <span className="text-xs font-normal">- {formErrors.selectedSchool}</span>}
         </Label>
@@ -290,27 +330,37 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             setSelectedSchool(value);
             setSelectedClass(""); // Reset class selection when school changes
           }}
+          disabled={!selectedCity}
         >
           <SelectTrigger 
             id="teacher-school"
             className={formErrors.selectedSchool ? "border-red-500 focus-visible:ring-red-500" : ""}
           >
-            <SelectValue placeholder="Select your school" />
+            <SelectValue placeholder={!selectedCity ? "Select a city first" : "Select your school"} />
           </SelectTrigger>
           <SelectContent>
-            {isLoadingSchools ? (
+            {!selectedCity ? (
+              <SelectItem value="city-first" disabled>Select a city first</SelectItem>
+            ) : isLoadingSchools ? (
               <SelectItem value="loading" disabled>Loading schools...</SelectItem>
             ) : schools.length === 0 ? (
               <SelectItem value="none" disabled>No schools available</SelectItem>
             ) : (
-              schools.map((school: School) => (
-                <SelectItem key={school.id} value={school.id.toString()}>
-                  {school.name}
-                </SelectItem>
-              ))
+              schools
+                .filter((school) => school.city === selectedCity)
+                .map((school: School) => (
+                  <SelectItem key={school.id} value={school.id.toString()}>
+                    {school.name}
+                  </SelectItem>
+                ))
             )}
           </SelectContent>
         </Select>
+        {selectedCity && schools.filter(school => school.city === selectedCity).length === 0 && (
+          <p className="text-xs text-amber-600 mt-1">
+            No schools found in {selectedCity}. Please select a different city or contact support.
+          </p>
+        )}
       </div>
       
       {!isSchoolAdmin && (
