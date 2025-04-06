@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, relations } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,17 +24,21 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Define city enum for GCC cities
-export const cityEnum = pgEnum('city', ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Fujairah', 'Ras Al Khaimah', 'Umm Al Quwain', 
-                                     'Riyadh', 'Jeddah', 'Mecca', 'Medina', 'Dammam', 
-                                     'Doha', 'Kuwait City', 'Manama', 'Muscat']);
+// Cities table
+export const cities = pgTable("cities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  country: text("country").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Schools table
 export const schools = pgTable("schools", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  city: text("city"), // City field added
+  cityId: integer("city_id").notNull(), // Reference to the cities table
   websiteUrl: text("website_url"),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
@@ -146,6 +150,7 @@ export const insertUserSchema = createInsertSchema(users, {
   password: passwordValidator,
 });
 
+export const insertCitySchema = createInsertSchema(cities);
 export const insertSchoolSchema = createInsertSchema(schools);
 export const insertClassSchema = createInsertSchema(classes);
 export const insertPartnerSchema = createInsertSchema(partners);
@@ -158,9 +163,24 @@ export const insertSubmissionSchema = createInsertSchema(submissions);
 export const insertVoteSchema = createInsertSchema(votes);
 export const insertSecondaryTeacherAssignmentSchema = createInsertSchema(secondaryTeacherAssignments);
 
+// Define relations
+export const schoolsRelations = relations(schools, ({ one }) => ({
+  city: one(cities, {
+    fields: [schools.cityId],
+    references: [cities.id]
+  })
+}));
+
+export const citiesRelations = relations(cities, ({ many }) => ({
+  schools: many(schools)
+}));
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type City = typeof cities.$inferSelect;
+export type InsertCity = z.infer<typeof insertCitySchema>;
 
 export type School = typeof schools.$inferSelect;
 export type InsertSchool = z.infer<typeof insertSchoolSchema>;

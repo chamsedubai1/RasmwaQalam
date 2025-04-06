@@ -1,5 +1,6 @@
 import { 
   users, User, InsertUser, 
+  cities, City, InsertCity,
   schools, School, InsertSchool,
   classes, Class, InsertClass,
   partners, Partner, InsertPartner,
@@ -22,10 +23,20 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
+  
+  // City methods
+  getCity(id: number): Promise<City | undefined>;
+  getCityByName(name: string): Promise<City | undefined>;
+  getAllCities(): Promise<City[]>;
+  getActiveCities(): Promise<City[]>; 
+  createCity(city: InsertCity): Promise<City>;
+  updateCity(id: number, cityData: Partial<City>): Promise<City | undefined>;
+  deleteCity(id: number): Promise<boolean>;
 
   // School methods
   getSchool(id: number): Promise<School | undefined>;
   getAllSchools(): Promise<School[]>;
+  getSchoolsByCity(cityId: number): Promise<School[]>;
   createSchool(school: InsertSchool): Promise<School>;
   updateSchool(id: number, schoolData: Partial<School>): Promise<School | undefined>;
   deleteSchool(id: number): Promise<boolean>;
@@ -100,6 +111,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private cities: Map<number, City>;
   private schools: Map<number, School>;
   private classes: Map<number, Class>;
   private partners: Map<number, Partner>;
@@ -110,6 +122,7 @@ export class MemStorage implements IStorage {
   private secondaryTeacherAssignments: Map<number, SecondaryTeacherAssignment>;
   
   private userCounter: number;
+  private cityCounter: number;
   private schoolCounter: number;
   private classCounter: number;
   private partnerCounter: number;
@@ -121,6 +134,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.cities = new Map();
     this.schools = new Map();
     this.classes = new Map();
     this.partners = new Map();
@@ -131,6 +145,7 @@ export class MemStorage implements IStorage {
     this.secondaryTeacherAssignments = new Map();
     
     this.userCounter = 1;
+    this.cityCounter = 1;
     this.schoolCounter = 1;
     this.classCounter = 1;
     this.partnerCounter = 1;
@@ -145,6 +160,49 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
+    // Add GCC cities
+    const dubai = this.createCity({
+      name: "Dubai",
+      country: "UAE",
+      isActive: true
+    });
+    
+    const abuDhabi = this.createCity({
+      name: "Abu Dhabi",
+      country: "UAE",
+      isActive: true
+    });
+    
+    const sharjah = this.createCity({
+      name: "Sharjah",
+      country: "UAE",
+      isActive: true
+    });
+    
+    const ajman = this.createCity({
+      name: "Ajman",
+      country: "UAE",
+      isActive: true
+    });
+    
+    const riyadh = this.createCity({
+      name: "Riyadh",
+      country: "Saudi Arabia",
+      isActive: true
+    });
+    
+    const jeddah = this.createCity({
+      name: "Jeddah",
+      country: "Saudi Arabia",
+      isActive: true
+    });
+    
+    const doha = this.createCity({
+      name: "Doha",
+      country: "Qatar",
+      isActive: true
+    });
+    
     // Add Dubai schools
     const schoolsList = [
       "Al Khaleej National School",
@@ -258,7 +316,7 @@ export class MemStorage implements IStorage {
       "Woodlem Park School Dubai"
     ];
     
-    // Create all schools with basic information
+    // Create all schools with basic information and assign them to Dubai city
     const createdSchools: School[] = [];
     for (const schoolName of schoolsList) {
       const school = this.createSchool({
@@ -266,7 +324,8 @@ export class MemStorage implements IStorage {
         description: `${schoolName} is a respected educational institution in Dubai offering quality education.`,
         websiteUrl: `https://example.com/${schoolName.toLowerCase().replace(/\s+/g, '-')}`,
         imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1",
-        isActive: true
+        isActive: true,
+        cityId: 1 // Dubai has id 1 as it's the first city created
       });
       createdSchools.push(school);
     }
@@ -522,6 +581,48 @@ export class MemStorage implements IStorage {
     return this.users.delete(id);
   }
 
+  // City methods
+  async getCity(id: number): Promise<City | undefined> {
+    return this.cities.get(id);
+  }
+
+  async getCityByName(name: string): Promise<City | undefined> {
+    for (const city of this.cities.values()) {
+      if (city.name === name) {
+        return city;
+      }
+    }
+    return undefined;
+  }
+
+  async getAllCities(): Promise<City[]> {
+    return Array.from(this.cities.values());
+  }
+
+  async getActiveCities(): Promise<City[]> {
+    return Array.from(this.cities.values()).filter(city => city.isActive);
+  }
+
+  async createCity(cityData: InsertCity): Promise<City> {
+    const id = this.cityCounter++;
+    const city: City = { ...cityData, id };
+    this.cities.set(id, city);
+    return city;
+  }
+
+  async updateCity(id: number, cityData: Partial<City>): Promise<City | undefined> {
+    const city = this.cities.get(id);
+    if (!city) return undefined;
+    
+    const updatedCity = { ...city, ...cityData };
+    this.cities.set(id, updatedCity);
+    return updatedCity;
+  }
+
+  async deleteCity(id: number): Promise<boolean> {
+    return this.cities.delete(id);
+  }
+
   // School methods
   async getSchool(id: number): Promise<School | undefined> {
     return this.schools.get(id);
@@ -529,6 +630,10 @@ export class MemStorage implements IStorage {
 
   async getAllSchools(): Promise<School[]> {
     return Array.from(this.schools.values());
+  }
+  
+  async getSchoolsByCity(cityId: number): Promise<School[]> {
+    return Array.from(this.schools.values()).filter(school => school.cityId === cityId);
   }
 
   async createSchool(schoolData: InsertSchool): Promise<School> {

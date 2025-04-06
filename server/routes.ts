@@ -674,6 +674,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // City routes
+  apiRouter.get('/cities', async (req, res) => {
+    try {
+      // Get the showInactive parameter, default to false if not provided
+      const showInactive = req.query.showInactive === 'true';
+      
+      // Get cities based on showInactive parameter
+      let cities;
+      if (showInactive) {
+        cities = await storage.getAllCities();
+      } else {
+        cities = await storage.getActiveCities();
+      }
+      
+      res.json(cities);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+      res.status(500).json({ message: 'Failed to fetch cities' });
+    }
+  });
+  
+  apiRouter.get('/cities/:id', async (req, res) => {
+    try {
+      const city = await storage.getCity(parseInt(req.params.id));
+      if (!city) {
+        return res.status(404).json({ message: 'City not found' });
+      }
+      res.json(city);
+    } catch (error) {
+      console.error('Error fetching city:', error);
+      res.status(500).json({ message: 'Failed to fetch city' });
+    }
+  });
+  
+  apiRouter.post('/cities', async (req, res) => {
+    try {
+      const newCity = await storage.createCity(req.body);
+      res.status(201).json(newCity);
+    } catch (error) {
+      console.error('Error creating city:', error);
+      res.status(500).json({ message: 'Failed to create city' });
+    }
+  });
+  
+  apiRouter.patch('/cities/:id', async (req, res) => {
+    try {
+      const updatedCity = await storage.updateCity(parseInt(req.params.id), req.body);
+      if (!updatedCity) {
+        return res.status(404).json({ message: 'City not found' });
+      }
+      res.json(updatedCity);
+    } catch (error) {
+      console.error('Error updating city:', error);
+      res.status(500).json({ message: 'Failed to update city' });
+    }
+  });
+  
+  apiRouter.delete('/cities/:id', async (req, res) => {
+    try {
+      const result = await storage.deleteCity(parseInt(req.params.id));
+      if (!result) {
+        return res.status(404).json({ message: 'City not found' });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting city:', error);
+      res.status(500).json({ message: 'Failed to delete city' });
+    }
+  });
+  
   // School routes
   apiRouter.get('/schools', async (req, res) => {
     try {

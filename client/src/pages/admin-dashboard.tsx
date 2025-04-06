@@ -828,7 +828,7 @@ const AdminDashboard: React.FC = () => {
   const [schoolName, setSchoolName] = useState("");
   const [schoolDescription, setSchoolDescription] = useState("");
   const [schoolWebsite, setSchoolWebsite] = useState("");
-  const [schoolCity, setSchoolCity] = useState("");
+  const [schoolCityId, setSchoolCityId] = useState("");
   const [schoolStatus, setSchoolStatus] = useState("true"); // active by default
   const [schoolImageUrl, setSchoolImageUrl] = useState("");
   const [showEditClassDialog, setShowEditClassDialog] = useState(false);
@@ -893,6 +893,20 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
+  // Fetch all cities for dropdowns
+  const { data: cities = [], isLoading: isLoadingCities } = useQuery({
+    queryKey: ['/api/cities'],
+    queryFn: async () => {
+      const response = await fetch('/api/cities');
+      if (!response.ok) {
+        throw new Error('Failed to fetch cities');
+      }
+      return response.json();
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Consider data stale after 1 minute
+  });
+
   // Fetch all schools (including inactive ones for admin)
   const { data: schools = [], isLoading: isLoadingSchools, refetch: refetchSchools } = useQuery({
     queryKey: ['/api/schools'],
