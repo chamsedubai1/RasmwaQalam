@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { InsertSchool } from "@shared/schema";
 import { AlertCircle, ActivitySquare } from "lucide-react";
 import {
   Tabs,
@@ -62,7 +63,7 @@ import {
   CalendarIcon, 
   SearchIcon, 
   Users, 
-  School, 
+  School as SchoolIcon, 
   GraduationCap, 
   Calendar,
   ClipboardList,
@@ -1554,52 +1555,103 @@ const AdminDashboard: React.FC = () => {
     updateEventMutation.mutate(eventData);
   };
   
+  // School mutations
+  const createSchoolMutation = useMutation({
+    mutationFn: async (schoolData: InsertSchool) => {
+      return apiRequest("POST", "/api/schools", schoolData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/schools'] });
+      
+      // Reset form fields
+      setSchoolName("");
+      setSchoolDescription("");
+      setSchoolWebsite("");
+      setSchoolCity("");
+      setSchoolStatus("true");
+      setSchoolImageUrl("");
+      
+      // Show success toast
+      toast({
+        title: "School Created",
+        description: "School has been successfully created",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Create School",
+        description: "There was an error creating the school. Please try again.",
+        variant: "destructive",
+      });
+      console.error("School creation error:", error);
+    }
+  });
+  
+  const updateSchoolMutation = useMutation({
+    mutationFn: async (data: { id: number, schoolData: Partial<InsertSchool> }) => {
+      return apiRequest("PATCH", `/api/schools/${data.id}`, data.schoolData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/schools'] });
+      
+      // Reset form state
+      setSchoolName("");
+      setSchoolDescription("");
+      setSchoolWebsite("");
+      setSchoolCity("");
+      setSchoolStatus("true");
+      setSchoolImageUrl("");
+      setSelectedSchoolId(null);
+      
+      // Show success toast
+      toast({
+        title: "School Updated",
+        description: "School has been successfully updated",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update School",
+        description: "There was an error updating the school. Please try again.",
+        variant: "destructive",
+      });
+      console.error("School update error:", error);
+    }
+  });
+
   const handleCreateSchool = () => {
     setShowCreateSchoolDialog(false);
-    // In a real app, this would call the API to create a school
-    console.log({
+    
+    const schoolData: InsertSchool = {
       name: schoolName,
       description: schoolDescription,
       websiteUrl: schoolWebsite,
       city: schoolCity,
       isActive: schoolStatus === "true",
       imageUrl: schoolImageUrl
-    });
+    };
     
-    toast({
-      title: "School Created",
-      description: "School has been successfully created",
-    });
+    createSchoolMutation.mutate(schoolData);
   };
   
   const handleUpdateSchool = () => {
     // Close the dialog
     setShowEditSchoolDialog(false);
     
-    // In a real app, this would call the API to update the school
-    console.log({
-      id: selectedSchoolId,
+    const schoolData: Partial<InsertSchool> = {
       name: schoolName,
       description: schoolDescription,
       websiteUrl: schoolWebsite,
       city: schoolCity,
       isActive: schoolStatus === "true",
       imageUrl: schoolImageUrl
-    });
+    };
     
-    // Reset form state
-    setSchoolName("");
-    setSchoolDescription("");
-    setSchoolWebsite("");
-    setSchoolCity("");
-    setSchoolStatus("true");
-    setSchoolImageUrl("");
-    setSelectedSchoolId(null);
-    
-    // Show success message
-    toast({
-      title: "School Updated",
-      description: "School has been successfully updated",
+    updateSchoolMutation.mutate({ 
+      id: selectedSchoolId, 
+      schoolData 
     });
   };
   
@@ -1973,7 +2025,7 @@ const AdminDashboard: React.FC = () => {
         <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 hover:shadow-md transition-all">
           <CardContent className="p-4 flex items-center">
             <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4">
-              <School className="h-6 w-6 text-indigo-600" />
+              <SchoolIcon className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
               <p className="text-sm text-indigo-600 font-medium">Schools</p>
