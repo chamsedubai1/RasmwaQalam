@@ -33,7 +33,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [subject, setSubject] = useState("");
@@ -67,7 +67,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     id: number;
     name: string;
     description?: string;
-    city?: string;
+    cityId: number;
     isActive: boolean;
   }
   
@@ -80,6 +80,20 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     isLocked?: boolean;
   }
   
+  // Fetch cities data
+  const { data: cities = [], isLoading: isLoadingCities } = useQuery({
+    queryKey: ['/api/cities'],
+    queryFn: async () => {
+      const response = await fetch('/api/cities');
+      if (!response.ok) {
+        throw new Error('Failed to fetch cities');
+      }
+      return response.json();
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Consider data stale after 1 minute
+  });
+
   // Fetch schools data
   const { data: schools = [], isLoading: isLoadingSchools } = useQuery<School[]>({
     queryKey: ['/api/schools'],
@@ -145,7 +159,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       errors.email = "Email format is invalid";
     }
     
-    if (!selectedCity) {
+    if (!selectedCityId) {
       errors.selectedCity = "City selection is required";
     }
     
@@ -200,7 +214,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       fullName: `${firstName} ${lastName}`,
       email,
       role: isSchoolAdmin ? "schoolAdmin" : "teacher",
-      city: selectedCity,
+      cityId: parseInt(selectedCityId),
       schoolId: parseInt(selectedSchool),
       subject, // Optional field
       captchaText // Include CAPTCHA text for validation on the server
@@ -221,7 +235,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
       setFirstName("");
       setLastName("");
       setEmail("");
-      setSelectedCity("");
+      setSelectedCityId("");
       setSelectedSchool("");
       setSelectedClass("");
       setSubject("");
@@ -295,9 +309,9 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
           City {formErrors.selectedCity && <span className="text-xs font-normal">- {formErrors.selectedCity}</span>}
         </Label>
         <Select 
-          value={selectedCity} 
+          value={selectedCityId} 
           onValueChange={(value) => {
-            setSelectedCity(value);
+            setSelectedCityId(value);
             setSelectedSchool(""); // Reset school selection when city changes
             setSelectedClass("");   // Reset class selection when city changes
           }}
@@ -309,13 +323,17 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             <SelectValue placeholder="Select your city" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
-            <SelectItem value="Dubai">Dubai</SelectItem>
-            <SelectItem value="Sharjah">Sharjah</SelectItem>
-            <SelectItem value="Ajman">Ajman</SelectItem>
-            <SelectItem value="Riyadh">Riyadh</SelectItem>
-            <SelectItem value="Jeddah">Jeddah</SelectItem>
-            <SelectItem value="Doha">Doha</SelectItem>
+            {isLoadingCities ? (
+              <SelectItem value="loading" disabled>Loading cities...</SelectItem>
+            ) : cities.length === 0 ? (
+              <SelectItem value="none" disabled>No cities available</SelectItem>
+            ) : (
+              cities.map((city: any) => (
+                <SelectItem key={city.id} value={city.id.toString()}>
+                  {city.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -330,16 +348,16 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             setSelectedSchool(value);
             setSelectedClass(""); // Reset class selection when school changes
           }}
-          disabled={!selectedCity}
+          disabled={!selectedCityId}
         >
           <SelectTrigger 
             id="teacher-school"
             className={formErrors.selectedSchool ? "border-red-500 focus-visible:ring-red-500" : ""}
           >
-            <SelectValue placeholder={!selectedCity ? "Select a city first" : "Select your school"} />
+            <SelectValue placeholder={!selectedCityId ? "Select a city first" : "Select your school"} />
           </SelectTrigger>
           <SelectContent>
-            {!selectedCity ? (
+            {!selectedCityId ? (
               <SelectItem value="city-first" disabled>Select a city first</SelectItem>
             ) : isLoadingSchools ? (
               <SelectItem value="loading" disabled>Loading schools...</SelectItem>
@@ -347,7 +365,7 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
               <SelectItem value="none" disabled>No schools available</SelectItem>
             ) : (
               schools
-                .filter((school) => school.city === selectedCity)
+                .filter((school) => school.cityId === parseInt(selectedCityId))
                 .map((school: School) => (
                   <SelectItem key={school.id} value={school.id.toString()}>
                     {school.name}
@@ -356,9 +374,9 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
             )}
           </SelectContent>
         </Select>
-        {selectedCity && schools.filter(school => school.city === selectedCity).length === 0 && (
+        {selectedCityId && schools.filter(school => school.cityId === parseInt(selectedCityId)).length === 0 && (
           <p className="text-xs text-amber-600 mt-1">
-            No schools found in {selectedCity}. Please select a different city or contact support.
+            No schools found in this city. Please select a different city or contact support.
           </p>
         )}
       </div>
