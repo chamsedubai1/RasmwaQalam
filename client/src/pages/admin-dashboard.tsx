@@ -1642,7 +1642,7 @@ const AdminDashboard: React.FC = () => {
       name: schoolName,
       description: schoolDescription,
       websiteUrl: schoolWebsite,
-      city: schoolCity,
+      cityId: schoolCityId ? parseInt(schoolCityId) : 1, // Default to 1 if not selected
       isActive: schoolStatus === "true",
       imageUrl: schoolImageUrl
     };
@@ -1658,7 +1658,7 @@ const AdminDashboard: React.FC = () => {
       name: schoolName,
       description: schoolDescription,
       websiteUrl: schoolWebsite,
-      city: schoolCity,
+      cityId: schoolCityId ? parseInt(schoolCityId) : undefined,
       isActive: schoolStatus === "true",
       imageUrl: schoolImageUrl
     };
@@ -2562,7 +2562,7 @@ const AdminDashboard: React.FC = () => {
                                   setSchoolName(school.name || '');
                                   setSchoolDescription(school.description || '');
                                   setSchoolWebsite(school.websiteUrl || '');
-                                  setSchoolCity(school.city || '');
+                                  setSchoolCityId(school.cityId ? school.cityId.toString() : '');
                                   setSchoolStatus(school.isActive ? 'true' : 'false');
                                   setSchoolImageUrl(school.imageUrl || '');
                                   
@@ -4609,34 +4609,24 @@ const AdminDashboard: React.FC = () => {
               <div className="grid gap-2">
                 <Label htmlFor="school-city">City</Label>
                 <Select 
-                  value={schoolCity}
-                  onValueChange={setSchoolCity}
+                  value={schoolCityId}
+                  onValueChange={setSchoolCityId}
                 >
                   <SelectTrigger id="school-city">
                     <SelectValue placeholder="Select city" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* UAE Cities */}
-                    <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
-                    <SelectItem value="Dubai">Dubai</SelectItem>
-                    <SelectItem value="Sharjah">Sharjah</SelectItem>
-                    <SelectItem value="Ajman">Ajman</SelectItem>
-                    <SelectItem value="Fujairah">Fujairah</SelectItem>
-                    <SelectItem value="Ras Al Khaimah">Ras Al Khaimah</SelectItem>
-                    <SelectItem value="Umm Al Quwain">Umm Al Quwain</SelectItem>
-                    
-                    {/* Saudi Arabia Cities */}
-                    <SelectItem value="Riyadh">Riyadh</SelectItem>
-                    <SelectItem value="Jeddah">Jeddah</SelectItem>
-                    <SelectItem value="Mecca">Mecca</SelectItem>
-                    <SelectItem value="Medina">Medina</SelectItem>
-                    <SelectItem value="Dammam">Dammam</SelectItem>
-                    
-                    {/* Other GCC Cities */}
-                    <SelectItem value="Doha">Doha</SelectItem>
-                    <SelectItem value="Kuwait City">Kuwait City</SelectItem>
-                    <SelectItem value="Manama">Manama</SelectItem>
-                    <SelectItem value="Muscat">Muscat</SelectItem>
+                    {isLoadingCities ? (
+                      <SelectItem value="loading" disabled>Loading cities...</SelectItem>
+                    ) : cities.length === 0 ? (
+                      <SelectItem value="none" disabled>No cities available</SelectItem>
+                    ) : (
+                      cities.map((city: any) => (
+                        <SelectItem key={city.id} value={city.id.toString()}>
+                          {city.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -4714,34 +4704,24 @@ const AdminDashboard: React.FC = () => {
               <div className="grid gap-2">
                 <Label htmlFor="edit-school-city">City</Label>
                 <Select 
-                  value={schoolCity}
-                  onValueChange={setSchoolCity}
+                  value={schoolCityId}
+                  onValueChange={setSchoolCityId}
                 >
                   <SelectTrigger id="edit-school-city">
                     <SelectValue placeholder="Select city" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* UAE Cities */}
-                    <SelectItem value="Abu Dhabi">Abu Dhabi</SelectItem>
-                    <SelectItem value="Dubai">Dubai</SelectItem>
-                    <SelectItem value="Sharjah">Sharjah</SelectItem>
-                    <SelectItem value="Ajman">Ajman</SelectItem>
-                    <SelectItem value="Fujairah">Fujairah</SelectItem>
-                    <SelectItem value="Ras Al Khaimah">Ras Al Khaimah</SelectItem>
-                    <SelectItem value="Umm Al Quwain">Umm Al Quwain</SelectItem>
-                    
-                    {/* Saudi Arabia Cities */}
-                    <SelectItem value="Riyadh">Riyadh</SelectItem>
-                    <SelectItem value="Jeddah">Jeddah</SelectItem>
-                    <SelectItem value="Mecca">Mecca</SelectItem>
-                    <SelectItem value="Medina">Medina</SelectItem>
-                    <SelectItem value="Dammam">Dammam</SelectItem>
-                    
-                    {/* Other GCC Cities */}
-                    <SelectItem value="Doha">Doha</SelectItem>
-                    <SelectItem value="Kuwait City">Kuwait City</SelectItem>
-                    <SelectItem value="Manama">Manama</SelectItem>
-                    <SelectItem value="Muscat">Muscat</SelectItem>
+                    {isLoadingCities ? (
+                      <SelectItem value="loading" disabled>Loading cities...</SelectItem>
+                    ) : cities.length === 0 ? (
+                      <SelectItem value="none" disabled>No cities available</SelectItem>
+                    ) : (
+                      cities.map((city: any) => (
+                        <SelectItem key={city.id} value={city.id.toString()}>
+                          {city.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
