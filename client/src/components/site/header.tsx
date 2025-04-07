@@ -61,7 +61,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-800 to-indigo-900 shadow-lg">
+    <header className="bg-gradient-to-r from-orange-500 to-blue-600 shadow-lg">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-24">
           <div className="flex">
@@ -101,7 +101,7 @@ const Header: React.FC = () => {
                 </div>
                 <Button 
                   variant="ghost"
-                  className="text-white hover:bg-blue-700"
+                  className="text-white hover:bg-orange-500"
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4 mr-1" />
@@ -111,7 +111,7 @@ const Header: React.FC = () => {
             ) : (
               <Button
                 variant="ghost"
-                className="text-white hover:bg-blue-700"
+                className="text-white hover:bg-orange-500"
                 onClick={() => setLocation("/login")}
               >
                 <LogIn className="h-4 w-4 mr-1" />
@@ -122,7 +122,7 @@ const Header: React.FC = () => {
           <div className="flex items-center sm:hidden">
             <Button
               variant="ghost"
-              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-blue-600 transition-colors"
+              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-orange-500 transition-colors"
               onClick={toggleMobileMenu}
             >
               <Menu className="h-6 w-6" />
@@ -132,7 +132,7 @@ const Header: React.FC = () => {
       </div>
       
       {/* Mobile menu */}
-      <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
+      <div className={`sm:hidden bg-blue-600 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
           <div className="flex justify-center py-4">
             <FazaaLogo className="h-32 w-auto" />
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
           <NavLink href="/school-admin" className="block" role="schoolAdmin">{t("nav.school_admin_dashboard") || "School Admin"}</NavLink>
           <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>
           
-          <div className="border-t border-blue-700 my-3"></div>
+          <div className="border-t border-orange-400 my-3"></div>
           
           <div className="flex justify-center mb-3">
             <LanguageSwitcher className="text-white" />
@@ -157,7 +157,7 @@ const Header: React.FC = () => {
           {userRole ? (
             <Button 
               variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-700"
+              className="w-full justify-start text-white hover:bg-orange-500"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -166,7 +166,7 @@ const Header: React.FC = () => {
           ) : (
             <Button
               variant="ghost"
-              className="w-full justify-start text-white hover:bg-blue-700"
+              className="w-full justify-start text-white hover:bg-orange-500"
               onClick={() => setLocation("/login")}
             >
               <LogIn className="h-4 w-4 mr-2" />
