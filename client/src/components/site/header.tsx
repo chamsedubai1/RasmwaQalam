@@ -61,7 +61,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-orange-500 to-blue-600 shadow-lg">
+    <header className="bg-orange-500 shadow-lg">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-24">
           <div className="flex">
@@ -132,7 +132,7 @@ const Header: React.FC = () => {
       </div>
       
       {/* Mobile menu */}
-      <div className={`sm:hidden bg-blue-600 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
+      <div className={`sm:hidden bg-orange-500 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
           <div className="flex justify-center py-4">
             <FazaaLogo className="h-32 w-auto" />
