@@ -101,7 +101,7 @@ const Header: React.FC = () => {
                 </div>
                 <Button 
                   variant="ghost"
-                  className="text-white hover:bg-orange-500"
+                  className="text-white hover:bg-amber-50 hover:text-blue-600"
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4 mr-1" />
@@ -111,7 +111,7 @@ const Header: React.FC = () => {
             ) : (
               <Button
                 variant="ghost"
-                className="text-white hover:bg-orange-500"
+                className="text-white hover:bg-amber-50 hover:text-blue-600"
                 onClick={() => setLocation("/login")}
               >
                 <LogIn className="h-4 w-4 mr-1" />
@@ -122,7 +122,7 @@ const Header: React.FC = () => {
           <div className="flex items-center sm:hidden">
             <Button
               variant="ghost"
-              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-orange-500 transition-colors"
+              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-amber-50 hover:text-blue-600 transition-colors"
               onClick={toggleMobileMenu}
             >
               <Menu className="h-6 w-6" />
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
           <NavLink href="/school-admin" className="block" role="schoolAdmin">{t("nav.school_admin_dashboard") || "School Admin"}</NavLink>
           <NavLink href="/admin" className="block" role="admin">{t("nav.admin_dashboard")}</NavLink>
           
-          <div className="border-t border-orange-400 my-3"></div>
+          <div className="border-t border-amber-50 my-3"></div>
           
           <div className="flex justify-center mb-3">
             <LanguageSwitcher className="text-white" />
@@ -157,7 +157,7 @@ const Header: React.FC = () => {
           {userRole ? (
             <Button 
               variant="ghost"
-              className="w-full justify-start text-white hover:bg-orange-500"
+              className="w-full justify-start text-white hover:bg-amber-50 hover:text-blue-600"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -166,7 +166,7 @@ const Header: React.FC = () => {
           ) : (
             <Button
               variant="ghost"
-              className="w-full justify-start text-white hover:bg-orange-500"
+              className="w-full justify-start text-white hover:bg-amber-50 hover:text-blue-600"
               onClick={() => setLocation("/login")}
             >
               <LogIn className="h-4 w-4 mr-2" />
