@@ -15,91 +15,102 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-8 w-auto" }) => 
     >
       {/* Logo Background and Gradients */}
       <defs>
-        {/* Icon gradient - orange */}
+        {/* Icon gradient - orange to blue */}
         <linearGradient id="icon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FF9800" />
-          <stop offset="100%" stopColor="#FF5722" />
+          <stop offset="100%" stopColor="#3F51B5" />
         </linearGradient>
         
         {/* Paper gradient */}
         <linearGradient id="paper-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#F5F5F5" />
+          <stop offset="100%" stopColor="#FAFAFA" />
         </linearGradient>
         
         {/* Pencil gradient */}
-        <linearGradient id="pencil-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFD54F" />
-          <stop offset="100%" stopColor="#FFA000" />
-        </linearGradient>
-        
-        {/* Palette gradient - blue */}
-        <linearGradient id="palette-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3F51B5" />
-          <stop offset="100%" stopColor="#2196F3" />
+        <linearGradient id="pencil-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFC107" />
+          <stop offset="100%" stopColor="#FF9800" />
         </linearGradient>
         
         {/* Text color - blue */}
-        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#3F51B5" />
-          <stop offset="100%" stopColor="#303F9F" />
+          <stop offset="100%" stopColor="#304FFE" />
+        </linearGradient>
+        
+        {/* Palette gradient */}
+        <linearGradient id="palette-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#3F51B5" />
+          <stop offset="100%" stopColor="#5C6BC0" />
         </linearGradient>
         
         {/* Simple shadow */}
         <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
-          <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#00000022" />
+          <feDropShadow dx="1" dy="1" stdDeviation="1" floodColor="#00000022" />
         </filter>
       </defs>
       
-      {/* App icon - Rounded square */}
-      <rect x="60" y="100" width="180" height="180" rx="30" fill="url(#icon-gradient)" filter="url(#shadow)" />
+      {/* App icon - Rounded square like in the image */}
+      <rect x="30" y="120" width="220" height="220" rx="45" fill="url(#icon-gradient)" filter="url(#shadow)" />
 
       {/* Paper with lines */}
-      <rect x="80" y="120" width="70" height="90" rx="3" fill="url(#paper-gradient)" />
-      <rect x="90" y="140" width="50" height="3" rx="1" fill="#FF5722" />
-      <rect x="90" y="155" width="40" height="3" rx="1" fill="#FF5722" />
-      <rect x="90" y="170" width="45" height="3" rx="1" fill="#FF5722" />
+      <rect x="50" y="145" width="80" height="95" rx="3" fill="url(#paper-gradient)" />
+      <rect x="60" y="165" width="60" height="3" rx="1.5" fill="#FF5722" />
+      <rect x="60" y="180" width="50" height="3" rx="1.5" fill="#FF5722" />
+      <rect x="60" y="195" width="55" height="3" rx="1.5" fill="#FF5722" />
       
       {/* Pencil */}
-      <g transform="rotate(-30, 165, 160)">
-        <rect x="120" y="140" width="90" height="14" rx="7" fill="url(#pencil-gradient)" />
-        <polygon points="210,140 225,147 210,154" fill="#F44336" />
-        <rect x="120" y="143" width="50" height="8" rx="4" fill="#FFECB3" />
+      <g transform="rotate(-30, 180, 165)">
+        <rect x="120" y="135" width="100" height="16" rx="8" fill="url(#pencil-gradient)" />
+        <polygon points="220,135 235,143 220,151" fill="#F44336" />
+        <rect x="120" y="138" width="60" height="10" rx="5" fill="#FFECB3" />
       </g>
       
       {/* Artist's palette */}
-      <path d="M130,200 C100,200 100,240 120,260 C140,280 170,270 180,240 C190,210 160,200 130,200 Z" 
+      <path d="M130,220 C100,220 100,270 120,290 C140,310 170,300 180,270 C190,240 160,220 130,220 Z" 
         fill="url(#palette-gradient)" filter="url(#shadow)" />
       
-      {/* Paint dots on palette */}
-      <circle cx="130" cy="225" r="6" fill="#F44336" />
-      <circle cx="150" cy="235" r="6" fill="#FFEB3B" />
-      <circle cx="170" cy="225" r="6" fill="#4CAF50" />
+      {/* Paint dots on palette - from image */}
+      <circle cx="120" cy="245" r="6" fill="#F44336" />
+      <circle cx="140" cy="260" r="6" fill="#FFEB3B" />
+      <circle cx="160" cy="245" r="6" fill="#4CAF50" />
 
-      {/* Arabic text - simple and clean */}
-      <g fill="url(#text-gradient)">
-        {/* First row Arabic text */}
-        <path d="M310,170 Q330,170 330,190 Q330,210 310,210 L300,210 Q280,210 280,190 L280,140 L310,140 Q330,140 330,160 Q330,180 310,180 L290,180" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Arabic text - exactly as in the provided image */}
+      <g transform="translate(260, 160)">
+        {/* First letter */}
+        <path d="M0,0 C10,0 20,5 20,20 C20,35 10,40 0,40 L-10,40 C-20,40 -30,35 -30,20 L-30,-40 L0,-40 C10,-40 20,-35 20,-20 C20,-5 10,0 0,0 Z" 
+          fill="url(#text-gradient)" />
         
-        <path d="M350,140 Q370,140 370,160 Q370,180 350,180 L360,180 Q380,180 380,200 Q380,210 360,210 L340,210" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Center line in first letter */}
+        <rect x="-25" y="0" width="40" height="3" rx="1.5" fill="#FFFFFF" />
         
-        <path d="M400,140 L400,210 Q420,210 420,190 Q420,170 400,170" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Second letter */}
+        <path d="M40,-40 C50,-40 60,-35 60,-20 C60,-5 50,0 40,0 L50,0 C60,0 70,5 70,20 C70,35 60,40 50,40 L30,40" 
+          fill="none" stroke="url(#text-gradient)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+          
+        {/* Third letter */}
+        <path d="M100,-40 L100,40 C120,40 140,35 140,20 C140,5 120,0 100,0" 
+          fill="none" stroke="url(#text-gradient)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
       </g>
       
-      {/* Second row Arabic text */}
-      <g fill="url(#text-gradient)" transform="translate(0, 100)">
-        <path d="M310,170 Q330,170 330,190 Q330,210 310,210 L300,210 Q280,210 280,190 L280,140 L310,140 Q330,140 330,160 Q330,180 310,180 L290,180" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Second line of Arabic text */}
+      <g transform="translate(260, 260)">
+        {/* First letter */}
+        <path d="M0,0 C10,0 20,5 20,20 C20,35 10,40 0,40 L-10,40 C-20,40 -30,35 -30,20 L-30,-40 L0,-40 C10,-40 20,-35 20,-20 C20,-5 10,0 0,0 Z" 
+          fill="url(#text-gradient)" />
         
-        <circle cx="350" cy="150" r="8" fill="url(#text-gradient)" />
-        <path d="M350,165 L350,210" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" />
+        {/* Center line in first letter */}
+        <rect x="-25" y="0" width="40" height="3" rx="1.5" fill="#FFFFFF" />
         
-        <path d="M390,140 L390,210 Q410,210 410,190 Q410,170 390,170" 
-          stroke="url(#text-gradient)" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Dot letter */}
+        <circle cx="40" cy="-25" r="8" fill="url(#text-gradient)" />
+        <path d="M40,-10 L40,40" 
+          stroke="url(#text-gradient)" strokeWidth="12" fill="none" strokeLinecap="round" />
+        
+        {/* Last letter */}
+        <path d="M80,-40 L80,40 C100,40 120,35 120,20 C120,5 100,0 80,0" 
+          fill="none" stroke="url(#text-gradient)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
       </g>
     </svg>
   );
