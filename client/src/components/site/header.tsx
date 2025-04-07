@@ -61,7 +61,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-orange-500 shadow-lg">
+    <header className="bg-amber-50 shadow-lg">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-24">
           <div className="flex">
@@ -89,11 +89,11 @@ const Header: React.FC = () => {
             </nav>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-2">
-            <LanguageSwitcher className="text-white" />
+            <LanguageSwitcher className="text-blue-600" />
             
             {userRole ? (
               <>
-                <div className="text-white flex items-center mr-2">
+                <div className="text-blue-600 flex items-center mr-2">
                   <User className="h-4 w-4 mr-1" />
                   <span className="text-sm font-medium">
                     {user?.fullName || userRole}
@@ -132,7 +132,7 @@ const Header: React.FC = () => {
       </div>
       
       {/* Mobile menu */}
-      <div className={`sm:hidden bg-orange-500 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
+      <div className={`sm:hidden bg-amber-50 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
           <div className="flex justify-center py-4">
             <FazaaLogo className="h-32 w-auto" />
@@ -151,7 +151,7 @@ const Header: React.FC = () => {
           <div className="border-t border-amber-50 my-3"></div>
           
           <div className="flex justify-center mb-3">
-            <LanguageSwitcher className="text-white" />
+            <LanguageSwitcher className="text-blue-600" />
           </div>
           
           {userRole ? (
