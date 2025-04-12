@@ -63,12 +63,12 @@ const Header: React.FC = () => {
   return (
     <header className="bg-gradient-to-r from-blue-800 to-indigo-900 shadow-lg">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-24">
+        <div className="flex justify-between h-48">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center">
                 <a href="/" className="flex items-center">
-                  <FazaaLogo className="h-24 w-auto mr-2" />
+                  <FazaaLogo className="h-48 w-auto mr-2" />
                   <span className="text-white font-bold text-xl font-heading tracking-wider sr-only">
                     FAZAA - Art
                   </span>
@@ -135,7 +135,7 @@ const Header: React.FC = () => {
       <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
           <div className="flex justify-center py-4">
-            <FazaaLogo className="h-32 w-auto" />
+            <FazaaLogo className="h-64 w-auto" />
           </div>
           <NavLink href="/" className="block" role="all">{t("nav.home")}</NavLink>
           <NavLink href="/about" className="block" role="all">{t("nav.about")}</NavLink>
