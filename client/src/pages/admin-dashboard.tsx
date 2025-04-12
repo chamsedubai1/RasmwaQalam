@@ -1307,6 +1307,7 @@ const AdminDashboard: React.FC = () => {
       type: eventType,
       status: eventStatus,
       stage: eventStage,
+      mode: eventMode, // Add event mode
       startDate: new Date(eventStartDate).toISOString(),
       endDate: new Date(eventEndDate).toISOString(),
       imageUrl: eventImageUrl || null
@@ -1491,6 +1492,7 @@ const AdminDashboard: React.FC = () => {
         type: eventData.type,
         status: eventData.status,
         stage: eventData.stage,
+        mode: eventData.mode, // Add event mode
         startDate: eventData.startDate,
         endDate: eventData.endDate,
         imageUrl: eventData.imageUrl
@@ -1559,6 +1561,7 @@ const AdminDashboard: React.FC = () => {
       type: eventType,
       status: eventStatus,
       stage: eventStage,
+      mode: eventMode, // Add event mode
       startDate: new Date(eventStartDate).toISOString(),
       endDate: new Date(eventEndDate).toISOString(),
       imageUrl: eventImageUrl || null
@@ -4419,6 +4422,21 @@ const AdminDashboard: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="event-mode">Event Mode</Label>
+                <Select 
+                  value={eventMode} 
+                  onValueChange={setEventMode}
+                >
+                  <SelectTrigger id="event-mode">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="allowAI">Allow AI Creation</SelectItem>
+                    <SelectItem value="noAI">No AI Creation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -4535,6 +4553,21 @@ const AdminDashboard: React.FC = () => {
                     <SelectItem value="school">School</SelectItem>
                     <SelectItem value="country">Country</SelectItem>
                     <SelectItem value="global">Global</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-event-mode">Event Mode</Label>
+                <Select 
+                  value={eventMode} 
+                  onValueChange={setEventMode}
+                >
+                  <SelectTrigger id="edit-event-mode">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="allowAI">Allow AI Creation</SelectItem>
+                    <SelectItem value="noAI">No AI Creation</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
