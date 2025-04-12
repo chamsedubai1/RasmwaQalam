@@ -1,5 +1,5 @@
 import React from "react";
-import logoImage from "../../assets/Design sans titre (3).png";
+import logoImage from "../../assets/logo.png";
 
 interface LogoProps {
   className?: string;
