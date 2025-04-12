@@ -2942,11 +2942,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let usedFallback = false;
       
       try {
-        // First, check if the prompt is safe
+        // Use the original prompt directly without enhancement
         let enhancedPrompt = prompt;
+        
+        // Only keep content safety check
         try {
           if (process.env.ANTHROPIC_API_KEY) {
-            console.log("ORIGINAL PROMPT FROM USER:", prompt);
+            console.log("PROMPT FROM USER:", prompt);
             
             // Check original prompt for safety
             const moderationResult = await anthropic.moderateContent(prompt);
@@ -2954,10 +2956,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log("PROMPT MODERATION FAILED:", moderationResult.category, moderationResult.reason);
               throw new Error(`Your prompt contains inappropriate content: ${moderationResult.reason}`);
             }
-            
-            // If safe, enhance the prompt with Claude
-            enhancedPrompt = await anthropic.enhanceImagePrompt(prompt);
-            console.log("ENHANCED PROMPT FROM CLAUDE:", enhancedPrompt);
           }
         } catch (enhanceError) {
           console.error("Error in prompt processing:", enhanceError);
@@ -2965,7 +2963,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (enhanceError.message && enhanceError.message.includes("inappropriate content")) {
             throw enhanceError; // Pass this error up to be shown to the user
           }
-          enhancedPrompt = prompt; // fallback to original prompt for other errors
         }
         
         switch (aiService) {

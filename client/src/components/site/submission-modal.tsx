@@ -150,7 +150,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
         toast({
           title: "Artwork Generated with Fallback",
           description: `${aiImageService === 'openai' ? 'OpenAI' : 
-                                   aiImageService === 'stability' ? 'Stability AI (Enhanced by Claude)' : 
+                                   aiImageService === 'stability' ? 'Stability AI' : 
                                    'Selected service'} quota exceeded - your artwork was generated using ${serviceName} instead`,
           variant: "destructive"
         });
@@ -409,7 +409,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                        <SelectItem value="stability">Stability AI (Enhanced by Claude)</SelectItem>
+                        <SelectItem value="stability">Stability AI</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
