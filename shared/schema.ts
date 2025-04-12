@@ -8,6 +8,7 @@ export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'secondar
 export const eventTypeEnum = pgEnum('event_type', ['poetry', 'painting']);
 export const eventStatusEnum = pgEnum('event_status', ['upcoming', 'open', 'closed']);
 export const eventStageEnum = pgEnum('event_stage', ['class', 'school', 'country', 'global']);
+export const eventModeEnum = pgEnum('event_mode', ['allowAI', 'noAI']);
 
 // Users table
 export const users = pgTable("users", {
@@ -74,6 +75,7 @@ export const events = pgTable("events", {
   type: eventTypeEnum("type").notNull(),
   status: eventStatusEnum("status").notNull().default('upcoming'),
   stage: eventStageEnum("stage").notNull().default('class'),
+  mode: eventModeEnum("mode").notNull().default('allowAI'), // Default to allowing AI creation
   imageUrl: text("image_url"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
