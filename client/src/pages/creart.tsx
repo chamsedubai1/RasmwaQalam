@@ -676,11 +676,11 @@ const CreArt: React.FC = () => {
                         <p className="whitespace-pre-line">{submission.content}</p>
                       </div>
                     ) : (
-                      <div className="h-48 bg-blue-50 border-y border-blue-100">
+                      <div className="h-60 bg-blue-50 border-y border-blue-100 flex items-center justify-center p-2">
                         <img 
                           src={submission.content} 
                           alt={submission.title} 
-                          className="w-full h-full object-cover shadow-inner" 
+                          className="max-w-full max-h-56 object-contain shadow-sm" 
                         />
                       </div>
                     )}
@@ -901,11 +901,11 @@ const CreArt: React.FC = () => {
                               <p className="whitespace-pre-line">{submission.content}</p>
                             </div>
                           ) : (
-                            <div className="h-48 bg-blue-50 border-y border-blue-100">
+                            <div className="h-60 bg-blue-50 border-y border-blue-100 flex items-center justify-center p-2">
                               <img 
                                 src={submission.content} 
                                 alt={submission.title} 
-                                className="w-full h-full object-cover shadow-inner" 
+                                className="max-w-full max-h-56 object-contain shadow-sm" 
                               />
                             </div>
                           )}
