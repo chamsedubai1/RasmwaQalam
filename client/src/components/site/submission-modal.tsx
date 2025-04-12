@@ -468,15 +468,97 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                     </div>
                   )}
                   <p className="text-sm text-blue-700 mb-2">
-                    {content ? "AI-generated image is shown above" : "Use AI to generate artwork or enter an image URL below"}
+                    {content 
+                      ? (content.startsWith("data:") || !eventData?.mode) 
+                        ? "Image is shown above" 
+                        : "AI-generated image is shown above"
+                      : eventData?.mode === 'noAI'
+                        ? "Upload your drawing or painting masterpiece" 
+                        : "Use AI to generate artwork or enter an image URL below"
+                    }
                   </p>
-                  <Input
-                    type="text"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Paste an image URL here"
-                    className="mt-2 w-full"
-                  />
+                  {eventData?.mode === 'noAI' ? (
+                    <div 
+                      className="flex flex-col items-center w-full px-3 py-4 border-2 border-dashed border-blue-300 rounded-md transition-colors"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const dropArea = e.currentTarget;
+                        dropArea.classList.add('bg-blue-100', 'border-blue-400');
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const dropArea = e.currentTarget;
+                        dropArea.classList.remove('bg-blue-100', 'border-blue-400');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const dropArea = e.currentTarget;
+                        dropArea.classList.remove('bg-blue-100', 'border-blue-400');
+                        
+                        // Get the dropped files
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                          const file = files[0];
+                          if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setContent(evt.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            toast({
+                              title: "Invalid File Type",
+                              description: "Please upload an image file only",
+                              variant: "destructive"
+                            });
+                          }
+                        }
+                      }}
+                    >
+                      <CloudUpload className="h-12 w-12 text-blue-400 mb-2" />
+                      <p className="text-sm text-blue-700 mb-3">Drag and drop your image here</p>
+                      <label 
+                        htmlFor="file-upload" 
+                        className="cursor-pointer bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-700 py-2 px-6 rounded-md flex items-center justify-center"
+                      >
+                        <CloudUpload className="h-4 w-4 mr-2" />
+                        Browse Files
+                      </label>
+                      <input 
+                        id="file-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setContent(evt.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 mt-3">Upload your drawing or painting masterpiece</p>
+                    </div>
+                  ) : (
+                    <Input
+                      type="text"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Paste an image URL here"
+                      className="mt-2 w-full"
+                    />
+                  )}
                 </div>
               </div>
             )}
