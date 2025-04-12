@@ -2946,8 +2946,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let enhancedPrompt = prompt;
         try {
           if (process.env.ANTHROPIC_API_KEY) {
+            console.log("ORIGINAL PROMPT FROM USER:", prompt);
             enhancedPrompt = await anthropic.enhanceImagePrompt(prompt);
-            console.log("Enhanced prompt with Claude:", enhancedPrompt);
+            console.log("ENHANCED PROMPT FROM CLAUDE:", enhancedPrompt);
           }
         } catch (enhanceError) {
           console.error("Error enhancing prompt, using original:", enhanceError);

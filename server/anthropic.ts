@@ -94,7 +94,7 @@ function generateFallbackPoem(prompt: string, style?: string): string {
  */
 export async function enhanceImagePrompt(prompt: string): Promise<string> {
   try {
-    const systemPrompt = "You are an expert at creating detailed, vivid image descriptions for AI image generators. Enhance the user's prompt by adding more detail, specificity, and artistic direction. Keep your response concise (150 words max) and focused only on the enhanced prompt text without any explanations or introductions.";
+    const systemPrompt = "You are an expert at creating detailed, vivid image descriptions for AI image generators used by school students. Enhance the user's prompt in a way that is always appropriate for all ages and school settings. IMPORTANT: Keep vocabulary simple and never include terms that might trigger content filters (avoid terms related to violence, weapons, blood, mature themes, etc). Your enhanced prompts should be artistic, educational, and completely safe for children. Keep your response concise (80 words max) and focused only on the enhanced prompt text without any explanations.";
     
     const response = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
@@ -102,7 +102,7 @@ export async function enhanceImagePrompt(prompt: string): Promise<string> {
       system: systemPrompt,
       messages: [{ 
         role: 'user', 
-        content: `Please enhance this basic image prompt: "${prompt}". Remember to output only the enhanced prompt text without any explanations or introductions.`
+        content: `Please enhance this simple image prompt for a school art project: "${prompt}". Keep it child-appropriate and avoid any terms that might trigger content filters. Remember to output only the enhanced prompt text without any explanations.`
       }],
     });
 
