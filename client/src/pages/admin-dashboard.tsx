@@ -1219,6 +1219,7 @@ const AdminDashboard: React.FC = () => {
   const [eventType, setEventType] = useState("poetry");
   const [eventStatus, setEventStatus] = useState("upcoming");
   const [eventStage, setEventStage] = useState("class");
+  const [eventMode, setEventMode] = useState("allowAI"); // Default to allowing AI creation
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventImageUrl, setEventImageUrl] = useState("");
