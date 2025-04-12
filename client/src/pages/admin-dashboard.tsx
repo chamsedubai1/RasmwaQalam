@@ -1329,6 +1329,7 @@ const AdminDashboard: React.FC = () => {
     setEventType(eventData.type || 'poetry');
     setEventStatus(eventData.status || 'upcoming');
     setEventStage(eventData.stage || 'class');
+    setEventMode(eventData.mode || 'allowAI'); // Set event mode, default to allowAI if not present
     
     // Format dates for input fields (YYYY-MM-DD)
     if (eventData.startDate) {

@@ -55,6 +55,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     type: string;
     stage: string;
     status: string;
+    mode?: string;  // Add mode property to check if AI is allowed
     description?: string;
   }
   
@@ -338,103 +339,105 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
               )}
             </div>
 
-            {/* AI Generation Section */}
-            <div className="border border-blue-200 rounded-md p-4 bg-blue-50">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="text-blue-600 h-5 w-5" />
-                <h3 className="text-md font-medium text-blue-800">AI Creator</h3>
-              </div>
-              
-              <div className="grid gap-3">
-                <div className="w-full">
-                  <Label htmlFor="ai-prompt">Your Prompt</Label>
-                  <Textarea
-                    id="ai-prompt"
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder={contentType === "text" 
-                      ? "Describe the poem you want AI to create..." 
-                      : "Describe the image you want AI to create..."}
-                    className="min-h-[60px] mt-1 w-full"
-                  />
+            {/* AI Generation Section - Only shown if event mode allows AI */}
+            {(!eventData || eventData.mode !== 'noAI') && (
+              <div className="border border-blue-200 rounded-md p-4 bg-blue-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="text-blue-600 h-5 w-5" />
+                  <h3 className="text-md font-medium text-blue-800">AI Creator</h3>
                 </div>
                 
-                {contentType === "text" && (
-                  <>
+                <div className="grid gap-3">
+                  <div className="w-full">
+                    <Label htmlFor="ai-prompt">Your Prompt</Label>
+                    <Textarea
+                      id="ai-prompt"
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder={contentType === "text" 
+                        ? "Describe the poem you want AI to create..." 
+                        : "Describe the image you want AI to create..."}
+                      className="min-h-[60px] mt-1 w-full"
+                    />
+                  </div>
+                  
+                  {contentType === "text" && (
+                    <>
+                      <div className="w-full">
+                        <Label htmlFor="poetry-style">Poetry Style</Label>
+                        <Select
+                          value={poetryStyle}
+                          onValueChange={setPoetryStyle}
+                        >
+                          <SelectTrigger id="poetry-style" className="w-full">
+                            <SelectValue placeholder="Select style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="free">Free Verse</SelectItem>
+                            <SelectItem value="haiku">Haiku</SelectItem>
+                            <SelectItem value="sonnet">Sonnet</SelectItem>
+                            <SelectItem value="limerick">Limerick</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="w-full">
+                        <Label htmlFor="text-ai-service">AI Service</Label>
+                        <Select
+                          value={aiTextService}
+                          onValueChange={setAiTextService}
+                        >
+                          <SelectTrigger id="text-ai-service" className="w-full">
+                            <SelectValue placeholder="Select AI service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
+                            <SelectItem value="claude">Claude (Anthropic)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {contentType === "image" && (
                     <div className="w-full">
-                      <Label htmlFor="poetry-style">Poetry Style</Label>
+                      <Label htmlFor="image-ai-service">AI Service</Label>
                       <Select
-                        value={poetryStyle}
-                        onValueChange={setPoetryStyle}
+                        value={aiImageService}
+                        onValueChange={setAiImageService}
                       >
-                        <SelectTrigger id="poetry-style" className="w-full">
-                          <SelectValue placeholder="Select style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">Free Verse</SelectItem>
-                          <SelectItem value="haiku">Haiku</SelectItem>
-                          <SelectItem value="sonnet">Sonnet</SelectItem>
-                          <SelectItem value="limerick">Limerick</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="w-full">
-                      <Label htmlFor="text-ai-service">AI Service</Label>
-                      <Select
-                        value={aiTextService}
-                        onValueChange={setAiTextService}
-                      >
-                        <SelectTrigger id="text-ai-service" className="w-full">
+                        <SelectTrigger id="image-ai-service" className="w-full">
                           <SelectValue placeholder="Select AI service" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                          <SelectItem value="claude">Claude (Anthropic)</SelectItem>
+                          <SelectItem value="stability">Stability AI</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </>
-                )}
-                
-                {contentType === "image" && (
-                  <div className="w-full">
-                    <Label htmlFor="image-ai-service">AI Service</Label>
-                    <Select
-                      value={aiImageService}
-                      onValueChange={setAiImageService}
-                    >
-                      <SelectTrigger id="image-ai-service" className="w-full">
-                        <SelectValue placeholder="Select AI service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                        <SelectItem value="stability">Stability AI</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                
-                <Button 
-                  type="button" 
-                  className="mt-1 w-full bg-gradient-to-r from-primary to-indigo-600"
-                  onClick={handleGenerateContent}
-                  disabled={isGenerating || !aiPrompt}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate with AI
-                    </>
                   )}
-                </Button>
+                  
+                  <Button 
+                    type="button" 
+                    className="mt-1 w-full bg-gradient-to-r from-primary to-indigo-600"
+                    onClick={handleGenerateContent}
+                    disabled={isGenerating || !aiPrompt}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
             
             {contentType === "text" ? (
               <div className="grid gap-2 w-full">
