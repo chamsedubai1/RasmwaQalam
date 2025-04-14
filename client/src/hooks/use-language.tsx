@@ -67,7 +67,7 @@ const translations: Record<Language, Record<string, string>> = {
     "home.features.card3.title": "Peer Voting",
     "home.features.card3.description": "Vote for your favorite submissions and receive feedback from your classmates.",
     "home.cta.title": "Ready to showcase your creativity?",
-    "home.cta.description": "Join FAZAA-Art today and start your journey through AI-powered art and poetry challenges!",
+    "home.cta.description": "Join RASM wa QALAM today and start your journey through AI-powered art and poetry challenges!",
     "home.cta.button.default": "Get Started",
     "home.cta.button.loggedIn": "Browse Events",
     
@@ -166,7 +166,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Messages
     "message.success": "Success!",
     "message.error": "Error!",
-    "message.welcome": "Welcome to FAZAA - Art",
+    "message.welcome": "Welcome to RASM wa QALAM",
     "message.loading": "Loading...",
     
     // Language
@@ -194,7 +194,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     "about.mission.title": "Our Mission",
     "about.mission.image_alt": "AI-Powered Creativity for Students",
-    "about.mission.paragraph1": "FAZAA - Art was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.",
+    "about.mission.paragraph1": "RASM wa QALAM was created to empower students to explore their creativity using cutting-edge AI tools while building a competitive and collaborative environment for artistic expression.",
     "about.mission.paragraph2": "We believe that by combining technology with artistic expression, we can help students develop both their creative and technical skills for the future.",
     
     "about.values.title": "Our Values",
@@ -208,9 +208,9 @@ const translations: Record<Language, Record<string, string>> = {
     "about.story.title": "Our Story",
     "about.story.image_alt": "Artistic inspiration with neural network connections",
     "about.story.badge": "IB CAS Project",
-    "about.story.paragraph1": "Fazaa-Art is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.",
-    "about.story.paragraph2": "Fazaa-Art's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, Fazaa-AI challenges participants to craft poems and create art pieces based on carefully selected themes.",
-    "about.story.paragraph3": "Fazaa-Art competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, Fazaa-AI not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.",
+    "about.story.paragraph1": "RASM wa QALAM is an innovative initiative that originated as an International Baccalaureate CAS (Creativity, Activity, Service) project with the goal of creating a vibrant art community.",
+    "about.story.paragraph2": "RASM wa QALAM's unique platform leverages the power of artificial intelligence to foster creative competition among its members. By using AI-generated prompts, RASM wa QALAM challenges participants to craft poems and create art pieces based on carefully selected themes.",
+    "about.story.paragraph3": "RASM wa QALAM competitions are designed to encourage our community to delve deeper into their creativity, pushing the boundaries of conventional thinking and inspiring participants to think outside the box. Through this process, RASM wa QALAM not only nurtures artistic expression but also promotes the development of thought-provoking, imaginative content.",
     
     "about.competition.title": "Competition Structure",
     "about.competition.stage1.title": "Class Stage",

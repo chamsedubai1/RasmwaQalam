@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-bold mb-4 font-heading text-blue-200">FAZAA</h3>
+            <h3 className="text-lg font-bold mb-4 font-heading text-blue-200">RASM wa QALAM</h3>
             <p className="text-blue-200 text-sm">
               {t("footer.description")}
             </p>
@@ -97,7 +97,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-blue-800 mt-8 pt-6 text-sm text-blue-200 text-center">
-          &copy; {new Date().getFullYear()} FAZAA Art. {t("footer.allRightsReserved")}
+          &copy; {new Date().getFullYear()} RASM wa QALAM. {t("footer.allRightsReserved")}
         </div>
       </div>
     </footer>

@@ -10,7 +10,7 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-24 w-auto" }) =>
     <img
       src={logoImage}
       className={className}
-      alt="FAZAA Art Logo"
+      alt="RASM wa QALAM Logo"
     />
   );
 };
