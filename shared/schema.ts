@@ -181,10 +181,13 @@ export const insertRegistrationSchema = createInsertSchema(registrations);
 export const insertSubmissionSchema = createInsertSchema(submissions);
 export const insertVoteSchema = createInsertSchema(votes);
 export const insertSecondaryTeacherAssignmentSchema = createInsertSchema(secondaryTeacherAssignments);
-export const insertGalleryItemSchema = createInsertSchema(galleryItems, {
-  updatedAt: z.string().optional().transform((str) => str ? new Date(str) : undefined),
-  createdBy: z.number().optional() // Made optional for client-side validation, will be set on server
-});
+export const insertGalleryItemSchema = createInsertSchema(galleryItems)
+  .omit({ id: true }) // Remove the auto-incrementing ID
+  .extend({
+    updatedAt: z.date().optional(),
+    createdBy: z.number(), // Required in database schema
+    createdAt: z.date().optional().default(() => new Date())
+  });
 
 // Define relations
 export const schoolsRelations = relations(schools, ({ one }) => ({

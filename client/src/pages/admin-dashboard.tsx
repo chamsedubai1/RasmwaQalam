@@ -1876,11 +1876,18 @@ const AdminDashboard: React.FC = () => {
       title: galleryItemTitle,
       content: galleryItemContent,
       type: galleryItemType,
-      description: galleryItemDescription || "",
+      description: galleryItemDescription || null,
       featured: galleryItemFeatured,
       isActive: galleryItemIsActive,
-      orderIndex: galleryItemOrderIndex || 0
+      orderIndex: galleryItemOrderIndex || 0,
+      // No need to provide createdBy since it will be added by the server based on the logged-in user
+      // Include createdAt and updatedAt - the server will handle these values if omitted, but providing them
+      // can help ensure consistency
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+    
+    console.log('Submitting gallery item data:', galleryItemData);
     
     // Call the mutation with gallery item data
     createGalleryItemMutation.mutate(galleryItemData);

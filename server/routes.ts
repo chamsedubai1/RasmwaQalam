@@ -4638,7 +4638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the request body for debugging
       console.log('Gallery item request body:', req.body);
       
-      // Check if the user has admin role (in a real app, use proper authorization)
+      // Check if the user has admin role
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Authorization required' });
@@ -4652,41 +4652,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Only admins can create gallery items' });
       }
 
-      // Log schema details for debugging
-      console.log('Schema expecting:', insertGalleryItemSchema.shape);
-
-      // Completely bypass the schema validation for now and directly create the gallery item
-      // with all required fields, since we're having persistent issues with the Zod validation
+      // Prepare gallery item data with correct createdBy value from authenticated user
+      const galleryItemData = {
+        ...req.body,
+        createdBy: user.id, // Always use the authenticated user's ID
+        updatedAt: new Date(), // Ensure we have an updatedAt date
+        isActive: true, // Default to active
+        createdAt: new Date() // Ensure we have a createdAt date
+      };
+      
+      // Validate the data with our corrected schema
       try {
-        // Create gallery item with explicit values for all required fields
-        const newGalleryItem = await storage.createGalleryItem({
-          title: req.body.title,
-          content: req.body.content,
-          type: req.body.type,
-          description: req.body.description || null,
-          createdBy: user.id,
-          featured: req.body.featured || false,
-          orderIndex: req.body.orderIndex || 0,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
+        // Parse will throw if validation fails
+        const validatedData = insertGalleryItemSchema.parse(galleryItemData);
+        console.log('Validated gallery item data:', validatedData);
+        
+        // Create gallery item
+        const newGalleryItem = await storage.createGalleryItem(validatedData);
         
         res.status(201).json(newGalleryItem);
-      } catch (storageError) {
-        console.error('Storage error creating gallery item:', storageError);
-        res.status(500).json({ message: 'Database error creating gallery item' });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          console.error('Validation errors:', validationError.errors);
+          return res.status(400).json({ 
+            message: 'Invalid gallery item data', 
+            errors: validationError.errors 
+          });
+        } else {
+          console.error('Unexpected validation error:', validationError);
+          throw validationError; // rethrow for the outer catch block
+        }
       }
     } catch (error) {
       console.error('Error creating gallery item:', error);
-      // Log specific error details for debugging
-      if (error instanceof z.ZodError) {
-        console.error('Validation errors:', error.errors);
-        return res.status(400).json({ 
-          message: 'Invalid gallery item data', 
-          errors: error.errors 
-        });
-      }
       res.status(500).json({ message: 'Failed to create gallery item' });
     }
   });
