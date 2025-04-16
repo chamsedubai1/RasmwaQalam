@@ -4673,7 +4673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a gallery item (admin only)
-  apiRouter.put('/gallery-items/:id', async (req, res) => {
+  apiRouter.patch('/gallery-items/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -4700,15 +4700,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Gallery item not found' });
       }
       
-      // Update gallery item
+      // Update gallery item, keeping the original createdBy field
       const updatedItem = await storage.updateGalleryItem(id, {
         ...req.body,
+        createdBy: existingItem.createdBy, // Keep the original createdBy value
         updatedAt: new Date()
       });
       
       res.json(updatedItem);
     } catch (error) {
       console.error('Error updating gallery item:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Invalid gallery item data', 
+          errors: error.errors 
+        });
+      }
       res.status(500).json({ message: 'Failed to update gallery item' });
     }
   });

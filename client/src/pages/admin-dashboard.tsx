@@ -1791,7 +1791,7 @@ const AdminDashboard: React.FC = () => {
         description: galleryItemData.description,
         featured: galleryItemData.featured,
         isActive: galleryItemData.isActive,
-        orderIndex: galleryItemData.orderIndex
+        orderIndex: galleryItemData.orderIndex || 0
       });
     },
     onSuccess: () => {
