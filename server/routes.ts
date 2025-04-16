@@ -4573,6 +4573,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Gallery Items routes
+  // Get all gallery items
+  apiRouter.get('/gallery-items', async (req, res) => {
+    try {
+      const { type, featured } = req.query;
+      
+      let galleryItems;
+      if (type && (type === 'poem' || type === 'image')) {
+        galleryItems = await storage.getGalleryItemsByType(type as 'poem' | 'image');
+      } else if (featured === 'true') {
+        galleryItems = await storage.getFeaturedGalleryItems();
+      } else {
+        galleryItems = await storage.getAllGalleryItems();
+      }
+      
+      // Get creator information for each item
+      const enhancedItems = await Promise.all(
+        galleryItems.map(async (item) => {
+          const creator = await storage.getUser(item.createdBy);
+          return {
+            ...item,
+            creatorName: creator ? creator.fullName : 'Unknown'
+          };
+        })
+      );
+      
+      res.json(enhancedItems);
+    } catch (error) {
+      console.error('Error fetching gallery items:', error);
+      res.status(500).json({ message: 'Failed to fetch gallery items' });
+    }
+  });
+  
+  // Get a specific gallery item by ID
+  apiRouter.get('/gallery-items/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid gallery item ID' });
+      }
+      
+      const galleryItem = await storage.getGalleryItem(id);
+      if (!galleryItem) {
+        return res.status(404).json({ message: 'Gallery item not found' });
+      }
+      
+      // Get creator information
+      const creator = await storage.getUser(galleryItem.createdBy);
+      
+      res.json({
+        ...galleryItem,
+        creatorName: creator ? creator.fullName : 'Unknown'
+      });
+    } catch (error) {
+      console.error('Error fetching gallery item:', error);
+      res.status(500).json({ message: 'Failed to fetch gallery item' });
+    }
+  });
+  
+  // Create a new gallery item (admin only)
+  apiRouter.post('/gallery-items', async (req, res) => {
+    try {
+      // Validate request body against schema
+      const galleryItemData = insertGalleryItemSchema.parse(req.body);
+      
+      // Check if the user has admin role (in a real app, use proper authorization)
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authorization required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only admins can create gallery items' });
+      }
+      
+      // Create gallery item
+      const newGalleryItem = await storage.createGalleryItem({
+        ...galleryItemData,
+        createdBy: user.id,
+        isActive: true
+      });
+      
+      res.status(201).json(newGalleryItem);
+    } catch (error) {
+      console.error('Error creating gallery item:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Invalid gallery item data', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Failed to create gallery item' });
+    }
+  });
+  
+  // Update a gallery item (admin only)
+  apiRouter.put('/gallery-items/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid gallery item ID' });
+      }
+      
+      // Check if the user has admin role
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authorization required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only admins can update gallery items' });
+      }
+      
+      // Check if gallery item exists
+      const existingItem = await storage.getGalleryItem(id);
+      if (!existingItem) {
+        return res.status(404).json({ message: 'Gallery item not found' });
+      }
+      
+      // Update gallery item
+      const updatedItem = await storage.updateGalleryItem(id, {
+        ...req.body,
+        updatedAt: new Date()
+      });
+      
+      res.json(updatedItem);
+    } catch (error) {
+      console.error('Error updating gallery item:', error);
+      res.status(500).json({ message: 'Failed to update gallery item' });
+    }
+  });
+  
+  // Delete a gallery item (admin only)
+  apiRouter.delete('/gallery-items/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid gallery item ID' });
+      }
+      
+      // Check if the user has admin role
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authorization required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only admins can delete gallery items' });
+      }
+      
+      // Check if gallery item exists
+      const existingItem = await storage.getGalleryItem(id);
+      if (!existingItem) {
+        return res.status(404).json({ message: 'Gallery item not found' });
+      }
+      
+      // Delete gallery item
+      const result = await storage.deleteGalleryItem(id);
+      
+      if (result) {
+        res.status(204).send(); // No content response for successful deletion
+      } else {
+        res.status(500).json({ message: 'Failed to delete gallery item' });
+      }
+    } catch (error) {
+      console.error('Error deleting gallery item:', error);
+      res.status(500).json({ message: 'Failed to delete gallery item' });
+    }
+  });
+
   // Register API routes
   app.use('/api', apiRouter);
 
