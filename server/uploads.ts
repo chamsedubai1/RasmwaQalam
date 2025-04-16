@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import express, { Router, Request, Response, Express } from 'express';
+import { storage as dbStorage } from './storage';
 import { randomUUID } from 'crypto';
 
 // Ensure uploads directory exists
@@ -11,7 +12,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Configure storage
-const storage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadDir);
   },
@@ -33,7 +34,7 @@ const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFil
 
 // Configure multer
 export const upload = multer({
-  storage,
+  storage: multerStorage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -43,24 +44,51 @@ export const upload = multer({
 // Set up upload routes
 export function setupUploadRoutes(apiRouter: Router) {
   // Route for uploading files
-  apiRouter.post('/upload', upload.single('image'), (req: Request, res: Response) => {
+  apiRouter.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      // Check if the user has proper authorization
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authorization required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      
+      // Get user information from the storage
+      const user = await dbStorage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      
+      if (!user.isActive) {
+        return res.status(403).json({ message: 'Account is inactive' });
+      }
+      
+      // Only admins, teachers, and school admins can upload files
+      if (user.role !== 'admin' && user.role !== 'teacher' && user.role !== 'schoolAdmin') {
+        return res.status(403).json({ message: 'Unauthorized to upload files' });
       }
 
       // Form the URL to access the file
       const fileUrl = `/uploads/${req.file.filename}`;
 
-      // Return the file information
+      console.log(`File uploaded by ${username}: ${req.file.originalname} -> ${req.file.filename}`);
+
+      // Return the file information and URL
       res.status(200).json({
         message: 'File uploaded successfully',
+        url: fileUrl,
         file: {
           originalName: req.file.originalname,
           filename: req.file.filename,
           mimetype: req.file.mimetype,
-          size: req.file.size,
-          url: fileUrl
+          size: req.file.size
         }
       });
     } catch (error) {
