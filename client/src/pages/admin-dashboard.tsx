@@ -1074,6 +1074,30 @@ const AdminDashboard: React.FC = () => {
   const activeEvents = (events as any[]).filter((event: any) => event.status === 'open').length;
   const upcomingEvents = (events as any[]).filter((event: any) => event.status === 'upcoming').length;
   
+  // Filter gallery items based on user search and filters
+  const filteredGalleryItems = useMemo(() => {
+    return (galleryItems as any[]).filter((item: any) => {
+      // Filter by search query (case insensitive)
+      const matchesSearch = 
+        gallerySearchQuery === '' || 
+        (item.title && item.title.toLowerCase().includes(gallerySearchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(gallerySearchQuery.toLowerCase()));
+      
+      // Filter by type
+      const matchesType = 
+        galleryTypeFilter === 'all' || 
+        item.type === (galleryTypeFilter === 'image' ? 'image' : 'poem');
+      
+      // Filter by featured status
+      const matchesFeatured = 
+        galleryFeaturedFilter === 'all' || 
+        (galleryFeaturedFilter === 'featured' && item.featured) || 
+        (galleryFeaturedFilter === 'not-featured' && !item.featured);
+      
+      return matchesSearch && matchesType && matchesFeatured;
+    });
+  }, [galleryItems, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
+  
   // Get school names for each user
   const usersWithSchoolNames = (allUsers as any[]).map((user: any) => {
     const school = (schools as any[]).find((s: any) => s.id === user.schoolId);
