@@ -1680,6 +1680,20 @@ const AdminDashboard: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
+  
+  // Gallery state variables
+  const [gallerySearchQuery, setGallerySearchQuery] = useState<string>("");
+  const [galleryTypeFilter, setGalleryTypeFilter] = useState<string>("all");
+  const [galleryFeaturedFilter, setGalleryFeaturedFilter] = useState<string>("all");
+  const [showCreateGalleryItemDialog, setShowCreateGalleryItemDialog] = useState<boolean>(false);
+  const [showEditGalleryItemDialog, setShowEditGalleryItemDialog] = useState<boolean>(false);
+  const [showDeleteGalleryItemConfirmDialog, setShowDeleteGalleryItemConfirmDialog] = useState<boolean>(false);
+  const [selectedGalleryItem, setSelectedGalleryItem] = useState<any>(null);
+  const [galleryTitle, setGalleryTitle] = useState<string>("");
+  const [galleryDescription, setGalleryDescription] = useState<string>("");
+  const [galleryContent, setGalleryContent] = useState<string>("");
+  const [galleryType, setGalleryType] = useState<"image" | "poem">("image");
+  const [galleryIsFeatured, setGalleryIsFeatured] = useState<boolean>(false);
 
   // Create partner mutation
   const createPartnerMutation = useMutation({
