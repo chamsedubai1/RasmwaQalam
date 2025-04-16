@@ -4795,11 +4795,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File upload endpoint for gallery items
+  apiRouter.post('/upload', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      // Check if the user has proper authorization
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authorization required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const username = token.split(':')[0];
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+        return res.status(403).json({ message: 'Unauthorized to upload files' });
+      }
+      
+      // Get file information
+      const filename = req.file.filename;
+      const fileUrl = `/uploads/${filename}`;
+      
+      // Return file URL to client
+      res.json({ 
+        url: fileUrl,
+        message: 'File uploaded successfully'
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      res.status(500).json({ message: 'Failed to upload file' });
+    }
+  });
+
   // Register API routes
   app.use('/api', apiRouter);
 
   // Setup static file serving for uploads
-  setupStaticUploads(app);
+  app.use('/uploads', express.static('uploads'));
+  
+  // Make sure uploads directory exists
+  if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads', { recursive: true });
+  }
 
   const httpServer = createServer(app);
   return httpServer;
