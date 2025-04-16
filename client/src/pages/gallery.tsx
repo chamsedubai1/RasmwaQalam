@@ -35,10 +35,16 @@ const Gallery: React.FC = () => {
   const [activeTab, setActiveTab] = useState("paintings");
   const [winnerCategory, setWinnerCategory] = useState("all");
   const [eventFilter, setEventFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all"); // 'all', 'competition', 'gallery'
   
   // Fetch winning submissions
-  const { data: allSubmissions = [], isLoading } = useQuery<any[]>({
+  const { data: allSubmissions = [], isLoading: submissionsLoading } = useQuery<any[]>({
     queryKey: ['/api/submissions', winnerCategory !== 'all' ? `?winnerCategory=${winnerCategory}` : ''],
+  });
+  
+  // Fetch gallery items
+  const { data: galleryItems = [], isLoading: galleryLoading } = useQuery<any[]>({
+    queryKey: ['/api/gallery-items'],
   });
   
   // Fetch events for the filter dropdown
@@ -46,15 +52,55 @@ const Gallery: React.FC = () => {
     queryKey: ['/api/events'],
   });
   
-  // Filter submissions by type and event
-  const filteredSubmissions = allSubmissions.filter((submission) => {
+  // Combined and processed items for display
+  const processedItems = [
+    // Process competition submissions
+    ...allSubmissions.map((submission) => ({
+      id: `submission-${submission.id}`,
+      title: submission.title,
+      description: submission.description || "",
+      content: submission.content,
+      contentType: submission.contentType,
+      creator: submission.userFullName || "Anonymous",
+      grade: submission.userGradeLevel || "",
+      eventId: submission.eventId,
+      eventName: getEventName(submission.eventId),
+      winnerLevel: submission.globalWinner ? "global" 
+                  : submission.countryWinner ? "country"
+                  : submission.schoolWinner ? "school"
+                  : "class",
+      source: "competition"
+    })),
+    
+    // Process admin-added gallery items
+    ...galleryItems.map((item) => ({
+      id: `gallery-${item.id}`,
+      title: item.title,
+      description: item.description || "",
+      content: item.content,
+      contentType: item.type === "poem" ? "text" : "image",
+      creator: "Admin Curator",
+      grade: "",
+      eventId: null,
+      eventName: "Gallery Item",
+      winnerLevel: item.featured ? "featured" : "regular",
+      source: "gallery"
+    }))
+  ];
+  
+  // Filter items by type, event, and source
+  const filteredItems = processedItems.filter((item) => {
     const matchesType = activeTab === "paintings" 
-      ? submission.contentType === "image"
-      : submission.contentType === "text";
+      ? item.contentType === "image"
+      : item.contentType === "text";
     
-    const matchesEvent = eventFilter === "all" || submission.eventId.toString() === eventFilter;
+    const matchesEvent = eventFilter === "all" || 
+      (item.eventId && item.eventId.toString() === eventFilter);
     
-    return matchesType && matchesEvent;
+    const matchesSource = sourceFilter === "all" || 
+      item.source === sourceFilter;
+    
+    return matchesType && matchesEvent && matchesSource;
   });
   
   // Get event name by ID for display
@@ -95,21 +141,21 @@ const Gallery: React.FC = () => {
           <div className="h-10 w-10 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <ImageIcon className="h-5 w-5 text-amber-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.contentType === 'image').length}</div>
+          <div className="text-2xl font-bold text-gray-800">{processedItems.filter((item: any) => item.contentType === 'image').length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.paintings')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <FileText className="h-5 w-5 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.contentType === 'text').length}</div>
+          <div className="text-2xl font-bold text-gray-800">{processedItems.filter((item: any) => item.contentType === 'text').length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.poems')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
           <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Trophy className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="text-2xl font-bold text-gray-800">{filteredSubmissions.filter((s: any) => s.globalWinner).length}</div>
+          <div className="text-2xl font-bold text-gray-800">{allSubmissions.filter((s: any) => s.globalWinner).length}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">{t('gallery.stats.global_winners')}</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 text-center border border-amber-100 hover:shadow-lg transition-all">
@@ -178,13 +224,49 @@ const Gallery: React.FC = () => {
         </div>
       </div>
       
+      {/* Source Filter */}
+      <div className="mb-6 flex justify-center">
+        <div className="inline-flex rounded-lg border border-amber-100 bg-white p-1 shadow-sm">
+          <button
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              sourceFilter === 'all' 
+                ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white' 
+                : 'text-gray-600 hover:bg-amber-50'
+            }`}
+            onClick={() => setSourceFilter('all')}
+          >
+            All Items
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              sourceFilter === 'competition' 
+                ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white' 
+                : 'text-gray-600 hover:bg-amber-50'
+            }`}
+            onClick={() => setSourceFilter('competition')}
+          >
+            Competition Winners
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              sourceFilter === 'gallery' 
+                ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white' 
+                : 'text-gray-600 hover:bg-amber-50'
+            }`}
+            onClick={() => setSourceFilter('gallery')}
+          >
+            Featured Gallery
+          </button>
+        </div>
+      </div>
+      
       {/* Gallery Grid */}
-      {isLoading ? (
+      {submissionsLoading && galleryLoading ? (
         <div className="py-16 text-center bg-white rounded-xl shadow-md border border-amber-50">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mb-4"></div>
           <p className="text-gray-600">{t('gallery.loading')}</p>
         </div>
-      ) : filteredSubmissions.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="py-16 text-center bg-white rounded-xl shadow-md border border-amber-50">
           <div className="inline-block h-16 w-16 rounded-full bg-amber-50 flex items-center justify-center mb-4 mx-auto">
             <Search className="h-8 w-8 text-amber-300" />
@@ -196,6 +278,7 @@ const Gallery: React.FC = () => {
             onClick={() => {
               setWinnerCategory("all");
               setEventFilter("all");
+              setSourceFilter("all");
             }}
           >
             {t('gallery.empty.reset')}
@@ -203,33 +286,21 @@ const Gallery: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredSubmissions.map((submission: any) => {
-            // Find the winner category
-            let winnerLevel = "class";
-            if (submission.globalWinner) winnerLevel = "global";
-            else if (submission.countryWinner) winnerLevel = "country";
-            else if (submission.schoolWinner) winnerLevel = "school";
-            
-            // Find the user who created this submission
-            const creatorName = submission.userFullName || "Anonymous";
-            const grade = submission.userGradeLevel || "";
-            
-            return (
-              <GalleryItem
-                key={submission.id}
-                id={submission.id}
-                title={submission.title}
-                creator={creatorName}
-                grade={grade}
-                description={submission.description || ""}
-                imageUrl={submission.contentType === "image" ? submission.content : "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}
-                winnerCategory={winnerLevel}
-                eventName={getEventName(submission.eventId)}
-                contentType={submission.contentType}
-                content={submission.contentType === "text" ? submission.content : undefined}
-              />
-            );
-          })}
+          {filteredItems.map((item: any) => (
+            <GalleryItem
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              creator={item.creator}
+              grade={item.grade}
+              description={item.description}
+              imageUrl={item.contentType === "image" ? item.content : "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}
+              winnerCategory={item.winnerLevel}
+              eventName={item.eventName}
+              contentType={item.contentType}
+              content={item.contentType === "text" ? item.content : undefined}
+            />
+          ))}
         </div>
       )}
     </div>

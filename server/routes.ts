@@ -4635,8 +4635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new gallery item (admin only)
   apiRouter.post('/gallery-items', async (req, res) => {
     try {
-      // Validate request body against schema
-      const galleryItemData = insertGalleryItemSchema.parse(req.body);
+      // Log the request body for debugging
+      console.log('Gallery item request body:', req.body);
       
       // Check if the user has admin role (in a real app, use proper authorization)
       const authHeader = req.headers.authorization;
@@ -4651,18 +4651,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: 'Only admins can create gallery items' });
       }
+
+      // Modify the request body before validation to include required fields
+      const completeGalleryItemData = {
+        ...req.body,
+        createdBy: user.id
+      };
+      
+      // Validate request body against schema
+      const galleryItemData = insertGalleryItemSchema.parse(completeGalleryItemData);
       
       // Create gallery item
       const newGalleryItem = await storage.createGalleryItem({
         ...galleryItemData,
-        createdBy: user.id,
         isActive: true
       });
       
       res.status(201).json(newGalleryItem);
     } catch (error) {
       console.error('Error creating gallery item:', error);
+      // Log specific error details for debugging
       if (error instanceof z.ZodError) {
+        console.error('Validation errors:', error.errors);
         return res.status(400).json({ 
           message: 'Invalid gallery item data', 
           errors: error.errors 
