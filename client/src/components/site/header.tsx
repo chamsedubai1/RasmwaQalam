@@ -7,7 +7,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { Menu, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FazaaLogo } from "@/components/site/logo";
+import { RasmWaQalamLogo } from "@/components/site/logo";
 import LanguageSwitcher from "@/components/site/language-switcher";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -68,7 +68,7 @@ const Header: React.FC = () => {
             <div className="flex-shrink-0 flex items-center -ml-10">
               <div className="flex items-center">
                 <a href="/" className="flex items-center">
-                  <FazaaLogo className="h-20 w-auto mr-2" />
+                  <RasmWaQalamLogo className="h-20 w-auto mr-2" />
                   <span className="text-white font-bold text-xl font-heading tracking-wider sr-only">
                     Rasm wa Qalam
                   </span>
@@ -135,7 +135,7 @@ const Header: React.FC = () => {
       <div className={`sm:hidden bg-blue-900 ${mobileMenuOpen ? '' : 'hidden'}`} id="mobile-menu">
         <div className="px-2 pt-2 pb-3 space-y-1">
           <div className="flex justify-center py-4">
-            <FazaaLogo className="h-24 w-auto" />
+            <RasmWaQalamLogo className="h-24 w-auto" />
           </div>
           <NavLink href="/" className="block" role="all">{t("nav.home")}</NavLink>
           <NavLink href="/about" className="block" role="all">{t("nav.about")}</NavLink>

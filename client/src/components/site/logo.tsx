@@ -1,11 +1,11 @@
 import React from "react";
-import logoImage from "../../assets/logo.png";
+import logoImage from "../../assets/rasm-wa-qalam-logo.png";
 
 interface LogoProps {
   className?: string;
 }
 
-export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-24 w-auto" }) => {
+export const RasmWaQalamLogo: React.FC<LogoProps> = ({ className = "h-24 w-auto" }) => {
   return (
     <img
       src={logoImage}
@@ -15,4 +15,7 @@ export const FazaaLogo: React.FC<LogoProps> = ({ className = "h-24 w-auto" }) =>
   );
 };
 
-export default FazaaLogo;
+// For backward compatibility
+export const FazaaLogo = RasmWaQalamLogo;
+
+export default RasmWaQalamLogo;
