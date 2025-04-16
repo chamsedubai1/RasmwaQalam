@@ -9,6 +9,7 @@ export const eventTypeEnum = pgEnum('event_type', ['poetry', 'painting']);
 export const eventStatusEnum = pgEnum('event_status', ['upcoming', 'open', 'closed']);
 export const eventStageEnum = pgEnum('event_stage', ['class', 'school', 'country', 'global']);
 export const eventModeEnum = pgEnum('event_mode', ['allowAI', 'noAI']);
+export const galleryItemTypeEnum = pgEnum('gallery_item_type', ['poem', 'image']);
 
 // Users table
 export const users = pgTable("users", {
@@ -126,6 +127,21 @@ export const secondaryTeacherAssignments = pgTable("secondary_teacher_assignment
   isActive: boolean("is_active").notNull().default(true),
 });
 
+// Gallery Items table
+export const galleryItems = pgTable("gallery_items", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: galleryItemTypeEnum("type").notNull(),
+  content: text("content").notNull(), // For poems: text content, for images: base64 or URL
+  createdBy: integer("created_by").notNull(), // Admin who created the gallery item
+  featured: boolean("featured").default(false), // Whether to feature this item prominently
+  orderIndex: integer("order_index").default(0), // For controlling display order
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
 // Insert schemas
 // Validate password: min 8 chars, at least 1 uppercase, 1 number, 2 special chars
 const passwordValidator = z.string()
@@ -165,6 +181,9 @@ export const insertRegistrationSchema = createInsertSchema(registrations);
 export const insertSubmissionSchema = createInsertSchema(submissions);
 export const insertVoteSchema = createInsertSchema(votes);
 export const insertSecondaryTeacherAssignmentSchema = createInsertSchema(secondaryTeacherAssignments);
+export const insertGalleryItemSchema = createInsertSchema(galleryItems, {
+  updatedAt: z.string().optional().transform((str) => str ? new Date(str) : undefined)
+});
 
 // Define relations
 export const schoolsRelations = relations(schools, ({ one }) => ({
@@ -176,6 +195,17 @@ export const schoolsRelations = relations(schools, ({ one }) => ({
 
 export const citiesRelations = relations(cities, ({ many }) => ({
   schools: many(schools)
+}));
+
+export const galleryItemsRelations = relations(galleryItems, ({ one }) => ({
+  creator: one(users, {
+    fields: [galleryItems.createdBy],
+    references: [users.id]
+  })
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  galleryItems: many(galleryItems)
 }));
 
 // Export types
@@ -208,3 +238,6 @@ export type InsertVote = z.infer<typeof insertVoteSchema>;
 
 export type SecondaryTeacherAssignment = typeof secondaryTeacherAssignments.$inferSelect;
 export type InsertSecondaryTeacherAssignment = z.infer<typeof insertSecondaryTeacherAssignmentSchema>;
+
+export type GalleryItem = typeof galleryItems.$inferSelect;
+export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
