@@ -82,7 +82,8 @@ import {
   Loader2,
   Eye,
   Mail,
-  Award
+  Award,
+  Image as ImageIcon
 } from "lucide-react";
 import { 
   DropdownMenuLabel,
@@ -5881,6 +5882,385 @@ const AdminDashboard: React.FC = () => {
                   setSelectedItemToDelete(null);
                 }
               }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Gallery Item Dialog */}
+      <Dialog open={showCreateGalleryItemDialog} onOpenChange={setShowCreateGalleryItemDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add New Gallery Item</DialogTitle>
+            <DialogDescription>
+              Add a new image or poem to the gallery
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemTitle" className="text-right">
+                Title
+              </Label>
+              <Input
+                id="galleryItemTitle"
+                value={galleryItemTitle}
+                onChange={(e) => setGalleryItemTitle(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter gallery item title"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemType" className="text-right">
+                Type
+              </Label>
+              <Select
+                value={galleryItemType}
+                onValueChange={(value: "image" | "poem") => setGalleryItemType(value)}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="poem">Poem</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemDescription" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="galleryItemDescription"
+                value={galleryItemDescription}
+                onChange={(e) => setGalleryItemDescription(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter a brief description"
+                rows={3}
+              />
+            </div>
+            
+            {galleryItemType === "image" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="galleryItemContent" className="text-right">
+                  Image URL
+                </Label>
+                <Input
+                  id="galleryItemContent"
+                  value={galleryItemContent}
+                  onChange={(e) => setGalleryItemContent(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter image URL or base64 data"
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="galleryItemContent" className="text-right pt-2">
+                  Poem Content
+                </Label>
+                <Textarea
+                  id="galleryItemContent"
+                  value={galleryItemContent}
+                  onChange={(e) => setGalleryItemContent(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter poem content"
+                  rows={6}
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemFeatured" className="text-right">
+                Featured
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="galleryItemFeatured"
+                  checked={galleryItemFeatured}
+                  onCheckedChange={setGalleryItemFeatured}
+                />
+                <Label htmlFor="galleryItemFeatured">
+                  {galleryItemFeatured ? "Featured" : "Not Featured"}
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemIsActive" className="text-right">
+                Active
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="galleryItemIsActive"
+                  checked={galleryItemIsActive}
+                  onCheckedChange={setGalleryItemIsActive}
+                />
+                <Label htmlFor="galleryItemIsActive">
+                  {galleryItemIsActive ? "Active" : "Inactive"}
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="galleryItemOrderIndex" className="text-right">
+                Display Order
+              </Label>
+              <Input
+                id="galleryItemOrderIndex"
+                type="number"
+                value={galleryItemOrderIndex.toString()}
+                onChange={(e) => setGalleryItemOrderIndex(parseInt(e.target.value) || 0)}
+                className="col-span-3"
+                placeholder="Display order (0 = default)"
+              />
+            </div>
+            
+            {galleryItemType === "image" && galleryItemContent && (
+              <div className="col-span-4 mt-2">
+                <Label className="mb-2 block">Preview:</Label>
+                <div className="border rounded-md overflow-hidden w-full h-48">
+                  <img 
+                    src={galleryItemContent}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {galleryItemType === "poem" && galleryItemContent && (
+              <div className="col-span-4 mt-2">
+                <Label className="mb-2 block">Preview:</Label>
+                <div className="border rounded-md p-4 max-h-48 overflow-y-auto font-serif">
+                  {galleryItemContent}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateGalleryItemDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateGalleryItem}
+              disabled={!galleryItemTitle || !galleryItemContent}
+            >
+              Add Gallery Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Gallery Item Dialog */}
+      <Dialog open={showEditGalleryItemDialog} onOpenChange={setShowEditGalleryItemDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Gallery Item</DialogTitle>
+            <DialogDescription>
+              Update gallery item details
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemTitle" className="text-right">
+                Title
+              </Label>
+              <Input
+                id="editGalleryItemTitle"
+                value={galleryItemTitle}
+                onChange={(e) => setGalleryItemTitle(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter gallery item title"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemType" className="text-right">
+                Type
+              </Label>
+              <Select
+                value={galleryItemType}
+                onValueChange={(value: "image" | "poem") => setGalleryItemType(value)}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="poem">Poem</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemDescription" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="editGalleryItemDescription"
+                value={galleryItemDescription}
+                onChange={(e) => setGalleryItemDescription(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter a brief description"
+                rows={3}
+              />
+            </div>
+            
+            {galleryItemType === "image" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editGalleryItemContent" className="text-right">
+                  Image URL
+                </Label>
+                <Input
+                  id="editGalleryItemContent"
+                  value={galleryItemContent}
+                  onChange={(e) => setGalleryItemContent(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter image URL or base64 data"
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="editGalleryItemContent" className="text-right pt-2">
+                  Poem Content
+                </Label>
+                <Textarea
+                  id="editGalleryItemContent"
+                  value={galleryItemContent}
+                  onChange={(e) => setGalleryItemContent(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter poem content"
+                  rows={6}
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemFeatured" className="text-right">
+                Featured
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="editGalleryItemFeatured"
+                  checked={galleryItemFeatured}
+                  onCheckedChange={setGalleryItemFeatured}
+                />
+                <Label htmlFor="editGalleryItemFeatured">
+                  {galleryItemFeatured ? "Featured" : "Not Featured"}
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemIsActive" className="text-right">
+                Active
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="editGalleryItemIsActive"
+                  checked={galleryItemIsActive}
+                  onCheckedChange={setGalleryItemIsActive}
+                />
+                <Label htmlFor="editGalleryItemIsActive">
+                  {galleryItemIsActive ? "Active" : "Inactive"}
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editGalleryItemOrderIndex" className="text-right">
+                Display Order
+              </Label>
+              <Input
+                id="editGalleryItemOrderIndex"
+                type="number"
+                value={galleryItemOrderIndex.toString()}
+                onChange={(e) => setGalleryItemOrderIndex(parseInt(e.target.value) || 0)}
+                className="col-span-3"
+                placeholder="Display order (0 = default)"
+              />
+            </div>
+            
+            {galleryItemType === "image" && galleryItemContent && (
+              <div className="col-span-4 mt-2">
+                <Label className="mb-2 block">Preview:</Label>
+                <div className="border rounded-md overflow-hidden w-full h-48">
+                  <img 
+                    src={galleryItemContent}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {galleryItemType === "poem" && galleryItemContent && (
+              <div className="col-span-4 mt-2">
+                <Label className="mb-2 block">Preview:</Label>
+                <div className="border rounded-md p-4 max-h-48 overflow-y-auto font-serif">
+                  {galleryItemContent}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditGalleryItemDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateGalleryItem}
+              disabled={!galleryItemTitle || !galleryItemContent}
+            >
+              Update Gallery Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Gallery Item Confirmation Dialog */}
+      <Dialog open={showDeleteGalleryItemConfirmDialog} onOpenChange={setShowDeleteGalleryItemConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to delete this gallery item? This action cannot be undone.
+            </p>
+            {selectedGalleryItem && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                <p className="font-medium">{selectedGalleryItem.title}</p>
+                <p className="text-sm text-gray-500">
+                  {selectedGalleryItem.type === 'image' ? 'Image' : 'Poem'} • 
+                  {selectedGalleryItem.featured ? ' Featured' : ' Not Featured'}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteGalleryItemConfirmDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteGalleryItem}
             >
               Delete
             </Button>
