@@ -3150,16 +3150,7 @@ const AdminDashboard: React.FC = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // Set selected gallery item and open edit dialog
-                              setSelectedGalleryItem(item);
-                              setGalleryTitle(item.title);
-                              setGalleryDescription(item.description || '');
-                              setGalleryContent(item.content);
-                              setGalleryType(item.type);
-                              setGalleryIsFeatured(item.featured || false);
-                              setShowEditGalleryItemDialog(true);
-                            }}
+                            onClick={() => handleEditGalleryItem(item)}
                           >
                             Edit
                           </Button>
