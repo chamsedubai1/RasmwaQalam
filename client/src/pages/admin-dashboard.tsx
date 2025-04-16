@@ -955,6 +955,21 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
+  // Fetch all gallery items for gallery management
+  const { data: galleryItems = [], isLoading: isLoadingGalleryItems, refetch: refetchGalleryItems } = useQuery({
+    queryKey: ['/api/gallery-items'],
+    queryFn: async () => {
+      const response = await fetch('/api/gallery-items');
+      if (!response.ok) {
+        throw new Error('Failed to fetch gallery items');
+      }
+      return response.json();
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000, // Consider data stale after 1 second
+  });
+  
   // Admin role check - moved after all hooks to avoid React errors
   if (userRole !== "admin") {
     return <Redirect to="/" />;
@@ -1029,6 +1044,30 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Filter gallery items based on user search and filters
+  const filteredGalleryItems = useMemo(() => {
+    return (galleryItems as any[]).filter((item: any) => {
+      // Filter by search query (case insensitive)
+      const matchesSearch = 
+        gallerySearchQuery === '' || 
+        (item.title && item.title.toLowerCase().includes(gallerySearchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(gallerySearchQuery.toLowerCase()));
+      
+      // Filter by type
+      const matchesType = 
+        galleryTypeFilter === 'all' || 
+        item.type === (galleryTypeFilter === 'image' ? 'image' : 'poem');
+      
+      // Filter by featured status
+      const matchesFeatured = 
+        galleryFeaturedFilter === 'all' || 
+        (galleryFeaturedFilter === 'featured' && item.featured) || 
+        (galleryFeaturedFilter === 'not-featured' && !item.featured);
+      
+      return matchesSearch && matchesType && matchesFeatured;
+    });
+  }, [galleryItems, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
+  
   const totalUsers = (allUsers as any[]).length;
   const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
   const totalTeachers = (allUsers as any[]).filter((user: any) => user.role === 'teacher').length;
