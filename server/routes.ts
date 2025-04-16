@@ -41,10 +41,12 @@ import {
   insertSubmissionSchema,
   insertVoteSchema,
   insertSecondaryTeacherAssignmentSchema,
+  insertGalleryItemSchema,
   Submission,
   School,
   Class,
-  SecondaryTeacherAssignment
+  SecondaryTeacherAssignment,
+  GalleryItem
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
