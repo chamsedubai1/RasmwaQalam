@@ -1743,6 +1743,223 @@ const AdminDashboard: React.FC = () => {
   
 
 
+  // Create gallery item mutation
+  const createGalleryItemMutation = useMutation({
+    mutationFn: async (galleryItemData: any) => {
+      return apiRequest("POST", "/api/gallery-items", galleryItemData);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/gallery-items'] });
+      
+      // Reset form fields
+      setGalleryItemTitle("");
+      setGalleryItemDescription("");
+      setGalleryItemContent("");
+      setGalleryItemType("image");
+      setGalleryItemFeatured(false);
+      setGalleryItemIsActive(true);
+      setGalleryItemOrderIndex(0);
+      
+      // Close dialog
+      setShowCreateGalleryItemDialog(false);
+      
+      // Success message
+      toast({
+        title: "Gallery Item Created",
+        description: "Gallery item has been successfully created",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating gallery item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create gallery item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update gallery item mutation
+  const updateGalleryItemMutation = useMutation({
+    mutationFn: async (galleryItemData: any) => {
+      return apiRequest("PATCH", `/api/gallery-items/${galleryItemData.id}`, {
+        title: galleryItemData.title,
+        content: galleryItemData.content,
+        type: galleryItemData.type,
+        description: galleryItemData.description,
+        featured: galleryItemData.featured,
+        isActive: galleryItemData.isActive,
+        orderIndex: galleryItemData.orderIndex
+      });
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/gallery-items'] });
+      
+      // Reset form fields
+      setGalleryItemTitle("");
+      setGalleryItemDescription("");
+      setGalleryItemContent("");
+      setGalleryItemType("image");
+      setGalleryItemFeatured(false);
+      setGalleryItemIsActive(true);
+      setGalleryItemOrderIndex(0);
+      setSelectedGalleryItem(null);
+      
+      // Close dialog
+      setShowEditGalleryItemDialog(false);
+      
+      // Success message
+      toast({
+        title: "Gallery Item Updated",
+        description: "Gallery item has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error updating gallery item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update gallery item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete gallery item mutation
+  const deleteGalleryItemMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/gallery-items/${id}`);
+    },
+    onSuccess: () => {
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/gallery-items'] });
+      
+      // Reset selected item
+      setSelectedGalleryItem(null);
+      
+      // Close dialog
+      setShowDeleteGalleryItemDialog(false);
+      setShowDeleteGalleryItemConfirmDialog(false);
+      
+      // Success message
+      toast({
+        title: "Gallery Item Deleted",
+        description: "Gallery item has been successfully deleted",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error deleting gallery item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete gallery item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle gallery item operations
+  const handleCreateGalleryItem = () => {
+    // Validate form fields
+    if (!galleryItemTitle || !galleryItemContent) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields (title and content)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build gallery item data and submit using mutation
+    const galleryItemData = {
+      title: galleryItemTitle,
+      content: galleryItemContent,
+      type: galleryItemType,
+      description: galleryItemDescription || "",
+      featured: galleryItemFeatured,
+      isActive: galleryItemIsActive,
+      orderIndex: galleryItemOrderIndex || 0
+    };
+    
+    // Call the mutation with gallery item data
+    createGalleryItemMutation.mutate(galleryItemData);
+  };
+
+  const handleEditGalleryItem = (itemData: any) => {
+    // Set selected gallery item
+    setSelectedGalleryItem(itemData);
+    
+    // Pre-populate form fields with selected gallery item data
+    setGalleryItemTitle(itemData.title || "");
+    setGalleryItemDescription(itemData.description || "");
+    setGalleryItemContent(itemData.content || "");
+    setGalleryItemType(itemData.type || "image");
+    setGalleryItemFeatured(itemData.featured !== undefined ? itemData.featured : false);
+    setGalleryItemIsActive(itemData.isActive !== undefined ? itemData.isActive : true);
+    setGalleryItemOrderIndex(itemData.orderIndex || 0);
+    
+    // Open edit dialog
+    setShowEditGalleryItemDialog(true);
+  };
+
+  const handleUpdateGalleryItem = () => {
+    // Validate form fields
+    if (!galleryItemTitle || !galleryItemContent) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill out all required fields (title and content)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if gallery item is selected
+    if (!selectedGalleryItem) {
+      toast({
+        title: "Error",
+        description: "No gallery item selected for update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build gallery item data and submit using mutation
+    const galleryItemData = {
+      id: selectedGalleryItem.id,
+      title: galleryItemTitle,
+      content: galleryItemContent,
+      type: galleryItemType,
+      description: galleryItemDescription || "",
+      featured: galleryItemFeatured,
+      isActive: galleryItemIsActive,
+      orderIndex: galleryItemOrderIndex || 0
+    };
+    
+    // Call the mutation with gallery item data
+    updateGalleryItemMutation.mutate(galleryItemData);
+  };
+
+  const handleDeleteGalleryItem = (itemData: any) => {
+    // Set selected gallery item and open confirm dialog
+    setSelectedGalleryItem(itemData);
+    setShowDeleteGalleryItemConfirmDialog(true);
+  };
+
+  const confirmDeleteGalleryItem = () => {
+    // Check if gallery item is selected
+    if (!selectedGalleryItem) {
+      toast({
+        title: "Error",
+        description: "No gallery item selected for deletion",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Call the mutation with gallery item id
+    deleteGalleryItemMutation.mutate(selectedGalleryItem.id);
+  };
+
   // Create partner mutation
   const createPartnerMutation = useMutation({
     mutationFn: async (partnerData: any) => {
