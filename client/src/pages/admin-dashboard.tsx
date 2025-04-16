@@ -806,6 +806,25 @@ const AdminDashboard: React.FC = () => {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReportEventId, setSelectedReportEventId] = useState<number | null>(null);
+  
+  // Gallery management state variables
+  const [gallerySearchQuery, setGallerySearchQuery] = useState("");
+  const [galleryTypeFilter, setGalleryTypeFilter] = useState("all");
+  const [galleryFeaturedFilter, setGalleryFeaturedFilter] = useState("all");
+  const [showCreateGalleryItemDialog, setShowCreateGalleryItemDialog] = useState(false);
+  const [showEditGalleryItemDialog, setShowEditGalleryItemDialog] = useState(false);
+  const [showDeleteGalleryItemDialog, setShowDeleteGalleryItemDialog] = useState(false);
+  const [showDeleteGalleryItemConfirmDialog, setShowDeleteGalleryItemConfirmDialog] = useState(false);
+  const [selectedGalleryItem, setSelectedGalleryItem] = useState<any>(null);
+  
+  // Form state for gallery items
+  const [galleryItemTitle, setGalleryItemTitle] = useState("");
+  const [galleryItemDescription, setGalleryItemDescription] = useState("");
+  const [galleryItemType, setGalleryItemType] = useState<"image" | "poem">("image");
+  const [galleryItemContent, setGalleryItemContent] = useState("");
+  const [galleryItemFeatured, setGalleryItemFeatured] = useState(false);
+  const [galleryItemIsActive, setGalleryItemIsActive] = useState(true);
+  const [galleryItemOrderIndex, setGalleryItemOrderIndex] = useState<number>(0);
   // State for managing submissions for an event
   const [eventSubmissions, setEventSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
@@ -1044,29 +1063,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Filter gallery items based on user search and filters
-  const filteredGalleryItems = useMemo(() => {
-    return (galleryItems as any[]).filter((item: any) => {
-      // Filter by search query (case insensitive)
-      const matchesSearch = 
-        gallerySearchQuery === '' || 
-        (item.title && item.title.toLowerCase().includes(gallerySearchQuery.toLowerCase())) ||
-        (item.description && item.description.toLowerCase().includes(gallerySearchQuery.toLowerCase()));
-      
-      // Filter by type
-      const matchesType = 
-        galleryTypeFilter === 'all' || 
-        item.type === (galleryTypeFilter === 'image' ? 'image' : 'poem');
-      
-      // Filter by featured status
-      const matchesFeatured = 
-        galleryFeaturedFilter === 'all' || 
-        (galleryFeaturedFilter === 'featured' && item.featured) || 
-        (galleryFeaturedFilter === 'not-featured' && !item.featured);
-      
-      return matchesSearch && matchesType && matchesFeatured;
-    });
-  }, [galleryItems, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
+
   
   const totalUsers = (allUsers as any[]).length;
   const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
@@ -1720,19 +1717,7 @@ const AdminDashboard: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [isClassActive, setIsClassActive] = useState(true);
   
-  // Gallery state variables
-  const [gallerySearchQuery, setGallerySearchQuery] = useState<string>("");
-  const [galleryTypeFilter, setGalleryTypeFilter] = useState<string>("all");
-  const [galleryFeaturedFilter, setGalleryFeaturedFilter] = useState<string>("all");
-  const [showCreateGalleryItemDialog, setShowCreateGalleryItemDialog] = useState<boolean>(false);
-  const [showEditGalleryItemDialog, setShowEditGalleryItemDialog] = useState<boolean>(false);
-  const [showDeleteGalleryItemConfirmDialog, setShowDeleteGalleryItemConfirmDialog] = useState<boolean>(false);
-  const [selectedGalleryItem, setSelectedGalleryItem] = useState<any>(null);
-  const [galleryTitle, setGalleryTitle] = useState<string>("");
-  const [galleryDescription, setGalleryDescription] = useState<string>("");
-  const [galleryContent, setGalleryContent] = useState<string>("");
-  const [galleryType, setGalleryType] = useState<"image" | "poem">("image");
-  const [galleryIsFeatured, setGalleryIsFeatured] = useState<boolean>(false);
+
 
   // Create partner mutation
   const createPartnerMutation = useMutation({
