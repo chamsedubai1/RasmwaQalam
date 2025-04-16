@@ -8,7 +8,8 @@ import {
   registrations, Registration, InsertRegistration,
   submissions, Submission, InsertSubmission,
   votes, Vote, InsertVote,
-  secondaryTeacherAssignments, SecondaryTeacherAssignment, InsertSecondaryTeacherAssignment
+  secondaryTeacherAssignments, SecondaryTeacherAssignment, InsertSecondaryTeacherAssignment,
+  galleryItems, GalleryItem, InsertGalleryItem
 } from "@shared/schema";
 
 export interface IStorage {
@@ -107,6 +108,16 @@ export interface IStorage {
   getClassesBySecondaryTeacher(secondaryTeacherId: number): Promise<Class[]>;
   createSecondaryTeacherAssignment(assignment: InsertSecondaryTeacherAssignment): Promise<SecondaryTeacherAssignment>;
   deleteSecondaryTeacherAssignment(id: number): Promise<boolean>;
+  
+  // Gallery Item methods
+  getGalleryItem(id: number): Promise<GalleryItem | undefined>;
+  getAllGalleryItems(): Promise<GalleryItem[]>;
+  getGalleryItemsByType(type: 'poem' | 'image'): Promise<GalleryItem[]>;
+  getGalleryItemsByCreator(createdBy: number): Promise<GalleryItem[]>;
+  getFeaturedGalleryItems(): Promise<GalleryItem[]>;
+  createGalleryItem(galleryItem: InsertGalleryItem): Promise<GalleryItem>;
+  updateGalleryItem(id: number, galleryItemData: Partial<GalleryItem>): Promise<GalleryItem | undefined>;
+  deleteGalleryItem(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -120,6 +131,7 @@ export class MemStorage implements IStorage {
   private submissions: Map<number, Submission>;
   private votes: Map<number, Vote>;
   private secondaryTeacherAssignments: Map<number, SecondaryTeacherAssignment>;
+  private galleryItems: Map<number, GalleryItem>;
   
   private userCounter: number;
   private cityCounter: number;
@@ -131,6 +143,7 @@ export class MemStorage implements IStorage {
   private submissionCounter: number;
   private voteCounter: number;
   private secondaryTeacherAssignmentCounter: number;
+  private galleryItemCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -143,6 +156,7 @@ export class MemStorage implements IStorage {
     this.submissions = new Map();
     this.votes = new Map();
     this.secondaryTeacherAssignments = new Map();
+    this.galleryItems = new Map();
     
     this.userCounter = 1;
     this.cityCounter = 1;
@@ -154,6 +168,7 @@ export class MemStorage implements IStorage {
     this.submissionCounter = 1;
     this.voteCounter = 1;
     this.secondaryTeacherAssignmentCounter = 1;
+    this.galleryItemCounter = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -519,6 +534,25 @@ export class MemStorage implements IStorage {
       teacherId: teacher1.id,
       secondaryTeacherId: secondaryTeacher1.id,
       isActive: true
+    });
+    
+    // Add sample gallery items
+    this.createGalleryItem({
+      title: "Desert Sunset",
+      description: "A beautiful painting of a desert sunset showcasing vivid colors",
+      content: "https://images.unsplash.com/photo-1682686581264-c47345a271d6",
+      type: "image",
+      createdBy: admin.id,
+      featured: true
+    });
+    
+    this.createGalleryItem({
+      title: "The Ocean's Whisper",
+      description: "A poem about the calming sounds of the ocean",
+      content: "Waves crash upon the shore,\nWhispering secrets to the sand,\nEternal dance of water and earth,\nNature's rhythm at its most grand.",
+      type: "poem",
+      createdBy: admin.id,
+      featured: true
     });
   }
 
@@ -976,6 +1010,57 @@ export class MemStorage implements IStorage {
   
   async deleteSecondaryTeacherAssignment(id: number): Promise<boolean> {
     return this.secondaryTeacherAssignments.delete(id);
+  }
+
+  // Gallery Item methods
+  async getGalleryItem(id: number): Promise<GalleryItem | undefined> {
+    return this.galleryItems.get(id);
+  }
+
+  async getAllGalleryItems(): Promise<GalleryItem[]> {
+    return Array.from(this.galleryItems.values());
+  }
+
+  async getGalleryItemsByType(type: 'poem' | 'image'): Promise<GalleryItem[]> {
+    return Array.from(this.galleryItems.values()).filter(item => item.type === type);
+  }
+
+  async getGalleryItemsByCreator(createdBy: number): Promise<GalleryItem[]> {
+    return Array.from(this.galleryItems.values()).filter(item => item.createdBy === createdBy);
+  }
+
+  async getFeaturedGalleryItems(): Promise<GalleryItem[]> {
+    return Array.from(this.galleryItems.values()).filter(item => item.featured);
+  }
+
+  async createGalleryItem(galleryItemData: InsertGalleryItem): Promise<GalleryItem> {
+    const id = this.galleryItemCounter++;
+    const now = new Date();
+    const galleryItem: GalleryItem = { 
+      ...galleryItemData, 
+      id,
+      createdAt: galleryItemData.createdAt || now,
+      updatedAt: galleryItemData.updatedAt || now
+    };
+    this.galleryItems.set(id, galleryItem);
+    return galleryItem;
+  }
+
+  async updateGalleryItem(id: number, galleryItemData: Partial<GalleryItem>): Promise<GalleryItem | undefined> {
+    const galleryItem = this.galleryItems.get(id);
+    if (!galleryItem) return undefined;
+    
+    const updatedGalleryItem = { 
+      ...galleryItem, 
+      ...galleryItemData,
+      updatedAt: new Date()
+    };
+    this.galleryItems.set(id, updatedGalleryItem);
+    return updatedGalleryItem;
+  }
+
+  async deleteGalleryItem(id: number): Promise<boolean> {
+    return this.galleryItems.delete(id);
   }
 }
 
