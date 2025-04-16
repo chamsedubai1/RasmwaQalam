@@ -5953,17 +5953,178 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             {galleryItemType === "image" ? (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="galleryItemContent" className="text-right">
-                  Image URL
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="galleryItemContent" className="text-right pt-2">
+                  Upload Image
                 </Label>
-                <Input
-                  id="galleryItemContent"
-                  value={galleryItemContent}
-                  onChange={(e) => setGalleryItemContent(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Enter image URL or base64 data"
-                />
+                <div className="col-span-3">
+                  <div 
+                    className={`border-2 border-dashed rounded-md p-6 transition-colors ${
+                      galleryItemContent ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-primary"
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      const files = e.dataTransfer.files;
+                      if (files && files.length > 0) {
+                        const file = files[0];
+                        
+                        // Check if the file is an image
+                        if (!file.type.startsWith('image/')) {
+                          toast({
+                            title: "Invalid file type",
+                            description: "Please upload an image file (JPEG, PNG, GIF, etc.)",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Upload the file
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        try {
+                          // Add a bearer token for authorization
+                          const token = localStorage.getItem('auth_token');
+                          const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: formData
+                          });
+                          
+                          const data = await response.json();
+                          if (response.ok) {
+                            setGalleryItemContent(data.url);
+                            toast({
+                              title: "Image uploaded",
+                              description: "Image has been uploaded successfully"
+                            });
+                          } else {
+                            throw new Error(data.message || 'Upload failed');
+                          }
+                        } catch (error) {
+                          console.error('Error uploading image:', error);
+                          toast({
+                            title: "Upload failed",
+                            description: error.message || "Failed to upload image. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <input
+                        type="file"
+                        id="imageUpload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (files && files.length > 0) {
+                            const file = files[0];
+                            
+                            // Upload the file
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            try {
+                              // Add a bearer token for authorization
+                              const token = localStorage.getItem('auth_token');
+                              const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                              });
+                              
+                              const data = await response.json();
+                              if (response.ok) {
+                                setGalleryItemContent(data.url);
+                                toast({
+                                  title: "Image uploaded",
+                                  description: "Image has been uploaded successfully"
+                                });
+                              } else {
+                                throw new Error(data.message || 'Upload failed');
+                              }
+                            } catch (error) {
+                              console.error('Error uploading image:', error);
+                              toast({
+                                title: "Upload failed",
+                                description: error.message || "Failed to upload image. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          }
+                        }}
+                      />
+                      
+                      {galleryItemContent ? (
+                        <div className="w-full">
+                          <img 
+                            src={galleryItemContent} 
+                            alt="Uploaded preview" 
+                            className="max-h-48 mx-auto object-contain rounded-md"
+                          />
+                          <div className="flex justify-center gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                document.getElementById('imageUpload')?.click();
+                              }}
+                            >
+                              Change Image
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setGalleryItemContent('')}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-10 w-10 text-gray-400" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                            />
+                          </svg>
+                          <p className="text-sm text-gray-600">Drag and drop an image here, or click to browse</p>
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => {
+                              document.getElementById('imageUpload')?.click();
+                            }}
+                          >
+                            Select Image
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-4 items-start gap-4">
@@ -6124,17 +6285,178 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             {galleryItemType === "image" ? (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editGalleryItemContent" className="text-right">
-                  Image URL
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="editGalleryItemContent" className="text-right pt-2">
+                  Upload Image
                 </Label>
-                <Input
-                  id="editGalleryItemContent"
-                  value={galleryItemContent}
-                  onChange={(e) => setGalleryItemContent(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Enter image URL or base64 data"
-                />
+                <div className="col-span-3">
+                  <div 
+                    className={`border-2 border-dashed rounded-md p-6 transition-colors ${
+                      galleryItemContent ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-primary"
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      const files = e.dataTransfer.files;
+                      if (files && files.length > 0) {
+                        const file = files[0];
+                        
+                        // Check if the file is an image
+                        if (!file.type.startsWith('image/')) {
+                          toast({
+                            title: "Invalid file type",
+                            description: "Please upload an image file (JPEG, PNG, GIF, etc.)",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Upload the file
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        try {
+                          // Add a bearer token for authorization
+                          const token = localStorage.getItem('auth_token');
+                          const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: formData
+                          });
+                          
+                          const data = await response.json();
+                          if (response.ok) {
+                            setGalleryItemContent(data.url);
+                            toast({
+                              title: "Image uploaded",
+                              description: "Image has been uploaded successfully"
+                            });
+                          } else {
+                            throw new Error(data.message || 'Upload failed');
+                          }
+                        } catch (error) {
+                          console.error('Error uploading image:', error);
+                          toast({
+                            title: "Upload failed",
+                            description: error.message || "Failed to upload image. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <input
+                        type="file"
+                        id="editImageUpload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (files && files.length > 0) {
+                            const file = files[0];
+                            
+                            // Upload the file
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            try {
+                              // Add a bearer token for authorization
+                              const token = localStorage.getItem('auth_token');
+                              const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                              });
+                              
+                              const data = await response.json();
+                              if (response.ok) {
+                                setGalleryItemContent(data.url);
+                                toast({
+                                  title: "Image uploaded",
+                                  description: "Image has been uploaded successfully"
+                                });
+                              } else {
+                                throw new Error(data.message || 'Upload failed');
+                              }
+                            } catch (error) {
+                              console.error('Error uploading image:', error);
+                              toast({
+                                title: "Upload failed",
+                                description: error.message || "Failed to upload image. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          }
+                        }}
+                      />
+                      
+                      {galleryItemContent ? (
+                        <div className="w-full">
+                          <img 
+                            src={galleryItemContent} 
+                            alt="Uploaded preview" 
+                            className="max-h-48 mx-auto object-contain rounded-md"
+                          />
+                          <div className="flex justify-center gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                document.getElementById('editImageUpload')?.click();
+                              }}
+                            >
+                              Change Image
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setGalleryItemContent('')}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-10 w-10 text-gray-400" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                            />
+                          </svg>
+                          <p className="text-sm text-gray-600">Drag and drop an image here, or click to browse</p>
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => {
+                              document.getElementById('editImageUpload')?.click();
+                            }}
+                          >
+                            Select Image
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-4 items-start gap-4">
