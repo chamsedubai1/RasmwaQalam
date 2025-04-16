@@ -2121,6 +2121,10 @@ const AdminDashboard: React.FC = () => {
             <Users className="h-4 w-4" />
             <span>Secondary Teachers</span>
           </TabsTrigger>
+          <TabsTrigger value="gallery" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
+            <ImageIcon className="h-4 w-4" />
+            <span>Gallery</span>
+          </TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-md flex gap-2 items-center">
             <PieChart className="h-4 w-4" />
             <span>Reports</span>
@@ -2752,6 +2756,152 @@ const AdminDashboard: React.FC = () => {
               description: "Secondary teacher assignments refreshed",
             });
           }} />
+        </TabsContent>
+        
+        <TabsContent value="gallery">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Manage Gallery</CardTitle>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    // Refetch gallery items
+                    refetchGalleryItems();
+                    toast({
+                      title: "Refreshed",
+                      description: "Gallery items list has been refreshed",
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                </Button>
+                
+                <Button onClick={() => setShowCreateGalleryItemDialog(true)}>
+                  Add Gallery Item
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-4">
+                  <div className="relative flex-grow">
+                    <Input
+                      type="text"
+                      placeholder="Search gallery items..."
+                      value={gallerySearchQuery}
+                      onChange={(e) => setGallerySearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <SearchIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
+                  <Select value={galleryTypeFilter} onValueChange={setGalleryTypeFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="image">Images</SelectItem>
+                      <SelectItem value="poem">Poems</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={galleryFeaturedFilter} onValueChange={setGalleryFeaturedFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Items" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Items</SelectItem>
+                      <SelectItem value="featured">Featured Only</SelectItem>
+                      <SelectItem value="not-featured">Not Featured</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {isLoadingGalleryItems ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                  <p className="text-blue-600">Loading gallery items...</p>
+                </div>
+              ) : filteredGalleryItems.length === 0 ? (
+                <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-blue-700">No gallery items found.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredGalleryItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      {/* Gallery item preview */}
+                      <div className="relative w-full h-48 bg-gray-100">
+                        {item.type === 'image' ? (
+                          <img 
+                            src={item.content} 
+                            alt={item.title} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="p-4 h-full overflow-y-auto font-serif text-gray-800">
+                            {item.content.substring(0, 200)}
+                            {item.content.length > 200 && '...'}
+                          </div>
+                        )}
+                        {item.featured && (
+                          <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                            Featured
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Item details */}
+                      <div className="p-4">
+                        <h3 className="font-medium text-lg mb-1">{item.title}</h3>
+                        <p className="text-sm text-gray-500 mb-2">
+                          {item.type === 'image' ? 'Image' : 'Poem'} • Created {new Date(item.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description || 'No description'}</p>
+                        
+                        {/* Actions */}
+                        <div className="flex justify-between">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Set selected gallery item and open edit dialog
+                              setSelectedGalleryItem(item);
+                              setGalleryTitle(item.title);
+                              setGalleryDescription(item.description || '');
+                              setGalleryContent(item.content);
+                              setGalleryType(item.type);
+                              setGalleryIsFeatured(item.featured || false);
+                              setShowEditGalleryItemDialog(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedGalleryItem(item);
+                              setShowDeleteGalleryItemConfirmDialog(true);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="reports">
