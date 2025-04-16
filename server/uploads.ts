@@ -57,7 +57,10 @@ export function setupUploadRoutes(apiRouter: Router) {
       }
       
       const token = authHeader.split(' ')[1];
-      const username = token.split(':')[0];
+      // Extract username - need to handle both formats: username:timestamp or just username
+      const username = token.includes(':') ? token.split(':')[0] : token;
+      
+      console.log('Upload authentication - username:', username, 'token:', token);
       
       // Get user information from the storage
       const user = await dbStorage.getUserByUsername(username);

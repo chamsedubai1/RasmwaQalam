@@ -5990,7 +5990,7 @@ const AdminDashboard: React.FC = () => {
                         
                         try {
                           // Add a bearer token for authorization
-                          const token = localStorage.getItem('auth_token');
+                          const token = localStorage.getItem('authToken');
                           const response = await fetch('/api/upload', {
                             method: 'POST',
                             headers: {
@@ -6037,7 +6037,7 @@ const AdminDashboard: React.FC = () => {
                             
                             try {
                               // Add a bearer token for authorization
-                              const token = localStorage.getItem('auth_token');
+                              const token = localStorage.getItem('authToken');
                               const response = await fetch('/api/upload', {
                                 method: 'POST',
                                 headers: {
@@ -6322,7 +6322,7 @@ const AdminDashboard: React.FC = () => {
                         
                         try {
                           // Add a bearer token for authorization
-                          const token = localStorage.getItem('auth_token');
+                          const token = localStorage.getItem('authToken');
                           const response = await fetch('/api/upload', {
                             method: 'POST',
                             headers: {
@@ -6369,7 +6369,7 @@ const AdminDashboard: React.FC = () => {
                             
                             try {
                               // Add a bearer token for authorization
-                              const token = localStorage.getItem('auth_token');
+                              const token = localStorage.getItem('authToken');
                               const response = await fetch('/api/upload', {
                                 method: 'POST',
                                 headers: {
