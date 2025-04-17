@@ -98,8 +98,10 @@ function App() {
       <UserProvider>
         <UserRoleProvider>
           <LanguageProvider>
-            <Router />
-            <Toaster />
+            <WebSocketProvider>
+              <Router />
+              <Toaster />
+            </WebSocketProvider>
           </LanguageProvider>
         </UserRoleProvider>
       </UserProvider>

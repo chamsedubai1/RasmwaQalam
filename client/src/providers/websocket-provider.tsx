@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { UserContext } from '@/hooks/use-user';
 
 interface WebSocketMessage {
   type: string;
@@ -21,7 +21,8 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const userContext = useContext(UserContext);
+  const user = userContext?.user ?? null;
   const [notificationCount, setNotificationCount] = useState(0);
   
   // Handle incoming WebSocket messages

@@ -17,7 +17,7 @@ import { generateCaptcha, validateCaptcha, requireCaptcha, captchaStore } from "
 import crypto from "crypto";
 import { performance } from "perf_hooks";
 import { monitoring } from "./monitoring";
-import { setupWebSocketServer } from "./services/websocket";
+import { setupWebSocketServer, sendToChannel, broadcast } from "./services/websocket";
 
 // AI service selection
 const AI_SERVICE = {
