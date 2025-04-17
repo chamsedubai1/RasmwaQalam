@@ -788,7 +788,15 @@ export class MemStorage implements IStorage {
     const event = this.events.get(id);
     if (!event) return undefined;
     
-    const updatedEvent = { ...event, ...eventData };
+    // Ensure isEnabled is treated as a boolean
+    const normalizedData = {
+      ...eventData,
+      isEnabled: eventData.isEnabled === true || eventData.isEnabled === 'true',
+    };
+    
+    console.log(`Storage: Updating event ${id} with isEnabled=${normalizedData.isEnabled}`, normalizedData);
+    
+    const updatedEvent = { ...event, ...normalizedData };
     this.events.set(id, updatedEvent);
     return updatedEvent;
   }

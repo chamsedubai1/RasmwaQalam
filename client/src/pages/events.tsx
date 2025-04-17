@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import EventCard from "@/components/site/event-card";
 import SubmissionModal from "@/components/site/submission-modal";
@@ -28,13 +28,20 @@ const Events: React.FC = () => {
   const [eventStage, setEventStage] = useState("all");
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
   
-  // Fetch all events (with short stale time to ensure fresh data)
-  const { data: allEvents = [], isLoading } = useQuery<any[]>({
+  // Fetch all events (always get fresh data)
+  const { data: allEvents = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/events'],
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0, // Always fetch fresh data
+    refetchInterval: 3000, // Refetch every 3 seconds to catch updates
+    gcTime: 1000, // Short cache time (previously cacheTime in v4)
   });
+  
+  // Force refetch on initial render
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   
   // Apply filters
   const filteredEvents = allEvents.filter((event) => {

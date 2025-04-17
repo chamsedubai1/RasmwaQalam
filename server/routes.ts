@@ -1226,9 +1226,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Event not found' });
       }
       
-      const updatedEvent = await storage.updateEvent(eventId, req.body);
+      // Make sure we explicitly handle isEnabled flag
+      const updateData = {
+        ...req.body,
+        // Ensure isEnabled is treated as a boolean
+        isEnabled: req.body.isEnabled === true || req.body.isEnabled === 'true',
+      };
+      
+      console.log('Updating event with data:', updateData);
+      const updatedEvent = await storage.updateEvent(eventId, updateData);
+      
+      // Force a refresh of the events cache to ensure consistent data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.json(updatedEvent);
     } catch (error) {
+      console.error('Error updating event:', error);
       res.status(500).json({ message: 'Failed to update event' });
     }
   });
