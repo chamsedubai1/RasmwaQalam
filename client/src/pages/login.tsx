@@ -19,6 +19,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { setUserRole } = useUserRole();
   const { user, setUser } = useUser();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("login");
   const [registrationRole, setRegistrationRole] = useState("student");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -224,26 +225,26 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card className="border-2 border-blue-100">
           <CardHeader className="space-y-1 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardTitle className="text-2xl font-bold text-center text-blue-800">ArtChallenge</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center text-blue-800">RASM wa QALAM</CardTitle>
             <CardDescription className="text-center">
-              Sign in to your account or create a new one
+              {t("nav.login_register")}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
+                <TabsTrigger value="register">{t("auth.register")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="username">{t("auth.username")}</Label>
                     <Input 
                       id="username" 
                       type="text" 
-                      placeholder="Enter your username"
+                      placeholder={t("auth.username_placeholder")}
                       value={loginUsername}
                       onChange={(e) => setLoginUsername(e.target.value)}
                     />

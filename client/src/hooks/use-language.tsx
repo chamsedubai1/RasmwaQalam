@@ -294,12 +294,21 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.login": "تسجيل الدخول",
     "auth.register": "التسجيل",
     "auth.username": "اسم المستخدم",
+    "auth.username_placeholder": "أدخل اسم المستخدم الخاص بك",
     "auth.password": "كلمة المرور",
+    "auth.password_placeholder": "أدخل كلمة المرور الخاصة بك",
+    "auth.forgot_password": "نسيت كلمة المرور؟",
     "auth.email": "البريد الإلكتروني",
     "auth.fullName": "الاسم الكامل",
     "auth.school": "المدرسة",
     "auth.class": "الصف",
     "auth.role": "الدور",
+    "auth.register_as": "التسجيل باعتبارك",
+    "auth.student": "طالب",
+    "auth.teacher": "معلم",
+    "auth.school_admin": "مدير مدرسة",
+    "auth.logging_in": "جاري تسجيل الدخول...",
+    "auth.terms_agreement": "بالمتابعة، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا.",
     
     // Home Page
     "home.hero.title": "أطلق العنان لإبداعك",
@@ -349,16 +358,9 @@ const translations: Record<Language, Record<string, string>> = {
     "button.view": "عرض",
     "button.vote": "تصويت",
     
-    // Auth related
-    "auth.login": "تسجيل الدخول",
-    "auth.register": "تسجيل",
-    "auth.username": "اسم المستخدم",
-    "auth.password": "كلمة المرور",
-    "auth.email": "البريد الإلكتروني",
-    "auth.fullName": "الاسم الكامل",
-    "auth.school": "المدرسة",
-    "auth.class": "الصف",
-    "auth.role": "الدور",
+    // Auth related - Update: Removing duplicate auth keys
+    // Note: First set of auth keys appears at line ~294
+    // These will be used by the application
     
     // Events
     "events.title": "فعاليات الفن",
