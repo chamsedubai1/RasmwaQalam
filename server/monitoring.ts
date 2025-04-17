@@ -27,6 +27,16 @@ interface RequestStats {
   endpoints: Record<string, EndpointStats>;
 }
 
+// WebSocket statistics tracking
+interface WebSocketStats {
+  currentConnections: number;
+  totalConnections: number;
+  disconnections: number;
+  messagesReceived: number;
+  messagesSent: number;
+  peakConcurrentConnections: number;
+}
+
 // Simple monitoring singleton
 class MonitoringService {
   private errorLog: ErrorEntry[] = [];
@@ -36,6 +46,16 @@ class MonitoringService {
     failedRequests: 0,
     averageResponseTime: 0,
     endpoints: {}
+  };
+  
+  // WebSocket statistics
+  private webSocketStats: WebSocketStats = {
+    currentConnections: 0,
+    totalConnections: 0,
+    disconnections: 0,
+    messagesReceived: 0,
+    messagesSent: 0,
+    peakConcurrentConnections: 0
   };
 
   // Start time of the service
@@ -120,6 +140,38 @@ class MonitoringService {
     return this.requestStats;
   }
   
+  // Get WebSocket statistics
+  getWebSocketStats(): WebSocketStats {
+    return this.webSocketStats;
+  }
+  
+  // Track WebSocket connection
+  trackWebSocketConnection(): void {
+    this.webSocketStats.currentConnections++;
+    this.webSocketStats.totalConnections++;
+    
+    // Update peak concurrent connections if needed
+    if (this.webSocketStats.currentConnections > this.webSocketStats.peakConcurrentConnections) {
+      this.webSocketStats.peakConcurrentConnections = this.webSocketStats.currentConnections;
+    }
+  }
+  
+  // Track WebSocket disconnection
+  trackWebSocketDisconnection(): void {
+    this.webSocketStats.currentConnections = Math.max(0, this.webSocketStats.currentConnections - 1);
+    this.webSocketStats.disconnections++;
+  }
+  
+  // Track WebSocket message received
+  trackWebSocketMessageReceived(): void {
+    this.webSocketStats.messagesReceived++;
+  }
+  
+  // Track WebSocket message sent
+  trackWebSocketMessageSent(): void {
+    this.webSocketStats.messagesSent++;
+  }
+  
   // Reset statistics (for testing or maintenance)
   resetStats(): void {
     this.errorLog = [];
@@ -129,6 +181,15 @@ class MonitoringService {
       failedRequests: 0,
       averageResponseTime: 0,
       endpoints: {}
+    };
+    
+    this.webSocketStats = {
+      currentConnections: 0,
+      totalConnections: 0,
+      disconnections: 0,
+      messagesReceived: 0,
+      messagesSent: 0,
+      peakConcurrentConnections: 0
     };
   }
 }
