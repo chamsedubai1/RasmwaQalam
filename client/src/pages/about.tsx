@@ -32,7 +32,7 @@ const About: React.FC = () => {
         </div>
         <div className="relative z-10 py-16 px-6 sm:px-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            {t("about.hero.title")} <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">FAZAA</span> - Art
+            {t("about.hero.title")} <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">RASM</span> wa <span className="bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">QALAM</span>
           </h1>
           <p className="text-lg text-blue-100 max-w-2xl mx-auto">
             {t("about.hero.description")}
