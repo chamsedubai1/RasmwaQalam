@@ -1559,7 +1559,8 @@ const AdminDashboard: React.FC = () => {
         mode: eventData.mode, // Add event mode
         startDate: eventData.startDate,
         endDate: eventData.endDate,
-        imageUrl: eventData.imageUrl
+        imageUrl: eventData.imageUrl,
+        isEnabled: eventData.isEnabled
       });
     },
     onSuccess: () => {
@@ -1575,6 +1576,7 @@ const AdminDashboard: React.FC = () => {
       setEventStartDate("");
       setEventEndDate("");
       setEventImageUrl("");
+      setEventIsEnabled(true);
       setSelectedEventId(null);
       
       // Close dialog
@@ -1628,7 +1630,8 @@ const AdminDashboard: React.FC = () => {
       mode: eventMode, // Add event mode
       startDate: new Date(eventStartDate).toISOString(),
       endDate: new Date(eventEndDate).toISOString(),
-      imageUrl: eventImageUrl || null
+      imageUrl: eventImageUrl || null,
+      isEnabled: eventIsEnabled
     };
     
     console.log(eventData); // For debugging
@@ -5031,6 +5034,22 @@ const AdminDashboard: React.FC = () => {
                 <ImageUpload 
                   onImageUploaded={(url) => setEventImageUrl(url)}
                   existingImageUrl={eventImageUrl}
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2 pt-2 border-t mt-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-event-enabled" className="text-base font-medium">
+                  Enable Event
+                  <p className="text-sm text-muted-foreground font-normal mt-1">
+                    When disabled, this event won't appear on the main Events page
+                  </p>
+                </Label>
+                <Switch
+                  id="edit-event-enabled"
+                  checked={eventIsEnabled}
+                  onCheckedChange={setEventIsEnabled}
                 />
               </div>
             </div>
