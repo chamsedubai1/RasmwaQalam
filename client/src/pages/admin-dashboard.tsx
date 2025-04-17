@@ -943,9 +943,16 @@ const AdminDashboard: React.FC = () => {
     staleTime: 1000, // Consider data stale after 1 second
   });
   
-  // Fetch all events for event management
+  // Fetch all events for event management (including disabled events)
   const { data: events = [], isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery({
-    queryKey: ['/api/events'],
+    queryKey: ['/api/events', 'admin'],
+    queryFn: async () => {
+      const response = await fetch('/api/events?includeDisabled=true');
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      return response.json();
+    },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 1000, // Consider data stale after 1 second
