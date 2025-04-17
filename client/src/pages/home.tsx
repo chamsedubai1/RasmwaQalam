@@ -150,7 +150,7 @@ const Home: React.FC = () => {
                 <p className="text-sm text-gray-500">Grade 10 Student</p>
               </div>
             </div>
-            <p className="text-gray-600">"FAZAA-Art opened up a new world of creativity for me. I never thought I could create such amazing artwork with AI!"</p>
+            <p className="text-gray-600">"RASM wa QALAM opened up a new world of creativity for me. I never thought I could create such amazing artwork with AI!"</p>
             <div className="mt-4 flex">
               <span className="text-amber-400">★★★★★</span>
             </div>
