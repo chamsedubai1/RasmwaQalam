@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useUser } from "@/hooks/use-user";
+import { useLanguage } from "@/hooks/use-language";
 import StudentRegistrationForm from "@/components/auth/student-registration-form";
 import TeacherRegistrationForm from "@/components/auth/teacher-registration-form";
 import ForgotPasswordDialog from "@/components/auth/forgot-password-dialog";

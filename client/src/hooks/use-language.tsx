@@ -290,6 +290,17 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.login_register": "تسجيل الدخول / التسجيل",
     "nav.logout": "تسجيل الخروج",
     
+    // Auth related
+    "auth.login": "تسجيل الدخول",
+    "auth.register": "التسجيل",
+    "auth.username": "اسم المستخدم",
+    "auth.password": "كلمة المرور",
+    "auth.email": "البريد الإلكتروني",
+    "auth.fullName": "الاسم الكامل",
+    "auth.school": "المدرسة",
+    "auth.class": "الصف",
+    "auth.role": "الدور",
+    
     // Home Page
     "home.hero.title": "أطلق العنان لإبداعك",
     "home.hero.description": "قم بإنشاء أعمال فنية رائعة بمساعدة الذكاء الاصطناعي، وشارك في تحديات فنية مثيرة، وتنافس مع طلاب من مدارس حول العالم.",
