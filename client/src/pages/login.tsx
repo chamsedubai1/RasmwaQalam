@@ -251,7 +251,7 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t("auth.password")}</Label>
                       <Button 
                         type="button" 
                         variant="link" 
@@ -261,13 +261,13 @@ export default function LoginPage() {
                           setIsForgotPasswordOpen(true);
                         }}
                       >
-                        Forgot password?
+                        {t("auth.forgot_password")}
                       </Button>
                     </div>
                     <Input 
                       id="password" 
                       type="password" 
-                      placeholder="Enter your password"
+                      placeholder={t("auth.password_placeholder")}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                     />
@@ -277,7 +277,7 @@ export default function LoginPage() {
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                     disabled={isLoggingIn}
                   >
-                    {isLoggingIn ? "Logging in..." : "Login"}
+                    {isLoggingIn ? t("auth.logging_in") : t("auth.login")}
                   </Button>
                 </form>
               </TabsContent>
@@ -285,7 +285,7 @@ export default function LoginPage() {
               <TabsContent value="register">
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="register-as">Register as</Label>
+                    <Label htmlFor="register-as">{t("auth.register_as")}</Label>
                     <div className="grid grid-cols-3 gap-2">
                       <Button
                         type="button"
@@ -297,7 +297,7 @@ export default function LoginPage() {
                         }
                         onClick={() => setRegistrationRole("student")}
                       >
-                        Student
+                        {t("auth.student")}
                       </Button>
                       <Button
                         type="button"
@@ -309,7 +309,7 @@ export default function LoginPage() {
                         }
                         onClick={() => setRegistrationRole("teacher")}
                       >
-                        Teacher
+                        {t("auth.teacher")}
                       </Button>
                       <Button
                         type="button"
@@ -321,7 +321,7 @@ export default function LoginPage() {
                         }
                         onClick={() => setRegistrationRole("schoolAdmin")}
                       >
-                        School Admin
+                        {t("auth.school_admin")}
                       </Button>
                     </div>
                   </div>
@@ -344,7 +344,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex justify-center border-t pt-6">
             <p className="text-xs text-center text-gray-700">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
+              {t("auth.terms_agreement")}
             </p>
           </CardFooter>
         </Card>
