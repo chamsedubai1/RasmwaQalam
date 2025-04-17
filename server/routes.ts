@@ -1207,6 +1207,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Validated event data:', eventData);
       const event = await storage.createEvent(eventData);
       console.log('Event created successfully:', event);
+      
+      // Send WebSocket notification about new event
+      broadcast('EVENT_UPDATE', { 
+        action: 'created', 
+        event: event
+      });
+      
+      // Also notify admin channel
+      sendToChannel('admin', 'EVENT_UPDATE', { 
+        action: 'created', 
+        event: event
+      });
+      
       res.status(201).json(event);
     } catch (error) {
       console.error('Event creation error:', error);
@@ -1236,6 +1249,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Updating event with data:', updateData);
       const updatedEvent = await storage.updateEvent(eventId, updateData);
+      
+      // Send WebSocket notification about event update
+      broadcast('EVENT_UPDATE', { 
+        action: 'updated', 
+        event: updatedEvent
+      });
+      
+      // Also notify admin channel
+      sendToChannel('admin', 'EVENT_UPDATE', { 
+        action: 'updated', 
+        event: updatedEvent
+      });
       
       // Force a refresh of the events cache to ensure consistent data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
