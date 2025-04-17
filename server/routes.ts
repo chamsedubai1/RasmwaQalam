@@ -1274,11 +1274,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete('/events/:id', async (req, res) => {
     try {
       const eventId = Number(req.params.id);
+      const event = await storage.getEvent(eventId);
+      
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
       const deleted = await storage.deleteEvent(eventId);
       
       if (!deleted) {
-        return res.status(404).json({ message: 'Event not found' });
+        return res.status(404).json({ message: 'Event deletion failed' });
       }
+      
+      // Send WebSocket notification about event deletion
+      broadcast('EVENT_UPDATE', { 
+        action: 'deleted', 
+        eventId: eventId,
+        eventName: event.name
+      });
+      
+      // Also notify admin channel
+      sendToChannel('admin', 'EVENT_UPDATE', { 
+        action: 'deleted', 
+        eventId: eventId,
+        eventName: event.name
+      });
       
       res.status(204).end();
     } catch (error) {
@@ -2109,6 +2129,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const submission = await storage.createSubmission(submissionData);
+      
+      // Send WebSocket notification about new submission
+      // To the specific class channel for teachers
+      if (user.classId) {
+        sendToChannel(`class_${user.classId}`, 'SUBMISSION_UPDATE', {
+          action: 'created',
+          submission: submission,
+          eventName: event.name
+        });
+      }
+      
+      // Also to event-specific channel
+      sendToChannel(`event_${submissionData.eventId}`, 'SUBMISSION_UPDATE', {
+        action: 'created',
+        submission: submission,
+        eventName: event.name
+      });
+      
+      // Also notify the admin channel
+      sendToChannel('admin', 'SUBMISSION_UPDATE', {
+        action: 'created',
+        submission: submission,
+        eventName: event.name
+      });
+      
       res.status(201).json(submission);
     } catch (error) {
       console.error('Error creating submission:', error);
@@ -2172,6 +2217,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const event = await storage.getEvent(submission.eventId);
       
       console.log(`Submission ${submissionId} updated validation status:`, updatedSubmission.validated);
+      
+      // Send WebSocket notifications about submission validation
+      if (submission.classId) {
+        // Notify the specific class channel
+        sendToChannel(`class_${submission.classId}`, 'SUBMISSION_UPDATE', {
+          action: 'validated',
+          submission: updatedSubmission,
+          validated: validationValue,
+          submissionId: submissionId
+        });
+      }
+      
+      // Notify the specific event channel
+      sendToChannel(`event_${submission.eventId}`, 'SUBMISSION_UPDATE', {
+        action: 'validated',
+        submission: updatedSubmission,
+        validated: validationValue,
+        submissionId: submissionId
+      });
+      
+      // Notify student who created the submission
+      sendToChannel(`user_${submission.userId}`, 'SUBMISSION_UPDATE', {
+        action: 'validated',
+        submission: updatedSubmission,
+        validated: validationValue,
+        submissionId: submissionId,
+        eventName: event ? event.name : 'Unknown Event'
+      });
       
       // Get detailed information about the class and school
       let classData = null;
@@ -2289,6 +2362,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       await Promise.all(updatePromises);
+      
+      // Get the event info for notification
+      const event = await storage.getEvent(eventId);
+      
+      // Send WebSocket notifications about winners being selected
+      // Notify the event channel
+      sendToChannel(`event_${eventId}`, 'WINNERS_SELECTED', {
+        action: 'winners_marked',
+        stage: stage,
+        winnerIds: winnerIds,
+        eventName: event ? event.name : 'Unknown Event'
+      });
+      
+      // Notify the admin channel
+      sendToChannel('admin', 'WINNERS_SELECTED', {
+        action: 'winners_marked',
+        stage: stage,
+        winnerIds: winnerIds,
+        eventName: event ? event.name : 'Unknown Event'
+      });
+      
+      // Notify each winner's channel
+      for (const winnerId of winnerIds) {
+        const submission = await storage.getSubmission(winnerId);
+        if (submission) {
+          sendToChannel(`user_${submission.userId}`, 'SUBMISSION_UPDATE', {
+            action: 'winner_selected',
+            submissionId: winnerId,
+            stage: stage,
+            eventName: event ? event.name : 'Unknown Event'
+          });
+        }
+      }
       
       res.json({ 
         message: `Successfully marked ${winnerIds.length} submissions as winners for ${stage} stage`,
@@ -2466,6 +2572,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedEvent = await storage.updateEvent(eventId, { 
         stage: nextStage as "class" | "school" | "country" | "global" 
       });
+      
+      // Send WebSocket notifications about event promotion
+      broadcast('EVENT_UPDATE', {
+        action: 'promoted',
+        eventId: eventId,
+        eventName: event.name,
+        previousStage: currentStage,
+        newStage: nextStage,
+        winnerCount: winnerIds.length
+      });
+      
+      // Send WebSocket notifications to admin channel
+      sendToChannel('admin', 'EVENT_UPDATE', {
+        action: 'promoted',
+        eventId: eventId,
+        eventName: event.name,
+        previousStage: currentStage,
+        newStage: nextStage,
+        winnerCount: winnerIds.length
+      });
+      
+      // Notify each winner
+      for (const winnerId of winnerIds) {
+        const submission = await storage.getSubmission(winnerId);
+        if (submission) {
+          sendToChannel(`user_${submission.userId}`, 'SUBMISSION_UPDATE', {
+            action: 'promoted_to_next_stage',
+            submissionId: winnerId,
+            eventName: event.name,
+            previousStage: currentStage,
+            newStage: nextStage
+          });
+        }
+      }
       
       res.json({ 
         message: `Event promoted from ${event.stage} to ${nextStage} stage. All votes have been reset and top ${winnerIds.length} submissions marked as winners.`,
