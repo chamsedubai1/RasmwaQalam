@@ -35,7 +35,8 @@ import {
   Star,
   Plus,
   Check,
-  Lightbulb
+  Lightbulb,
+  Download
 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -331,6 +332,83 @@ const CreArt: React.FC = () => {
   
   const handleVote = (submissionId: number) => {
     voteMutation.mutate(submissionId);
+  };
+  
+  // Function to handle downloading content
+  const handleDownload = (submission: any) => {
+    try {
+      // Create a filename based on submission title
+      const sanitizedTitle = submission.title.replace(/[^a-zA-Z0-9]/g, '_');
+      let filename = `${sanitizedTitle}_${submission.id}`;
+      
+      if (submission.contentType === "text") {
+        // For text content (poems), create a text file
+        const textBlob = new Blob([submission.content], { type: 'text/plain' });
+        const url = URL.createObjectURL(textBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Poem Downloaded",
+          description: `Your poem "${submission.title}" has been downloaded as a text file.`
+        });
+      } else if (submission.contentType === "image") {
+        // For image content, extract the base64 data or use the URL directly
+        if (submission.content.startsWith('data:')) {
+          // It's a data URL, can download directly
+          const link = document.createElement('a');
+          link.href = submission.content;
+          link.download = `${filename}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast({
+            title: "Image Downloaded",
+            description: `Your artwork "${submission.title}" has been downloaded.`
+          });
+        } else {
+          // It's a regular URL, fetch it first
+          fetch(submission.content)
+            .then(response => response.blob())
+            .then(blob => {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${filename}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              
+              toast({
+                title: "Image Downloaded",
+                description: `Your artwork "${submission.title}" has been downloaded.`
+              });
+            })
+            .catch(err => {
+              console.error("Error downloading image:", err);
+              toast({
+                title: "Download Failed",
+                description: "There was an error downloading your image. Please try again.",
+                variant: "destructive"
+              });
+            });
+        }
+      }
+    } catch (error) {
+      console.error("Error in download function:", error);
+      toast({
+        title: "Download Failed",
+        description: "There was an error downloading your file. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -685,19 +763,32 @@ const CreArt: React.FC = () => {
                       </div>
                     )}
                     
-                    <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">
-                          {submission.voteCount || 0} votes received
-                        </span>
+                    <div className="p-4 flex flex-col gap-3 border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-medium text-blue-700">
+                            {submission.voteCount || 0} votes received
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-500">
+                          {submission.eventId === eventId 
+                            ? `Submitted to: ${submission.eventName || activeVotingEvent?.name || 'current event'}` 
+                            : submission.eventName 
+                              ? `Submitted to: ${submission.eventName}` 
+                              : `Submitted to event #${submission.eventId}`}
+                        </div>
                       </div>
-                      <div className="text-xs text-blue-500">
-                        {submission.eventId === eventId 
-                          ? `Submitted to: ${submission.eventName || activeVotingEvent?.name || 'current event'}` 
-                          : submission.eventName 
-                            ? `Submitted to: ${submission.eventName}` 
-                            : `Submitted to event #${submission.eventId}`}
-                      </div>
+                      
+                      {/* Download button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        onClick={() => handleDownload(submission)}
+                      >
+                        <Download className="h-4 w-4" />
+                        Download {submission.contentType === "text" ? "Poem" : "Artwork"}
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -910,18 +1001,31 @@ const CreArt: React.FC = () => {
                             </div>
                           )}
                           
-                          <div className="p-4 flex justify-between items-center border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-blue-700">
-                                {submission.voteCount || 0} votes received
-                              </span>
-                              <span className="text-xs text-blue-500">
-                                {submission.eventId === eventId 
-                                  ? `Current event: ${submission.eventName || activeVotingEvent?.name}` 
-                                  : submission.eventName 
-                                    ? `Event: ${submission.eventName}` 
-                                    : `Event #${submission.eventId}`}
-                              </span>
+                          <div className="p-4 flex flex-col gap-3 border-t border-blue-100 bg-gradient-to-b from-white to-blue-50">
+                            <div className="flex justify-between items-center">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-blue-700">
+                                  {submission.voteCount || 0} votes received
+                                </span>
+                                <span className="text-xs text-blue-500">
+                                  {submission.eventId === eventId 
+                                    ? `Current event: ${submission.eventName || activeVotingEvent?.name}` 
+                                    : submission.eventName 
+                                      ? `Event: ${submission.eventName}` 
+                                      : `Event #${submission.eventId}`}
+                                </span>
+                              </div>
+                              
+                              {/* Download button */}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                                onClick={() => handleDownload(submission)}
+                              >
+                                <Download className="h-4 w-4" />
+                                Download
+                              </Button>
                             </div>
                             
                             {/* Only show vote button if viewing current stage */}
