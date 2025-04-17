@@ -3,8 +3,8 @@ import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
+import TwitterXIcon from "./twitter-x-icon";
 import { 
-  Twitter, 
   Facebook, 
   Instagram, 
   Linkedin 
@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-bold mb-4 font-heading">{t("footer.connectWithUs")}</h3>
             <div className="flex space-x-4 mb-4">
               <a href="#" className="text-blue-300 hover:text-white transition-colors">
-                <Twitter size={20} />
+                <TwitterXIcon size={20} />
               </a>
               <a href="#" className="text-blue-300 hover:text-white transition-colors">
                 <Facebook size={20} />
