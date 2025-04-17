@@ -17,6 +17,7 @@ import { generateCaptcha, validateCaptcha, requireCaptcha, captchaStore } from "
 import crypto from "crypto";
 import { performance } from "perf_hooks";
 import { monitoring } from "./monitoring";
+import { setupWebSocketServer } from "./services/websocket";
 
 // AI service selection
 const AI_SERVICE = {
@@ -4829,5 +4830,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server for real-time updates
+  const wss = setupWebSocketServer(httpServer);
+  console.log('WebSocket server initialized on path /ws');
+  
   return httpServer;
 }

@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import { UserRoleProvider, useUserRole } from "@/hooks/use-user-role";
 import { UserProvider } from "@/hooks/use-user";
 import { LanguageProvider, useLanguage } from "@/hooks/use-language";
+import { WebSocketProvider } from "@/providers/websocket-provider";
 import Header from "@/components/site/header";
 import Footer from "@/components/site/footer";
 import Home from "@/pages/home";
