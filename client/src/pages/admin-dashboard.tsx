@@ -1321,8 +1321,13 @@ const AdminDashboard: React.FC = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate query to refresh data
+      // Force invalidate all events queries to refresh data everywhere
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', 'admin'] });
+      
+      // We need to ensure the query cache is completely reset
+      // This makes sure the events page will get fresh data
+      queryClient.resetQueries({ queryKey: ['/api/events'] });
       
       // Reset form fields
       setEventName("");
@@ -1571,8 +1576,13 @@ const AdminDashboard: React.FC = () => {
       });
     },
     onSuccess: () => {
-      // Invalidate query to refresh data
+      // Force invalidate all events queries to refresh data everywhere
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', 'admin'] });
+      
+      // We need to ensure the query cache is completely reset
+      // This makes sure the events page will get fresh data
+      queryClient.resetQueries({ queryKey: ['/api/events'] });
       
       // Reset form fields
       setEventName("");
@@ -1592,7 +1602,7 @@ const AdminDashboard: React.FC = () => {
       // Success message
       toast({
         title: "Event Updated",
-        description: "Event has been successfully updated",
+        description: "Event has been successfully updated and will appear in events list if enabled",
       });
     },
     onError: (error: any) => {

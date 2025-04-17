@@ -28,9 +28,12 @@ const Events: React.FC = () => {
   const [eventStage, setEventStage] = useState("all");
   const [submitEventId, setSubmitEventId] = useState<number | null>(null);
   
-  // Fetch all events
+  // Fetch all events (with short stale time to ensure fresh data)
   const { data: allEvents = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/events'],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0, // Always fetch fresh data
   });
   
   // Apply filters
