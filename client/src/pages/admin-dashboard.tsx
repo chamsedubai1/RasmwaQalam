@@ -1284,6 +1284,7 @@ const AdminDashboard: React.FC = () => {
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventImageUrl, setEventImageUrl] = useState("");
+  const [eventIsEnabled, setEventIsEnabled] = useState(true);
   
   // Form state for partner
   const [partnerName, setPartnerName] = useState("");
@@ -1391,6 +1392,7 @@ const AdminDashboard: React.FC = () => {
     setEventStatus(eventData.status || 'upcoming');
     setEventStage(eventData.stage || 'class');
     setEventMode(eventData.mode || 'allowAI'); // Set event mode, default to allowAI if not present
+    setEventIsEnabled(eventData.isEnabled !== false); // Default to true if not specified
     
     // Format dates for input fields (YYYY-MM-DD)
     if (eventData.startDate) {

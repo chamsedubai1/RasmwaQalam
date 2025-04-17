@@ -80,6 +80,7 @@ export const events = pgTable("events", {
   imageUrl: text("image_url"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
+  isEnabled: boolean("is_enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

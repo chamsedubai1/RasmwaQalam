@@ -1130,6 +1130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = req.query.status as string | undefined;
       const type = req.query.type as string | undefined;
       const stage = req.query.stage as string | undefined;
+      const includeDisabled = req.query.includeDisabled === 'true';
+      // Admin routes will explicitly set includeDisabled=true to see all events
+      // For the main events page, disabled events will be filtered out
       
       let events;
       if (status) {
@@ -1140,6 +1143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         events = await storage.getEventsByStage(stage);
       } else {
         events = await storage.getAllEvents();
+      }
+      
+      // Filter out disabled events unless specifically requested to include them
+      if (!includeDisabled) {
+        events = events.filter(event => event.isEnabled !== false);
       }
       
       // Enhance events with participant counts
