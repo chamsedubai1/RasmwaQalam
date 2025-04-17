@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { BarChart2, Users } from "lucide-react";
+import { BarChart2, Users, EyeIcon, EyeOffIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface EventTableProps {
   events: any[];
@@ -78,6 +79,27 @@ const EventTable: React.FC<EventTableProps> = ({
       });
     }
   });
+  
+  const toggleEventVisibilityMutation = useMutation({
+    mutationFn: async ({ id, isEnabled }: { id: number, isEnabled: boolean }) => {
+      return apiRequest('PATCH', `/api/events/${id}`, { isEnabled });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: "Success",
+        description: `Event ${variables.isEnabled ? 'enabled' : 'disabled'} successfully`,
+      });
+      // Ensure we invalidate the events cache to reflect changes everywhere
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update event visibility: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
 
   const handlePromoteStage = (id: number, currentStage: string) => {
     if (currentStage === 'global') {
@@ -94,6 +116,13 @@ const EventTable: React.FC<EventTableProps> = ({
     if (window.confirm("Are you sure you want to close this event?")) {
       closeEventMutation.mutate(id);
     }
+  };
+  
+  const handleToggleEventVisibility = (id: number, currentStatus: boolean) => {
+    toggleEventVisibilityMutation.mutate({ 
+      id, 
+      isEnabled: !currentStatus 
+    });
   };
 
   const getTypeDisplay = (type: string) => {
@@ -134,13 +163,14 @@ const EventTable: React.FC<EventTableProps> = ({
           <TableHead>Current Stage</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Participants</TableHead>
+          {isAdmin && <TableHead>Enabled</TableHead>}
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {events.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center py-6">
+            <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-6">
               No events found
             </TableCell>
           </TableRow>
@@ -164,6 +194,23 @@ const EventTable: React.FC<EventTableProps> = ({
                   </span>
                 </TableCell>
                 <TableCell>{event.participantCount || 0}</TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={!!event.isEnabled}
+                        disabled={toggleEventVisibilityMutation.isPending}
+                        onCheckedChange={() => handleToggleEventVisibility(event.id, !!event.isEnabled)}
+                        aria-label={`${event.isEnabled ? 'Disable' : 'Enable'} event`}
+                      />
+                      {event.isEnabled ? (
+                        <EyeIcon className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <EyeOffIcon className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button 
