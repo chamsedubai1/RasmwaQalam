@@ -62,18 +62,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - all prefixed with /api
   const apiRouter = express.Router();
   
+  // Apply general rate limiting to all API routes
+  apiRouter.use(apiRateLimiter);
+  
   // Auth and user-related routes
-  apiRouter.post('/auth/login', async (req, res) => {
+  // Apply rate limiting to login route
+  apiRouter.post('/auth/login', loginRateLimiter, async (req, res) => {
     const { username, password } = req.body;
     
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
     
+    // Log login attempt for security auditing
+    console.log(`Login attempt for user: ${username} from IP: ${req.ip || 'unknown'}`);
+    
     try {
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
+      // Enhanced security - no different error messages for non-existent user vs wrong password
+      // This prevents username enumeration attacks
+      if (!user) {
+        // Add a small delay to prevent timing attacks that could determine if a username exists
+        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // Check if the password is using the new secure format (contains a dot separating hash and salt)
+      let isPasswordValid = false;
+      
+      if (user.password.includes('.')) {
+        // Password is in the new hashed format, use secure verification
+        isPasswordValid = await verifyPassword(password, user.password);
+      } else {
+        // Password is in old plaintext format, do direct comparison and migrate
+        // This is for backward compatibility and will be removed after all passwords are migrated
+        isPasswordValid = user.password === password;
+        
+        // Migrate the password to the new secure format
+        if (isPasswordValid) {
+          console.log(`Migrating password for user ${username} to secure format`);
+          const hashedPassword = await hashPassword(password);
+          // Update with new hashed password
+          await storage.updateUser(user.id, { password: hashedPassword });
+        }
+      }
+      
+      if (!isPasswordValid) {
+        // For security, log failed attempts
+        console.log(`Failed login attempt for user: ${username} from IP: ${req.ip || 'unknown'}`);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
@@ -96,10 +133,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Failed to update lastLoginDate for user:', user.id);
       }
       
+      // Log successful login
+      console.log(`Successful login for user: ${username} from IP: ${req.ip || 'unknown'}`);
+      
       // Return user without password
       const { password: _, ...userWithoutPassword } = updatedUser || user;
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
@@ -364,10 +405,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Update the user's password
+      // Hash the new password before saving it
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the user's password with the hashed version
       await storage.updateUser(userId, {
         ...user,
-        password: newPassword
+        password: hashedPassword
       });
       
       return res.status(200).json({ message: 'Password has been reset successfully' });
@@ -377,8 +421,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.post('/auth/register', requireCaptcha, async (req, res) => {
+  apiRouter.post('/auth/register', registrationRateLimiter, requireCaptcha, async (req, res) => {
     try {
+      // Log registration attempt for security auditing
+      console.log(`Registration attempt from IP: ${req.ip || 'unknown'}, role: ${req.body.role || 'unknown'}`);
+      
       // Determine if the user should be active by default
       // For schoolAdmin role, set isActive to false (requires admin approval)
       const isActiveByDefault = req.body.role === 'schoolAdmin' ? false : true;
@@ -392,6 +439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(userData.username);
       if (existingUsername) {
+        // Log security event
+        console.log(`Registration rejected - duplicate username "${userData.username}" from IP: ${req.ip || 'unknown'}`);
         return res.status(409).json({ 
           message: 'Username already exists. Please choose a different username.',
           field: 'username'
@@ -401,6 +450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if email already exists
       const existingEmail = await storage.getUserByEmail(userData.email);
       if (existingEmail) {
+        // Log security event
+        console.log(`Registration rejected - duplicate email "${userData.email}" from IP: ${req.ip || 'unknown'}`);
         return res.status(409).json({ 
           message: 'Email already exists. Please use a different email address.',
           field: 'email'
@@ -432,8 +483,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // This check is handled after the user is created when updating the class
       }
       
-      // Create the user
-      const user = await storage.createUser(userData);
+      // Hash the password before storing it
+      const hashedPassword = await hashPassword(userData.password);
+      
+      // Create the user with the hashed password
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
+      
+      // Log successful registration
+      console.log(`User registered successfully: ${userData.username}, role: ${userData.role}, IP: ${req.ip || 'unknown'}`);
       
       // Return user without password
       const { password, ...userWithoutPassword } = user;
@@ -598,7 +658,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const user = await storage.createUser(userData);
+      // Hash the password for secure storage
+      const hashedPassword = await hashPassword(userData.password);
+      
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
       
       // Return user without password
       const { password, ...userWithoutPassword } = user;
@@ -659,7 +725,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const updatedUser = await storage.updateUser(userId, req.body);
+      // If password is being updated, hash it first
+      let updateData = { ...req.body };
+      
+      if (updateData.password) {
+        // Hash the new password
+        const hashedPassword = await hashPassword(updateData.password);
+        updateData.password = hashedPassword;
+      }
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
       
       // Return user without password
       const { password, ...userWithoutPassword } = updatedUser!;
