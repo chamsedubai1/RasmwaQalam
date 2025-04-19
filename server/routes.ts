@@ -18,6 +18,14 @@ import crypto from "crypto";
 import { performance } from "perf_hooks";
 import { monitoring } from "./monitoring";
 import { setupWebSocketServer, sendToChannel, broadcast } from "./services/websocket";
+import { 
+  loginRateLimiter, 
+  registrationRateLimiter, 
+  passwordResetRateLimiter, 
+  apiRateLimiter,
+  hashPassword,
+  verifyPassword
+} from "./security";
 
 // AI service selection
 const AI_SERVICE = {
