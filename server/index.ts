@@ -10,6 +10,10 @@ console.log(`Starting server in ${process.env.NODE_ENV} mode`);
 
 const app = express();
 
+// Trust proxy for rate limiting to work correctly behind Replit proxy
+// This is necessary for X-Forwarded-For headers to be properly read
+app.set('trust proxy', 1);
+
 // Set up session middleware for CAPTCHA
 app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
