@@ -13,21 +13,31 @@ interface UseWebSocketOptions {
   maxReconnectAttempts?: number;
 }
 
+// Create a global instance that can be shared across components
+let globalSocket: WebSocket | null = null;
+let globalHasConnected = false;
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   
-  const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = options.maxReconnectAttempts || 5;
   const reconnectInterval = options.reconnectInterval || 3000;
+  const connectionAttemptedRef = useRef(false);
 
   // Connect to the WebSocket server
   const connect = useCallback(() => {
+    // Use the global socket if it already exists
+    if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
+      setStatus('open');
+      return globalSocket;
+    }
+    
     // Close existing connection if any
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.close();
+    if (globalSocket && globalSocket.readyState !== WebSocket.CLOSED) {
+      globalSocket.close();
     }
     
     try {
@@ -40,13 +50,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       
       // Create new WebSocket connection
       const socket = new WebSocket(wsUrl);
-      socketRef.current = socket;
+      globalSocket = socket;
       
       // Connection opened
       socket.addEventListener('open', () => {
         console.log('WebSocket connection established');
         setStatus('open');
         reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+        globalHasConnected = true;
       });
       
       // Connection closed
@@ -106,9 +117,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   
   // Send a message to the WebSocket server
   const sendMessage = useCallback((type: string, data: any = {}) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+    if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
       const message = JSON.stringify({ type, data });
-      socketRef.current.send(message);
+      globalSocket.send(message);
       return true;
     }
     console.warn('Cannot send message: WebSocket is not connected');
@@ -125,17 +136,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     return sendMessage('UNSUBSCRIBE', { channel });
   }, [sendMessage]);
   
-  // Connect on component mount and disconnect on unmount
+  // Connect on component mount, but use global state to prevent multiple connections
   useEffect(() => {
-    const socket = connect();
+    // Only connect if we haven't already connected globally
+    if (!globalHasConnected && !connectionAttemptedRef.current) {
+      connectionAttemptedRef.current = true;
+      connect();
+    } else if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
+      // If we already have a connection, update the status
+      setStatus('open');
+    }
     
-    return () => {
-      // Close the WebSocket connection when the component unmounts
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Closing WebSocket connection due to component unmount');
-        socket.close();
-      }
-    };
+    // We don't need to clean up on unmount because the connection is global
+    // This prevents disconnecting when navigating between pages
   }, [connect]);
   
   // Response to PING messages with PONG
