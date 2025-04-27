@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
 import { UserContext } from '@/hooks/use-user';
@@ -24,6 +24,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const userContext = useContext(UserContext);
   const user = userContext?.user ?? null;
   const [notificationCount, setNotificationCount] = useState(0);
+  const hasShownConnectionToast = useRef(false);
   
   // Handle incoming WebSocket messages
   const handleMessage = (message: WebSocketMessage) => {
@@ -65,28 +66,32 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     sendMessage,
     subscribe,
     unsubscribe,
+    reconnectAttempts
   } = useWebSocket({ 
     onMessage: handleMessage,
     reconnectInterval: 3000,
     maxReconnectAttempts: 10
   });
   
-  // Display toast notifications for connection changes
+  // Display toast notifications for connection changes, but only once per session
   useEffect(() => {
-    if (status === 'open') {
+    if (status === 'open' && !hasShownConnectionToast.current) {
       toast({
         title: 'Real-time Connection Established',
         description: 'You will receive live updates from the platform.',
         variant: 'default',
       });
-    } else if (status === 'error') {
+      // Mark as shown so we don't show this toast again during this session
+      hasShownConnectionToast.current = true;
+    } else if (status === 'error' && reconnectAttempts >= 5) {
+      // Only show error after multiple failed attempts to avoid constant notifications
       toast({
         title: 'Connection Error',
         description: 'Failed to connect to the real-time service. Some features may be unavailable.',
         variant: 'destructive',
       });
     }
-  }, [status, toast]);
+  }, [status, toast, reconnectAttempts]);
   
   // Subscribe to user-specific channels when user data and connection are available
   useEffect(() => {

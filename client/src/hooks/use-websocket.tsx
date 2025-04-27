@@ -153,6 +153,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     sendMessage,
     subscribe,
     unsubscribe,
-    connect
+    connect,
+    reconnectAttempts: reconnectAttemptsRef.current
   };
 }
