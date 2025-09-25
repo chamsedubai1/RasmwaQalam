@@ -24,7 +24,10 @@ import {
   passwordResetRateLimiter, 
   apiRateLimiter,
   hashPassword,
-  verifyPassword
+  verifyPassword,
+  generateAuthTokens,
+  authenticateToken,
+  requireRole
 } from "./security";
 
 // AI service selection
@@ -66,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use(apiRateLimiter);
   
   // Auth and user-related routes
-  // Apply rate limiting to login route
+  // SECURE JWT-based login endpoint - replaces insecure username:timestamp system
   apiRouter.post('/auth/login', loginRateLimiter, async (req, res) => {
     const { username, password } = req.body;
     
@@ -74,8 +77,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: 'Username and password are required' });
     }
     
-    // Log login attempt for security auditing
-    console.log(`Login attempt for user: ${username} from IP: ${req.ip || 'unknown'}`);
+    // Log login attempt for security auditing (but not sensitive details)
+    console.log(`Login attempt from IP: ${req.ip || 'unknown'}`);
     
     try {
       const user = await storage.getUserByUsername(username);
@@ -88,29 +91,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
-      // Check if the password is using the new secure format (contains a dot separating hash and salt)
-      let isPasswordValid = false;
-      
-      if (user.password.includes('.')) {
-        // Password is in the new hashed format, use secure verification
-        isPasswordValid = await verifyPassword(password, user.password);
-      } else {
-        // Password is in old plaintext format, do direct comparison and migrate
-        // This is for backward compatibility and will be removed after all passwords are migrated
-        isPasswordValid = user.password === password;
-        
-        // Migrate the password to the new secure format
-        if (isPasswordValid) {
-          console.log(`Migrating password for user ${username} to secure format`);
-          const hashedPassword = await hashPassword(password);
-          // Update with new hashed password
-          await storage.updateUser(user.id, { password: hashedPassword });
-        }
+      // SECURITY FIX: Remove plaintext password fallback (architect's critical finding)
+      // Only accept properly hashed passwords
+      if (!user.password.includes('.')) {
+        // Force password reset for users with old plaintext passwords
+        console.log(`User ${username} has insecure password format - forcing reset`);
+        return res.status(403).json({ 
+          message: 'Password reset required for security. Please use the forgot password feature.',
+          code: 'PASSWORD_RESET_REQUIRED'
+        });
       }
       
+      // Verify password using secure hashing
+      const isPasswordValid = await verifyPassword(password, user.password);
+      
       if (!isPasswordValid) {
-        // For security, log failed attempts
-        console.log(`Failed login attempt for user: ${username} from IP: ${req.ip || 'unknown'}`);
+        // For security, log failed attempts (but not username)
+        console.log(`Failed login attempt from IP: ${req.ip || 'unknown'}`);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
@@ -124,6 +121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Account is locked or inactive' });
       }
       
+      // Generate secure JWT tokens
+      const authTokens = await generateAuthTokens(user);
+      
       // Update the last login date
       const updatedUser = await storage.updateUser(user.id, { 
         lastLoginDate: new Date() 
@@ -133,54 +133,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Failed to update lastLoginDate for user:', user.id);
       }
       
-      // Log successful login
-      console.log(`Successful login for user: ${username} from IP: ${req.ip || 'unknown'}`);
+      // Log successful login (without sensitive data)
+      console.log(`Successful login from IP: ${req.ip || 'unknown'}`);
       
-      // Return user without password
+      // Return user data without password plus JWT tokens
       const { password: _, ...userWithoutPassword } = updatedUser || user;
-      res.json(userWithoutPassword);
+      res.json({
+        user: userWithoutPassword,
+        accessToken: authTokens.accessToken,
+        refreshToken: authTokens.refreshToken,
+        expiresIn: authTokens.expiresIn
+      });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
   
-  // Get current authenticated user
-  apiRouter.get('/user', async (req, res) => {
+  // Get current authenticated user - now using secure JWT authentication
+  apiRouter.get('/user', authenticateToken, async (req, res) => {
     try {
-      // Get authorization header
-      const authHeader = req.headers.authorization;
+      // User data is already validated and attached by authenticateToken middleware
+      const user = (req as any).user;
       
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const username = token.split(':')[0];
-      
-      // Find user by username
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-      
-      if (!user.isActive) {
-        // Provide specific message for school admin accounts awaiting approval
-        if (user.role === 'schoolAdmin') {
-          return res.status(403).json({ 
-            message: 'Your School Admin account is pending approval from the system administrator. Please check back later.' 
-          });
-        }
-        return res.status(403).json({ message: "Account is locked or inactive" });
-      }
-      
-      // Return user data (excluding password)
-      const { password: _, ...userData } = user;
-      res.status(200).json(userData);
+      res.status(200).json(user);
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ message: "Server error retrieving user data" });
+    }
+  });
+  
+  // Token refresh endpoint
+  apiRouter.post('/auth/refresh', async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(400).json({ 
+          message: 'Refresh token required',
+          code: 'MISSING_REFRESH_TOKEN'
+        });
+      }
+      
+      // Verify the refresh token
+      const userId = await verifyRefreshToken(refreshToken);
+      
+      if (!userId) {
+        return res.status(401).json({ 
+          message: 'Invalid or expired refresh token',
+          code: 'INVALID_REFRESH_TOKEN'
+        });
+      }
+      
+      // Get user data
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isActive) {
+        return res.status(401).json({ 
+          message: 'User account not found or inactive',
+          code: 'USER_INACTIVE'
+        });
+      }
+      
+      // Generate new tokens
+      const authTokens = await generateAuthTokens(user);
+      
+      res.json({
+        accessToken: authTokens.accessToken,
+        refreshToken: authTokens.refreshToken,
+        expiresIn: authTokens.expiresIn
+      });
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      res.status(500).json({ 
+        message: 'Server error during token refresh',
+        code: 'REFRESH_ERROR'
+      });
     }
   });
   

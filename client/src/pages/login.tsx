@@ -77,11 +77,52 @@ export default function LoginPage() {
         password: loginPassword
       });
       
-      // Store user data in context
+      // Store user data in context - NEW: Handle JWT response structure
       console.log("Login successful:", response);
       
-      if (response.role) {
-        // Create user object
+      // NEW: Handle JWT-based authentication response
+      if (response.user && response.accessToken) {
+        const userData = {
+          id: response.user.id,
+          username: response.user.username,
+          fullName: response.user.fullName || response.user.username,
+          role: response.user.role,
+          schoolId: response.user.schoolId,
+          classId: response.user.classId,
+          gradeLevel: response.user.gradeLevel
+        };
+        
+        // Set user role for basic authorization
+        setUserRole(response.user.role);
+        
+        // Set full user data in context
+        setUser(userData);
+        
+        // SECURITY FIX: Store proper JWT tokens instead of insecure username:timestamp
+        localStorage.setItem('authToken', response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userRole', response.user.role);
+        
+        // Redirect based on role
+        switch (response.user.role) {
+          case "admin":
+            setLocation("/admin");
+            break;
+          case "schoolAdmin":
+            setLocation("/school-admin");
+            break;
+          case "teacher":
+            setLocation("/teacher");
+            break;
+          case "student":
+            setLocation("/");
+            break;
+          default:
+            setLocation("/");
+        }
+      } else if (response.role) {
+        // FALLBACK: Handle old response format for backward compatibility
         const userData = {
           id: response.id,
           username: response.username,
@@ -92,18 +133,15 @@ export default function LoginPage() {
           gradeLevel: response.gradeLevel
         };
         
-        // Set user role for basic authorization
         setUserRole(response.role);
-        
-        // Set full user data in context
         setUser(userData);
         
-        // Store auth token and user data in localStorage
+        // Store data but warn about insecure format
+        console.warn('WARNING: Received old response format without JWT tokens');
         localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('userRole', response.role);
         
-        // Redirect based on role
         switch (response.role) {
           case "admin":
             setLocation("/admin");

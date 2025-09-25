@@ -27,7 +27,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const reconnectInterval = options.reconnectInterval || 3000;
   const connectionAttemptedRef = useRef(false);
 
-  // Connect to the WebSocket server
+  // Connect to the WebSocket server with JWT authentication
   const connect = useCallback(() => {
     // Use the global socket if it already exists
     if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
@@ -41,14 +41,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
     
     try {
-      // Determine the WebSocket URL based on current protocol
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // SECURITY: Get JWT token for authentication
+      const authToken = localStorage.getItem('authToken');
       
-      console.log(`Connecting to WebSocket server at ${wsUrl}`);
+      if (!authToken) {
+        console.log('WebSocket connection skipped - no authentication token available');
+        setStatus('closed');
+        return null;
+      }
+      
+      // Skip connection if using old insecure token format
+      if (authToken.includes(':') && !authToken.startsWith('eyJ')) {
+        console.log('WebSocket connection skipped - old insecure token format detected');
+        setStatus('closed');
+        return null;
+      }
+      
+      // Determine the WebSocket URL based on current protocol with JWT token
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(authToken)}`;
+      
+      console.log(`Connecting to WebSocket server at ${protocol}//${window.location.host}/ws`);
       setStatus('connecting');
       
-      // Create new WebSocket connection
+      // Create new WebSocket connection with JWT authentication
       const socket = new WebSocket(wsUrl);
       globalSocket = socket;
       

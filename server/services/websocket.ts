@@ -1,12 +1,19 @@
 import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket, RawData, ServerOptions } from 'ws';
 import { monitoring } from '../monitoring';
+import { verifyAccessToken } from '../security';
+import { storage } from '../storage';
+import { parse as parseUrl } from 'url';
 
 interface WebSocketClient extends WebSocket {
   id: string;
   isAlive: boolean;
   channels: Set<string>;
   lastActivity: number;
+  userId: number;
+  userRole: string;
+  username: string;
+  isAuthenticated: boolean;
 }
 
 interface WebSocketMessage {
@@ -38,69 +45,89 @@ export class WebSocketService {
   }
   
   /**
-   * Set up WebSocket event handlers
+   * Set up WebSocket event handlers with JWT authentication
    */
   private setupEventHandlers(): void {
-    // Handle new connections
-    this.wss.on('connection', (ws: WebSocket) => {
-      // Create client ID
+    // Handle new connections with authentication
+    this.wss.on('connection', async (ws: WebSocket, request) => {
       const clientId = this.generateClientId();
       
-      // Extend WebSocket object with custom properties
-      const client = ws as WebSocketClient;
-      client.id = clientId;
-      client.isAlive = true;
-      client.channels = new Set();
-      client.lastActivity = Date.now();
-      
-      // Add client to clients map
-      this.clients.set(clientId, client);
-      
-      // Track connection in monitoring
-      monitoring.trackWebSocketConnection();
-      
-      console.log(`WebSocket client connected: ${clientId}`);
-      
-      // Send welcome message with client ID
-      this.sendToClient(clientId, {
-        type: 'CONNECTED',
-        data: { clientId, timestamp: Date.now() }
-      });
-      
-      // Handle pong messages (response to ping)
-      client.on('pong', () => {
-        client.isAlive = true;
-        client.lastActivity = Date.now();
-      });
-      
-      // Handle incoming messages
-      client.on('message', (data: RawData) => {
-        try {
-          // Update last activity timestamp
-          client.lastActivity = Date.now();
-          
-          // Track message in monitoring
-          monitoring.trackWebSocketMessageReceived();
-          
-          // Parse message
-          const message = JSON.parse(data.toString()) as WebSocketMessage;
-          
-          // Handle message based on type
-          this.handleClientMessage(clientId, message);
-        } catch (error) {
-          console.error('Error handling WebSocket message:', error);
+      try {
+        // SECURITY: Authenticate WebSocket connection using JWT
+        const authenticated = await this.authenticateConnection(ws, request, clientId);
+        
+        if (!authenticated) {
+          // Authentication failed - close connection immediately
+          ws.close(1008, 'Authentication required');
+          return;
         }
-      });
-      
-      // Handle client disconnection
-      client.on('close', () => {
-        this.handleClientDisconnection(clientId);
-      });
-      
-      // Handle errors
-      client.on('error', (error) => {
-        console.error(`WebSocket error for client ${clientId}:`, error);
-      });
+        
+        // Extend WebSocket object with custom properties (user data already set in authenticateConnection)
+        const client = ws as WebSocketClient;
+        client.id = clientId;
+        client.isAlive = true;
+        client.channels = new Set();
+        client.lastActivity = Date.now();
+        
+        // Add client to clients map
+        this.clients.set(clientId, client);
+        
+        // Track connection in monitoring
+        monitoring.trackWebSocketConnection();
+        
+        console.log(`Authenticated WebSocket client connected: ${clientId} (User: ${client.username}, Role: ${client.userRole})`);
+        
+        // Send welcome message with client ID and user info
+        this.sendToClient(clientId, {
+          type: 'CONNECTED',
+          data: { 
+            clientId, 
+            userId: client.userId,
+            username: client.username,
+            role: client.userRole,
+            timestamp: Date.now() 
+          }
+        });
+        
+        // Handle pong messages (response to ping)
+        client.on('pong', () => {
+          client.isAlive = true;
+          client.lastActivity = Date.now();
+        });
+        
+        // Handle incoming messages
+        client.on('message', (data: RawData) => {
+          try {
+            // Update last activity timestamp
+            client.lastActivity = Date.now();
+            
+            // Track message in monitoring
+            monitoring.trackWebSocketMessageReceived();
+            
+            // Parse message
+            const message = JSON.parse(data.toString()) as WebSocketMessage;
+            
+            // Handle message based on type (with authorization)
+            this.handleClientMessage(clientId, message);
+          } catch (error) {
+            console.error('Error handling WebSocket message:', error);
+          }
+        });
+        
+        // Handle client disconnection
+        client.on('close', () => {
+          this.handleClientDisconnection(clientId);
+        });
+        
+        // Handle errors
+        client.on('error', (error) => {
+          console.error(`WebSocket error for client ${clientId}:`, error);
+        });
+        
+      } catch (error) {
+        console.error('Error setting up WebSocket connection:', error);
+        ws.close(1011, 'Server error');
+      }
     });
   }
   
@@ -109,6 +136,57 @@ export class WebSocketService {
    */
   private generateClientId(): string {
     return `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * Authenticate WebSocket connection using JWT token
+   * SECURITY: This replaces the previous anonymous connection system
+   */
+  private async authenticateConnection(ws: WebSocket, request: any, clientId: string): Promise<boolean> {
+    try {
+      // Extract token from query parameters (e.g., ws://host/ws?token=jwt_token)
+      const url = parseUrl(request.url || '', true);
+      const token = url.query.token as string;
+      
+      if (!token) {
+        console.log(`WebSocket connection rejected - no token provided for client ${clientId}`);
+        return false;
+      }
+      
+      // Verify JWT token
+      const decoded = await verifyAccessToken(token);
+      if (!decoded) {
+        console.log(`WebSocket connection rejected - invalid token for client ${clientId}`);
+        return false;
+      }
+      
+      // Get user data from storage
+      const user = await storage.getUser(decoded.userId);
+      if (!user) {
+        console.log(`WebSocket connection rejected - user not found for client ${clientId}`);
+        return false;
+      }
+      
+      // Check if user is active
+      if (!user.isActive) {
+        console.log(`WebSocket connection rejected - user inactive for client ${clientId}`);
+        return false;
+      }
+      
+      // Set authentication data on WebSocket client
+      const client = ws as WebSocketClient;
+      client.userId = user.id;
+      client.userRole = user.role;
+      client.username = user.username;
+      client.isAuthenticated = true;
+      
+      console.log(`WebSocket authentication successful for user: ${user.username} (${user.role})`);
+      return true;
+      
+    } catch (error) {
+      console.error(`WebSocket authentication error for client ${clientId}:`, error);
+      return false;
+    }
   }
   
   /**
@@ -170,7 +248,7 @@ export class WebSocketService {
     console.log(`WebSocket client disconnected: ${clientId}`);
     
     // Unsubscribe from all channels
-    for (const channel of client.channels) {
+    for (const channel of Array.from(client.channels)) {
       this.unsubscribeClientFromChannel(clientId, channel);
     }
     
@@ -247,7 +325,7 @@ export class WebSocketService {
   public broadcast(message: WebSocketMessage): number {
     let successCount = 0;
     
-    for (const clientId of this.clients.keys()) {
+    for (const clientId of Array.from(this.clients.keys())) {
       if (this.sendToClient(clientId, message)) {
         successCount++;
       }
@@ -266,7 +344,7 @@ export class WebSocketService {
     let successCount = 0;
     message.channel = channel; // Add channel to message
     
-    for (const clientId of clientsInChannel) {
+    for (const clientId of Array.from(clientsInChannel)) {
       if (this.sendToClient(clientId, message)) {
         successCount++;
       }

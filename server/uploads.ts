@@ -4,6 +4,7 @@ import fs from 'fs';
 import express, { Router, Request, Response, Express } from 'express';
 import { storage as dbStorage } from './storage';
 import { randomUUID } from 'crypto';
+import { authenticateToken, requireRole } from './security';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -41,64 +42,77 @@ export const upload = multer({
   },
 });
 
-// Set up upload routes
+// Set up upload routes with secure JWT authentication
 export function setupUploadRoutes(apiRouter: Router) {
-  // Route for uploading files
-  apiRouter.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
-      }
-      
-      // Check if the user has proper authorization
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'Authorization required' });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      // Extract username - need to handle both formats: username:timestamp or just username
-      const username = token.includes(':') ? token.split(':')[0] : token;
-      
-      console.log('Upload authentication - username:', username, 'token:', token);
-      
-      // Get user information from the storage
-      const user = await dbStorage.getUserByUsername(username);
-      
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-      
-      if (!user.isActive) {
-        return res.status(403).json({ message: 'Account is inactive' });
-      }
-      
-      // Only admins, teachers, and school admins can upload files
-      if (user.role !== 'admin' && user.role !== 'teacher' && user.role !== 'schoolAdmin') {
-        return res.status(403).json({ message: 'Unauthorized to upload files' });
-      }
-
-      // Form the URL to access the file
-      const fileUrl = `/uploads/${req.file.filename}`;
-
-      console.log(`File uploaded by ${username}: ${req.file.originalname} -> ${req.file.filename}`);
-
-      // Return the file information and URL
-      res.status(200).json({
-        message: 'File uploaded successfully',
-        url: fileUrl,
-        file: {
-          originalName: req.file.originalname,
-          filename: req.file.filename,
-          mimetype: req.file.mimetype,
-          size: req.file.size
+  // SECURE file upload route - now uses JWT authentication instead of insecure token parsing
+  apiRouter.post('/upload', 
+    authenticateToken, 
+    requireRole(['admin', 'teacher', 'schoolAdmin']), 
+    upload.single('file'), 
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ message: 'No file uploaded' });
         }
-      });
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      res.status(500).json({ message: 'Error uploading file' });
+        
+        // User data is already validated and attached by authenticateToken middleware
+        const user = (req as any).user;
+        
+        // Additional file validation (enhance based on architect's recommendations)
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const fileExtension = path.extname(req.file.originalname).toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+          // Delete the uploaded file if it's not allowed
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ 
+            message: 'File type not allowed. Only JPG, PNG, GIF, and WebP images are permitted.',
+            allowedTypes: allowedExtensions
+          });
+        }
+        
+        // Check file size (additional validation)
+        if (req.file.size > 5 * 1024 * 1024) { // 5MB
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ 
+            message: 'File size too large. Maximum size is 5MB.'
+          });
+        }
+        
+        // Form the URL to access the file
+        const fileUrl = `/uploads/${req.file.filename}`;
+        
+        console.log(`File uploaded by user ID ${user.id}: ${req.file.originalname} -> ${req.file.filename}`);
+        
+        // Return the file information and URL
+        res.status(200).json({
+          message: 'File uploaded successfully',
+          url: fileUrl,
+          file: {
+            originalName: req.file.originalname,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            uploadedBy: user.id,
+            uploadedAt: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        
+        // Clean up file if there was an error
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch (cleanupError) {
+            console.error('Error cleaning up uploaded file:', cleanupError);
+          }
+        }
+        
+        res.status(500).json({ message: 'Error uploading file' });
+      }
     }
-  });
+  );
 }
 
 // Set up static file serving for uploads
