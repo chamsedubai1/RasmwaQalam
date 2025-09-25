@@ -148,11 +148,11 @@ function formatUptime(seconds: number): string {
 
 export default function AdminMonitoring() {
   const { toast } = useToast();
-  const { user, isLoading: userLoading } = useUser();
+  const { user } = useUser();
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   
   // Check if user is admin
-  if (!userLoading && (!user || user.role !== 'admin')) {
+  if (!user || user.role !== 'admin') {
     return <Redirect to="/login" />;
   }
 
@@ -204,7 +204,7 @@ export default function AdminMonitoring() {
     });
   };
 
-  if (userLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
