@@ -1065,7 +1065,7 @@ const AdminDashboard: React.FC = () => {
       console.error("Import error:", error);
       toast({
         title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import data",
+        description: error instanceof Error ? (error as any).message : "Failed to import data",
         variant: "destructive",
       });
     }
@@ -1353,7 +1353,7 @@ const AdminDashboard: React.FC = () => {
       // Try to extract validation errors for better feedback
       let errorMessage = "Failed to create event. Please try again.";
       if (error?.message) {
-        errorMessage = error.message;
+        errorMessage = (error as any).message;
       }
       toast({
         title: "Error",
@@ -1551,7 +1551,7 @@ const AdminDashboard: React.FC = () => {
       console.error("Error fetching voting history:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch voting history",
+        description: error instanceof Error ? (error as any).message : "Failed to fetch voting history",
         variant: "destructive",
       });
     } finally {
@@ -4625,7 +4625,7 @@ const AdminDashboard: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {classes
+                    {(classes as any[])
                       .filter((c: any) => !userSchoolId || (c.schoolId && c.schoolId.toString() === userSchoolId))
                       .map((classItem: any) => (
                         <SelectItem key={classItem.id} value={classItem.id.toString()}>
@@ -4681,11 +4681,11 @@ const AdminDashboard: React.FC = () => {
               
               // Add password only if provided
               if (userPassword) {
-                userData.password = userPassword;
+                (userData as any).password = userPassword;
               }
               
               // Call the user update mutation
-              updateUserMutation.mutate({ id: selectedUserId, userData });
+              updateUserMutation.mutate({ id: selectedUserId!, userData });
             }}>
               Update User
             </Button>
@@ -4750,7 +4750,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allUsers
+                  {(allUsers as any[])
                     .filter((user: any) => user.role === "teacher")
                     .map((teacher: any) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
@@ -5308,7 +5308,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allUsers
+                  {(allUsers as any[])
                     .filter((user: any) => user.role === "teacher")
                     .map((teacher: any) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
@@ -5348,7 +5348,7 @@ const AdminDashboard: React.FC = () => {
             <>
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">
-                  {classes.find((c: any) => c.id === selectedClassId)?.name || "Class"} Students
+                  {(classes as any[]).find((c: any) => c.id === selectedClassId)?.name || "Class"} Students
                 </h3>
                 <p className="text-sm text-gray-500 mb-4">
                   Manage students enrolled in this class
@@ -5357,7 +5357,7 @@ const AdminDashboard: React.FC = () => {
               
               {/* Students table */}
               <StudentTable
-                students={allUsers.filter((user: any) => 
+                students={(allUsers as any[]).filter((user: any) => 
                   user.role === "student" && user.classId === selectedClassId
                 )}
                 isLoading={isLoadingUsers}
@@ -5901,7 +5901,7 @@ const AdminDashboard: React.FC = () => {
                   console.error('Delete error:', error);
                   toast({
                     title: "Error",
-                    description: error instanceof Error ? error.message : 'Failed to delete item',
+                    description: error instanceof Error ? (error as any).message : 'Failed to delete item',
                     variant: "destructive",
                   });
                 } finally {
@@ -6033,7 +6033,7 @@ const AdminDashboard: React.FC = () => {
                           console.error('Error uploading image:', error);
                           toast({
                             title: "Upload failed",
-                            description: error.message || "Failed to upload image. Please try again.",
+                            description: (error as any).message || "Failed to upload image. Please try again.",
                             variant: "destructive"
                           });
                         }
@@ -6080,7 +6080,7 @@ const AdminDashboard: React.FC = () => {
                               console.error('Error uploading image:', error);
                               toast({
                                 title: "Upload failed",
-                                description: error.message || "Failed to upload image. Please try again.",
+                                description: (error as any).message || "Failed to upload image. Please try again.",
                                 variant: "destructive"
                               });
                             }
@@ -6365,7 +6365,7 @@ const AdminDashboard: React.FC = () => {
                           console.error('Error uploading image:', error);
                           toast({
                             title: "Upload failed",
-                            description: error.message || "Failed to upload image. Please try again.",
+                            description: (error as any).message || "Failed to upload image. Please try again.",
                             variant: "destructive"
                           });
                         }
@@ -6412,7 +6412,7 @@ const AdminDashboard: React.FC = () => {
                               console.error('Error uploading image:', error);
                               toast({
                                 title: "Upload failed",
-                                description: error.message || "Failed to upload image. Please try again.",
+                                description: (error as any).message || "Failed to upload image. Please try again.",
                                 variant: "destructive"
                               });
                             }

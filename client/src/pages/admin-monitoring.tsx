@@ -165,7 +165,7 @@ export default function AdminMonitoring() {
     dataUpdatedAt
   } = useQuery<MonitoringData>({
     queryKey: ['/api/monitoring/system'],
-    refetchInterval: refreshInterval,
+    refetchInterval: refreshInterval || false,
     refetchOnWindowFocus: true
   });
 
