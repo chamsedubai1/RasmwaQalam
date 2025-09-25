@@ -290,7 +290,7 @@ export default function UsersTable({
     if (!editingUser) return;
     
     // Only send password if it's been changed
-    const updateData = {
+    const updateData: any = {
       ...data,
       id: editingUser.id
     };

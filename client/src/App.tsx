@@ -22,7 +22,6 @@ import AdminMonitoring from "@/pages/admin-monitoring";
 import SchoolAdminDashboard from "@/pages/school-admin-dashboard";
 import SubmissionView from "@/pages/submission-view";
 import Login from "@/pages/login";
-import UploadTest from "@/pages/upload-test";
 import ProtectedRoute from "@/components/auth/protected-route";
 import { useEffect } from "react";
 
@@ -51,7 +50,6 @@ function Router() {
           <Route path="/partners" component={Partners} />
           <Route path="/login" component={Login} />
           <Route path="/submission/:id" component={SubmissionView} />
-          <Route path="/upload-test" component={UploadTest} />
           
           {/* Protected routes */}
           <Route path="/creart">

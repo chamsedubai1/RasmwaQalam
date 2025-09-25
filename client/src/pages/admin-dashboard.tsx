@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import ImageUpload from '@/components/ui/image-upload';
-import UserTable from "@/components/dashboard/user-table";
+import UsersTable from "@/components/dashboard/users-table";
 import EventTable from "@/components/dashboard/event-table";
 import ClassTable from "@/components/dashboard/class-table";
 import StudentTable from "@/components/dashboard/student-table";
@@ -1311,7 +1311,7 @@ const AdminDashboard: React.FC = () => {
         // If it's a response with error details
         if (error && typeof error === 'object' && 'json' in error) {
           try {
-            const errorDetails = await error.json();
+            const errorDetails = await (error as any).json();
             console.error("Validation errors:", errorDetails);
           } catch (e) {
             console.error("Could not parse error response");
@@ -1670,7 +1670,7 @@ const AdminDashboard: React.FC = () => {
       setSchoolName("");
       setSchoolDescription("");
       setSchoolWebsite("");
-      setSchoolCity("");
+      setSchoolCityId("");
       setSchoolStatus("true");
       setSchoolImageUrl("");
       
@@ -1702,7 +1702,7 @@ const AdminDashboard: React.FC = () => {
       setSchoolName("");
       setSchoolDescription("");
       setSchoolWebsite("");
-      setSchoolCity("");
+      setSchoolCityId("");
       setSchoolStatus("true");
       setSchoolImageUrl("");
       setSelectedSchoolId(null);
@@ -1752,7 +1752,7 @@ const AdminDashboard: React.FC = () => {
     };
     
     updateSchoolMutation.mutate({ 
-      id: selectedSchoolId, 
+      id: selectedSchoolId!, 
       schoolData 
     });
   };
@@ -2533,26 +2533,8 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               
-              <UserTable 
-                users={filteredUsers} 
-                isLoading={isLoadingUsers} 
-                onEdit={(userData) => {
-                  // Set selected user ID
-                  setSelectedUserId(userData.id);
-                  
-                  // Pre-populate form fields with selected user data
-                  setUserFullName(userData.fullName || '');
-                  setUserEmail(userData.email || '');
-                  setUserUsername(userData.username || '');
-                  setUserPassword(''); // Don't populate password for security reasons
-                  setUserRoleValue(userData.role || 'student');
-                  setUserSchoolId(userData.schoolId ? userData.schoolId.toString() : '');
-                  setUserClassId(userData.classId ? userData.classId.toString() : '');
-                  setUserIsActive(userData.isActive);
-                  
-                  // Open edit dialog
-                  setShowEditUserDialog(true);
-                }}
+              <UsersTable 
+                schoolFilter={schoolFilter === "all" ? undefined : Number(schoolFilter)}
               />
               
               <div className="mt-4 flex justify-between items-center">
@@ -2958,7 +2940,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="text-center py-8">
                   <p className="text-blue-600">Loading classes...</p>
                 </div>
-              ) : classes.length === 0 ? (
+              ) : (classes as any[]).length === 0 ? (
                 <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
                   <p className="text-blue-700">No classes found. Create your first class!</p>
                 </div>
@@ -2976,9 +2958,9 @@ const AdminDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {classes.map((classItem: any) => {
-                        const school = schools.find((s: any) => s.id === classItem.schoolId);
-                        const teacher = allUsers.find((u: any) => u.id === classItem.teacherId);
+                      {(classes as any[]).map((classItem: any) => {
+                        const school = (schools as any[]).find((s: any) => s.id === classItem.schoolId);
+                        const teacher = (allUsers as any[]).find((u: any) => u.id === classItem.teacherId);
                         
                         return (
                           <tr key={classItem.id} className="border-b border-blue-100 hover:bg-blue-50">
@@ -3238,14 +3220,14 @@ const AdminDashboard: React.FC = () => {
                     {isLoadingUsers ? (
                       <span className="text-lg">Loading...</span>
                     ) : (
-                      allUsers.length
+                      (allUsers as any[]).length
                     )}
                   </p>
                   <div className="mt-2 text-xs flex items-center text-blue-600">
                     <div className="flex space-x-2">
-                      <span>{allUsers?.filter((u: any) => u.role === 'student').length || 0} Students</span>
+                      <span>{(allUsers as any[])?.filter((u: any) => u.role === 'student').length || 0} Students</span>
                       <span>•</span>
-                      <span>{allUsers?.filter((u: any) => u.role === 'teacher').length || 0} Teachers</span>
+                      <span>{(allUsers as any[])?.filter((u: any) => u.role === 'teacher').length || 0} Teachers</span>
                     </div>
                   </div>
                 </div>
@@ -3261,7 +3243,7 @@ const AdminDashboard: React.FC = () => {
                   </p>
                   <div className="mt-2 text-xs flex items-center text-indigo-600">
                     <div className="flex space-x-2">
-                      <span>{classes.length} Classes</span>
+                      <span>{(classes as any[]).length} Classes</span>
                     </div>
                   </div>
                 </div>
@@ -3292,16 +3274,16 @@ const AdminDashboard: React.FC = () => {
                     {isLoadingStatistics ? (
                       <span className="text-lg">Loading...</span>
                     ) : (
-                      statistics?.overall?.totalSubmissions || 0
+                      (statistics as any)?.overall?.totalSubmissions || 0
                     )}
                   </p>
                   <div className="mt-2 text-xs flex items-center text-green-600">
                     <div className="flex space-x-2">
-                      <span>{statistics?.overall?.approvedSubmissions || 0} Approved</span>
+                      <span>{(statistics as any)?.overall?.approvedSubmissions || 0} Approved</span>
                       <span>•</span>
-                      <span>{statistics?.overall?.pendingSubmissions || 0} Pending</span>
+                      <span>{(statistics as any)?.overall?.pendingSubmissions || 0} Pending</span>
                       <span>•</span>
-                      <span>{statistics?.overall?.rejectedSubmissions || 0} Rejected</span>
+                      <span>{(statistics as any)?.overall?.rejectedSubmissions || 0} Rejected</span>
                     </div>
                   </div>
                 </div>
@@ -3504,12 +3486,12 @@ const AdminDashboard: React.FC = () => {
                         </tr>
                       ) : (
                         schools.map((school: any) => {
-                          const teacherCount = allUsers.filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
-                          const studentCount = allUsers.filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
-                          const classCount = classes.filter((c: any) => c.schoolId === school.id).length;
+                          const teacherCount = (allUsers as any[]).filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
+                          const studentCount = (allUsers as any[]).filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
+                          const classCount = (classes as any[]).filter((c: any) => c.schoolId === school.id).length;
                           
                           // Get school statistics from our API data
-                          const schoolStat = statistics?.schoolStats?.find((stat: any) => stat.schoolId === school.id) || {
+                          const schoolStat = (statistics as any)?.schoolStats?.find((stat: any) => stat.schoolId === school.id) || {
                             totalSubmissions: 0,
                             approvedSubmissions: 0,
                             pendingSubmissions: 0,
