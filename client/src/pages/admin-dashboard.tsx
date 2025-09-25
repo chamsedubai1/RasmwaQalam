@@ -3309,16 +3309,16 @@ const AdminDashboard: React.FC = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white rounded-lg p-4 border border-blue-200">
                           <div className="text-sm text-blue-700 mb-1">Poetry Submissions</div>
-                          <div className="text-3xl font-bold text-blue-800">{statistics?.overall?.poetrySubmissions || 0}</div>
+                          <div className="text-3xl font-bold text-blue-800">{(statistics as any)?.overall?.poetrySubmissions || 0}</div>
                           <div className="text-xs text-blue-600 mt-1">
-                            {Math.round(((statistics?.overall?.poetrySubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}% of total
+                            {Math.round((((statistics as any)?.overall?.poetrySubmissions || 0) / ((statistics as any)?.overall?.totalSubmissions || 1)) * 100)}% of total
                           </div>
                         </div>
                         <div className="bg-white rounded-lg p-4 border border-blue-200">
                           <div className="text-sm text-blue-700 mb-1">Painting Submissions</div>
-                          <div className="text-3xl font-bold text-blue-800">{statistics?.overall?.paintingSubmissions || 0}</div>
+                          <div className="text-3xl font-bold text-blue-800">{(statistics as any)?.overall?.paintingSubmissions || 0}</div>
                           <div className="text-xs text-blue-600 mt-1">
-                            {Math.round(((statistics?.overall?.paintingSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}% of total
+                            {Math.round((((statistics as any)?.overall?.paintingSubmissions || 0) / ((statistics as any)?.overall?.totalSubmissions || 1)) * 100)}% of total
                           </div>
                         </div>
                       </div>
@@ -3341,31 +3341,31 @@ const AdminDashboard: React.FC = () => {
                       <div className="grid grid-cols-3 gap-3">
                         <div className="bg-white rounded-lg p-3 border border-purple-200">
                           <div className="text-sm text-purple-700 mb-1">Approved</div>
-                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.approvedSubmissions || 0}</div>
+                          <div className="text-2xl font-bold text-purple-800">{(statistics as any)?.overall?.approvedSubmissions || 0}</div>
                           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-green-500 h-2 rounded-full"
-                              style={{ width: `${Math.round(((statistics?.overall?.approvedSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                              style={{ width: `${Math.round((((statistics as any)?.overall?.approvedSubmissions || 0) / ((statistics as any)?.overall?.totalSubmissions || 1)) * 100)}%` }}
                             ></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-lg p-3 border border-purple-200">
                           <div className="text-sm text-purple-700 mb-1">Pending</div>
-                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.pendingSubmissions || 0}</div>
+                          <div className="text-2xl font-bold text-purple-800">{(statistics as any)?.overall?.pendingSubmissions || 0}</div>
                           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-yellow-500 h-2 rounded-full"
-                              style={{ width: `${Math.round(((statistics?.overall?.pendingSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                              style={{ width: `${Math.round((((statistics as any)?.overall?.pendingSubmissions || 0) / ((statistics as any)?.overall?.totalSubmissions || 1)) * 100)}%` }}
                             ></div>
                           </div>
                         </div>
                         <div className="bg-white rounded-lg p-3 border border-purple-200">
                           <div className="text-sm text-purple-700 mb-1">Rejected</div>
-                          <div className="text-2xl font-bold text-purple-800">{statistics?.overall?.rejectedSubmissions || 0}</div>
+                          <div className="text-2xl font-bold text-purple-800">{(statistics as any)?.overall?.rejectedSubmissions || 0}</div>
                           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-red-500 h-2 rounded-full"
-                              style={{ width: `${Math.round(((statistics?.overall?.rejectedSubmissions || 0) / (statistics?.overall?.totalSubmissions || 1)) * 100)}%` }}
+                              style={{ width: `${Math.round((((statistics as any)?.overall?.rejectedSubmissions || 0) / ((statistics as any)?.overall?.totalSubmissions || 1)) * 100)}%` }}
                             ></div>
                           </div>
                         </div>
@@ -3681,10 +3681,10 @@ const AdminDashboard: React.FC = () => {
                           <tbody className="bg-white divide-y divide-gray-200">
                             {schools.map((school: any) => {
                               // Get classes for this school
-                              const schoolClasses = classes.filter((c: any) => c.schoolId === school.id);
+                              const schoolClasses = (classes as any[]).filter((c: any) => c.schoolId === school.id);
                               
                               // Get students for this school
-                              const schoolStudents = allUsers.filter((u: any) => 
+                              const schoolStudents = (allUsers as any[]).filter((u: any) => 
                                 u.role === 'student' && u.schoolId === school.id
                               );
                               
@@ -3760,12 +3760,12 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {classes.map((classItem: any) => {
+                            {(classes as any[]).map((classItem: any) => {
                               // Get school for this class
                               const school = schools.find((s: any) => s.id === classItem.schoolId);
                               
                               // Get students for this class
-                              const classStudents = allUsers.filter((u: any) => 
+                              const classStudents = (allUsers as any[]).filter((u: any) => 
                                 u.role === 'student' && u.classId === classItem.id
                               );
                               
@@ -3879,11 +3879,11 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {allUsers
+                            {(allUsers as any[])
                               .filter((user: any) => user.role === 'student')
                               .slice(0, 10) // Limit to first 10 for demonstration
                               .map((student: any, index: number) => {
-                                const studentClass = classes.find((c: any) => c.id === student.classId);
+                                const studentClass = (classes as any[]).find((c: any) => c.id === student.classId);
                                 const school = schools.find((s: any) => s.id === student.schoolId);
                                 
                                 // For demonstration, we'll assume some students have submissions

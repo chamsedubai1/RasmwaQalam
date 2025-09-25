@@ -748,24 +748,24 @@ export default function AdminMonitoring() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {Object.entries(monitoringData.requestStats.endpoints)
-                          .sort((a, b) => b[1].totalRequests - a[1].totalRequests)
+                        {Object.entries((monitoringData as any).requestStats.endpoints)
+                          .sort((a, b) => (b[1] as any).totalRequests - (a[1] as any).totalRequests)
                           .map(([endpoint, stats], i) => (
                             <TableRow key={i}>
                               <TableCell className="font-mono text-xs">
                                 {endpoint}
                               </TableCell>
-                              <TableCell>{stats.totalRequests.toLocaleString()}</TableCell>
+                              <TableCell>{(stats as any).totalRequests.toLocaleString()}</TableCell>
                               <TableCell>
-                                {stats.totalRequests ? 
-                                  (stats.successfulRequests / stats.totalRequests * 100).toFixed(1) + '%' : 
+                                {(stats as any).totalRequests ? 
+                                  ((stats as any).successfulRequests / (stats as any).totalRequests * 100).toFixed(1) + '%' : 
                                   'N/A'}
                               </TableCell>
-                              <TableCell>{formatTime(stats.averageResponseTime)}</TableCell>
+                              <TableCell>{formatTime((stats as any).averageResponseTime)}</TableCell>
                               <TableCell>
-                                {stats.failedRequests > 0 ? (
+                                {(stats as any).failedRequests > 0 ? (
                                   <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200">
-                                    {stats.failedRequests} failed
+                                    {(stats as any).failedRequests} failed
                                   </Badge>
                                 ) : (
                                   <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
@@ -794,7 +794,7 @@ export default function AdminMonitoring() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {monitoringData.recentErrors.length === 0 ? (
+                  {(monitoringData as any).recentErrors.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="bg-green-50 dark:bg-green-950/30 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Shield className="h-6 w-6 text-green-500" />
@@ -819,7 +819,7 @@ export default function AdminMonitoring() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {monitoringData.recentErrors.map((error, i) => (
+                          {(monitoringData as any).recentErrors.map((error: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell className="whitespace-nowrap">
                                 {new Date(error.timestamp).toLocaleString()}
@@ -873,19 +873,19 @@ export default function AdminMonitoring() {
                         <div className="bg-muted p-4 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">Last 24 Hours</div>
                           <div className="text-2xl font-bold">
-                            {monitoringData.securityMetrics.failedLoginAttempts.last24Hours}
+                            {(monitoringData as any).securityMetrics.failedLoginAttempts.last24Hours}
                           </div>
                         </div>
                         <div className="bg-muted p-4 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">Last 7 Days</div>
                           <div className="text-2xl font-bold">
-                            {monitoringData.securityMetrics.failedLoginAttempts.last7Days}
+                            {(monitoringData as any).securityMetrics.failedLoginAttempts.last7Days}
                           </div>
                         </div>
                       </div>
 
                       <h3 className="text-lg font-medium mb-4">Suspicious Activities</h3>
-                      {monitoringData.securityMetrics.suspiciousActivities.length === 0 ? (
+                      {(monitoringData as any).securityMetrics.suspiciousActivities.length === 0 ? (
                         <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/50 p-4 rounded-lg">
                           <p className="text-green-700 dark:text-green-400">
                             No suspicious activities detected
@@ -893,7 +893,7 @@ export default function AdminMonitoring() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {monitoringData.securityMetrics.suspiciousActivities.map((activity, i) => (
+                          {(monitoringData as any).securityMetrics.suspiciousActivities.map((activity: any, i: number) => (
                             <div key={i} className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 p-3 rounded-lg">
                               <p className="text-amber-700 dark:text-amber-400 text-sm">
                                 {activity}
