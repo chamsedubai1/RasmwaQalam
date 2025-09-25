@@ -9,7 +9,8 @@ import {
   submissions, Submission, InsertSubmission,
   votes, Vote, InsertVote,
   secondaryTeacherAssignments, SecondaryTeacherAssignment, InsertSecondaryTeacherAssignment,
-  galleryItems, GalleryItem, InsertGalleryItem
+  galleryItems, GalleryItem, InsertGalleryItem,
+  refreshTokens, RefreshToken, InsertRefreshToken
 } from "@shared/schema";
 
 export interface IStorage {
@@ -118,6 +119,15 @@ export interface IStorage {
   createGalleryItem(galleryItem: InsertGalleryItem): Promise<GalleryItem>;
   updateGalleryItem(id: number, galleryItemData: Partial<GalleryItem>): Promise<GalleryItem | undefined>;
   deleteGalleryItem(id: number): Promise<boolean>;
+
+  // Refresh Token methods - for secure token rotation and invalidation
+  getRefreshToken(id: number): Promise<RefreshToken | undefined>;
+  getRefreshTokenByHash(tokenHash: string): Promise<RefreshToken | undefined>;
+  getActiveRefreshTokensByUser(userId: number): Promise<RefreshToken[]>;
+  createRefreshToken(refreshToken: InsertRefreshToken): Promise<RefreshToken>;
+  revokeRefreshToken(id: number, reason?: string): Promise<boolean>;
+  revokeAllUserRefreshTokens(userId: number, reason?: string): Promise<number>;
+  cleanupExpiredRefreshTokens(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -132,6 +142,7 @@ export class MemStorage implements IStorage {
   private votes: Map<number, Vote>;
   private secondaryTeacherAssignments: Map<number, SecondaryTeacherAssignment>;
   private galleryItems: Map<number, GalleryItem>;
+  private refreshTokens: Map<number, RefreshToken>;
   
   private userCounter: number;
   private cityCounter: number;
@@ -144,6 +155,7 @@ export class MemStorage implements IStorage {
   private voteCounter: number;
   private secondaryTeacherAssignmentCounter: number;
   private galleryItemCounter: number;
+  private refreshTokenCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -157,6 +169,7 @@ export class MemStorage implements IStorage {
     this.votes = new Map();
     this.secondaryTeacherAssignments = new Map();
     this.galleryItems = new Map();
+    this.refreshTokens = new Map();
     
     this.userCounter = 1;
     this.cityCounter = 1;
@@ -169,6 +182,7 @@ export class MemStorage implements IStorage {
     this.voteCounter = 1;
     this.secondaryTeacherAssignmentCounter = 1;
     this.galleryItemCounter = 1;
+    this.refreshTokenCounter = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -1069,6 +1083,79 @@ export class MemStorage implements IStorage {
 
   async deleteGalleryItem(id: number): Promise<boolean> {
     return this.galleryItems.delete(id);
+  }
+
+  // Refresh Token methods implementation
+  async getRefreshToken(id: number): Promise<RefreshToken | undefined> {
+    return this.refreshTokens.get(id);
+  }
+
+  async getRefreshTokenByHash(tokenHash: string): Promise<RefreshToken | undefined> {
+    for (const token of this.refreshTokens.values()) {
+      if (token.tokenHash === tokenHash && !token.isRevoked && new Date() < new Date(token.expiresAt)) {
+        return token;
+      }
+    }
+    return undefined;
+  }
+
+  async getActiveRefreshTokensByUser(userId: number): Promise<RefreshToken[]> {
+    const tokens: RefreshToken[] = [];
+    for (const token of this.refreshTokens.values()) {
+      if (token.userId === userId && !token.isRevoked && new Date() < new Date(token.expiresAt)) {
+        tokens.push(token);
+      }
+    }
+    return tokens;
+  }
+
+  async createRefreshToken(refreshTokenData: InsertRefreshToken): Promise<RefreshToken> {
+    const id = this.refreshTokenCounter++;
+    const refreshToken: RefreshToken = {
+      id,
+      ...refreshTokenData,
+      createdAt: new Date(),
+      revokedAt: null,
+    };
+    this.refreshTokens.set(id, refreshToken);
+    return refreshToken;
+  }
+
+  async revokeRefreshToken(id: number, reason?: string): Promise<boolean> {
+    const token = this.refreshTokens.get(id);
+    if (!token) return false;
+    
+    token.isRevoked = true;
+    token.revokedAt = new Date();
+    token.revokedReason = reason || 'manual_revocation';
+    this.refreshTokens.set(id, token);
+    return true;
+  }
+
+  async revokeAllUserRefreshTokens(userId: number, reason?: string): Promise<number> {
+    let revokedCount = 0;
+    for (const [id, token] of this.refreshTokens.entries()) {
+      if (token.userId === userId && !token.isRevoked) {
+        token.isRevoked = true;
+        token.revokedAt = new Date();
+        token.revokedReason = reason || 'user_logout';
+        this.refreshTokens.set(id, token);
+        revokedCount++;
+      }
+    }
+    return revokedCount;
+  }
+
+  async cleanupExpiredRefreshTokens(): Promise<number> {
+    let cleanedCount = 0;
+    const now = new Date();
+    for (const [id, token] of this.refreshTokens.entries()) {
+      if (new Date(token.expiresAt) < now) {
+        this.refreshTokens.delete(id);
+        cleanedCount++;
+      }
+    }
+    return cleanedCount;
   }
 }
 

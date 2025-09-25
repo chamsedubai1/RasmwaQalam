@@ -213,6 +213,24 @@ export const usersRelations = relations(users, ({ many }) => ({
   galleryItems: many(galleryItems)
 }));
 
+// Refresh Tokens table - for secure token rotation and invalidation
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: serial("id").primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(), // Hashed version of the token
+  userId: integer("user_id").notNull(), // Foreign key to users table
+  expiresAt: timestamp("expires_at").notNull(),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+  revokedReason: text("revoked_reason"), // 'logout', 'security', 'rotation', etc.
+});
+
+// Create insert schema for refresh tokens
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -246,3 +264,6 @@ export type InsertSecondaryTeacherAssignment = z.infer<typeof insertSecondaryTea
 
 export type GalleryItem = typeof galleryItems.$inferSelect;
 export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
+
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;

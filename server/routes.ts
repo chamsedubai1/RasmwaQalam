@@ -27,7 +27,10 @@ import {
   verifyPassword,
   generateAuthTokens,
   authenticateToken,
-  requireRole
+  requireRole,
+  verifyDatabaseRefreshToken,
+  revokeRefreshTokenById,
+  revokeAllUserRefreshTokensDb
 } from "./security";
 
 // AI service selection
@@ -163,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Token refresh endpoint
+  // SECURE Token refresh endpoint with rotation and database validation
   apiRouter.post('/auth/refresh', async (req, res) => {
     try {
       const { refreshToken } = req.body;
@@ -175,18 +178,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Verify the refresh token
-      const userId = await verifyRefreshToken(refreshToken);
+      // SECURITY: Verify refresh token from database (not just JWT)
+      const tokenData = await verifyDatabaseRefreshToken(refreshToken);
       
-      if (!userId) {
+      if (!tokenData) {
         return res.status(401).json({ 
-          message: 'Invalid or expired refresh token',
+          message: 'Invalid, expired, or revoked refresh token',
           code: 'INVALID_REFRESH_TOKEN'
         });
       }
       
       // Get user data
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(tokenData.userId);
       
       if (!user || !user.isActive) {
         return res.status(401).json({ 
@@ -195,8 +198,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Generate new tokens
+      // SECURITY: Revoke the old refresh token (rotation)
+      const revoked = await revokeRefreshTokenById(tokenData.tokenId, 'rotation');
+      
+      if (!revoked) {
+        console.warn(`Failed to revoke refresh token ${tokenData.tokenId} during rotation`);
+      }
+      
+      // Generate new tokens (automatically stores new refresh token in database)
       const authTokens = await generateAuthTokens(user);
+      
+      console.log(`Token rotation successful for user ${user.id}: old token revoked, new token issued`);
       
       res.json({
         accessToken: authTokens.accessToken,

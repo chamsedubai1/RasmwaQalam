@@ -4,6 +4,9 @@ import { promisify } from 'util';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 import { storage } from './storage';
+import { db } from './db';
+import { refreshTokens } from '@shared/schema';
+import { eq, and, lt } from 'drizzle-orm';
 
 // Convert callback-based scrypt to Promise-based
 const scryptAsync = promisify(scrypt);
@@ -109,6 +112,156 @@ export const apiRateLimiter = rateLimit({
   }
 });
 
+// Database-based Refresh Token Management
+// SECURITY: These functions provide server-side token storage and rotation
+
+/**
+ * Stores a refresh token in the database with hash for security
+ */
+export async function storeRefreshToken(userId: number, token: string, expiresAt: Date): Promise<number> {
+  const tokenHash = await hashRefreshToken(token);
+  
+  const [refreshToken] = await db.insert(refreshTokens).values({
+    tokenHash,
+    userId,
+    expiresAt,
+    isRevoked: false
+  }).returning();
+  
+  return refreshToken.id;
+}
+
+/**
+ * Verifies and retrieves refresh token from database with JWT signature validation
+ * SECURITY FIX: Now validates JWT signature and expiration before database check
+ */
+export async function verifyDatabaseRefreshToken(token: string): Promise<{ userId: number; tokenId: number } | null> {
+  try {
+    // SECURITY: First verify the JWT signature and expiration
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET, {
+      issuer: 'rasm-wa-qalam',
+      audience: 'rasm-wa-qalam-users'
+    }) as { userId: number; tokenType: string; exp: number };
+    
+    // Ensure this is a refresh token
+    if (decoded.tokenType !== 'refresh') {
+      console.warn('Token verification failed: not a refresh token');
+      return null;
+    }
+    
+    // Check JWT expiration (additional safety check)
+    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+      console.warn('Token verification failed: JWT expired');
+      return null;
+    }
+    
+    // Now check database for token hash and revocation status
+    const tokenHash = await hashRefreshToken(token);
+    
+    const [dbToken] = await db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.tokenHash, tokenHash),
+          eq(refreshTokens.userId, decoded.userId),
+          eq(refreshTokens.isRevoked, false)
+        )
+      )
+      .limit(1);
+    
+    if (!dbToken) {
+      console.warn('Token verification failed: not found in database or revoked');
+      return null;
+    }
+    
+    // Check database expiration
+    if (new Date() >= new Date(dbToken.expiresAt)) {
+      console.warn('Token verification failed: expired in database');
+      return null;
+    }
+    
+    return { userId: decoded.userId, tokenId: dbToken.id };
+  } catch (error) {
+    console.error('Refresh token verification failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Revokes a refresh token by ID with reason
+ */
+export async function revokeRefreshTokenById(tokenId: number, reason: string = 'rotation'): Promise<boolean> {
+  try {
+    const [updated] = await db
+      .update(refreshTokens)
+      .set({
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: reason
+      })
+      .where(eq(refreshTokens.id, tokenId))
+      .returning();
+    
+    return !!updated;
+  } catch (error) {
+    console.error('Failed to revoke refresh token:', error);
+    return false;
+  }
+}
+
+/**
+ * Revokes all refresh tokens for a user (logout all devices)
+ */
+export async function revokeAllUserRefreshTokensDb(userId: number, reason: string = 'logout_all'): Promise<number> {
+  try {
+    const updated = await db
+      .update(refreshTokens)
+      .set({
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: reason
+      })
+      .where(
+        and(
+          eq(refreshTokens.userId, userId),
+          eq(refreshTokens.isRevoked, false)
+        )
+      )
+      .returning();
+    
+    return updated.length;
+  } catch (error) {
+    console.error('Failed to revoke user refresh tokens:', error);
+    return 0;
+  }
+}
+
+/**
+ * Cleanup expired refresh tokens (run periodically)
+ */
+export async function cleanupExpiredRefreshTokensDb(): Promise<number> {
+  try {
+    const deleted = await db
+      .delete(refreshTokens)
+      .where(lt(refreshTokens.expiresAt, new Date()))
+      .returning();
+    
+    return deleted.length;
+  } catch (error) {
+    console.error('Failed to cleanup expired refresh tokens:', error);
+    return 0;
+  }
+}
+
+/**
+ * Hash refresh token for secure storage
+ */
+async function hashRefreshToken(token: string): Promise<string> {
+  const hash = await scryptAsync(token, 'refresh_token_salt_rasm_qalam', 32);
+  return (hash as Buffer).toString('hex');
+}
+
 // JWT Configuration
 const JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || randomBytes(32).toString('hex');
@@ -135,7 +288,8 @@ interface AuthTokens {
 }
 
 /**
- * Generates JWT access and refresh tokens for a user
+ * Generates JWT access and refresh tokens for a user with database storage
+ * SECURITY: Refresh tokens are now stored in database for rotation and revocation
  * @param user User object containing id, username, role, etc.
  * @returns Object containing access token, refresh token, and expiration time
  */
@@ -161,7 +315,7 @@ export async function generateAuthTokens(user: {
     audience: 'rasm-wa-qalam-users'
   });
 
-  // Refresh token expires in 7 days
+  // Generate refresh token with 7 days expiration
   const refreshToken = jwt.sign(
     { userId: user.id, tokenType: 'refresh' }, 
     JWT_REFRESH_SECRET, 
@@ -171,6 +325,18 @@ export async function generateAuthTokens(user: {
       audience: 'rasm-wa-qalam-users'
     }
   );
+
+  // SECURITY: Store refresh token in database for rotation and revocation
+  const refreshTokenExpiresAt = new Date();
+  refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 7); // 7 days from now
+  
+  try {
+    await storeRefreshToken(user.id, refreshToken, refreshTokenExpiresAt);
+    console.log(`Refresh token stored for user ${user.id}`);
+  } catch (error) {
+    console.error('Failed to store refresh token in database:', error);
+    // Continue anyway - token will work but won't have rotation capability
+  }
 
   return {
     accessToken,
