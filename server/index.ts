@@ -67,16 +67,42 @@ app.use((req, res, next) => {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
   
-  // CSP: Content Security Policy to prevent XSS and injection attacks
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self' data:; " +
-    "connect-src 'self' ws: wss:; " +
-    "frame-ancestors 'none'"
-  );
+  // SECURITY FIX: Strict CSP without unsafe-inline/unsafe-eval
+  // Different policies for development vs production
+  let cspDirectives: string;
+  
+  if (config.NODE_ENV === 'production') {
+    // Production: Strict CSP - no unsafe directives
+    cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self'", // No unsafe-inline, no unsafe-eval
+      "style-src 'self'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' wss:", // Production uses WSS
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "upgrade-insecure-requests"
+    ].join('; ');
+  } else {
+    // Development: Relaxed for Vite HMR, but still avoid eval
+    cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'", // Vite needs inline for HMR
+      "style-src 'self' 'unsafe-inline'", // Vite injects inline styles
+      "img-src 'self' data: https: blob:", // Blob for Vite assets
+      "font-src 'self' data:",
+      "connect-src 'self' ws: wss:", // Dev uses WS
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'"
+    ].join('; ');
+  }
+  
+  res.setHeader('Content-Security-Policy', cspDirectives);
   
   // X-Frame-Options: Prevent clickjacking
   res.setHeader('X-Frame-Options', 'DENY');
