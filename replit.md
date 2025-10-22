@@ -37,10 +37,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Authentication and Authorization
 - **Password Security**: Scrypt-based password hashing with unique salts and timing-safe comparisons
+- **JWT Authentication**: Secure token-based authentication with httpOnly cookies (XSS-safe)
+- **Token Rotation**: Automatic refresh token rotation with database-backed revocation support
+- **Session Timeout**: 30-minute idle timeout with automatic cleanup for inactive users
 - **Rate Limiting**: Tiered rate limiting protecting login, registration, and API endpoints
 - **Role-based Access**: Four-tier user system (student, teacher, schoolAdmin, admin) with granular permissions
 - **CAPTCHA Protection**: Custom SVG CAPTCHA system preventing automated registrations
-- **Session Management**: Secure session handling with configurable timeouts and encryption
+- **CSRF Protection**: Double-submit cookie pattern protecting all state-changing requests
+- **WebSocket Authentication**: Cookie-based token verification for real-time connections
 
 ### AI Integration Architecture
 - **Multi-Provider Support**: Flexible AI service architecture supporting Claude (Anthropic), OpenAI, Hugging Face, and Stability AI
@@ -48,11 +52,25 @@ Preferred communication style: Simple, everyday language.
 - **Content Generation**: Separate endpoints for poem and image generation with style customization
 - **Queue System**: Bull queue implementation for managing AI processing workloads and preventing API quota exhaustion
 
+### Security Architecture (Enterprise-Grade)
+- **HTTP-Only Cookies**: JWT tokens stored in httpOnly cookies to prevent XSS attacks
+- **CSRF Protection**: Double-submit cookie pattern with timing-safe token validation
+- **Content Security Policy**: Strict CSP in production (no unsafe-inline/unsafe-eval)
+- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+- **CORS Lockdown**: Strict origin allowlist with credentials and custom header support
+- **Input Validation**: Global Zod validation middleware preventing injection attacks
+- **File Upload Security**: Magic byte verification, MIME type validation, strict allowlists
+- **Signed URLs**: HMAC-signed URLs for file downloads with expiration and access control
+- **Audit Logging**: Tamper-proof audit logs with HMAC integrity hashes for all administrative actions
+- **Error Sanitization**: Production error responses sanitized to prevent information disclosure
+- **Secrets Management**: Centralized validation and type-safe access to environment variables
+
 ### Monitoring and Performance
 - **Request Tracking**: Comprehensive monitoring service tracking API performance, error rates, and system health
 - **WebSocket Analytics**: Real-time connection monitoring with message tracking and performance metrics
 - **Error Handling**: Centralized error logging with detailed context for debugging
 - **Security Monitoring**: Login attempt tracking and rate limit violation logging
+- **Audit Trail**: Complete audit log database with tamper-proof integrity verification for compliance
 
 ### Competition System Design
 - **Multi-stage Voting**: Hierarchical competition structure (class → school → country → global stages)
