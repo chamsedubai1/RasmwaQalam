@@ -33,6 +33,7 @@ import {
   revokeAllUserRefreshTokensDb,
   COOKIE_CONFIG
 } from "./security";
+import { validateCsrfToken } from "./csrf";
 
 // AI service selection
 const AI_SERVICE = {
@@ -71,6 +72,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Apply general rate limiting to all API routes
   apiRouter.use(apiRateLimiter);
+  
+  // SECURITY ENHANCEMENT: Apply CSRF protection to all state-changing routes
+  // This validates CSRF tokens on POST, PUT, PATCH, DELETE requests
+  apiRouter.use(validateCsrfToken);
   
   // Auth and user-related routes
   // SECURE JWT-based login endpoint - replaces insecure username:timestamp system

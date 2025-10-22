@@ -7,6 +7,14 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+/**
+ * SECURITY ENHANCEMENT: Get CSRF token from cookie for protection against CSRF attacks
+ */
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/csrf_token=([^;]+)/);
+  return match ? match[1] : null;
+}
+
 export async function apiRequest<T = any>(
   method: string,
   url: string,
@@ -21,6 +29,14 @@ export async function apiRequest<T = any>(
   // Add Content-Type for requests with a body
   if (data) {
     headers["Content-Type"] = "application/json";
+  }
+  
+  // SECURITY ENHANCEMENT: Add CSRF token for state-changing requests
+  if (method !== 'GET' && method !== 'HEAD') {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers["x-csrf-token"] = csrfToken;
+    }
   }
   
   const res = await fetch(url, {

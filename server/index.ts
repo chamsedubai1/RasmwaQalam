@@ -5,6 +5,7 @@ import session from "express-session";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { config } from "./config";
+import { setCsrfToken } from "./csrf";
 
 console.log(`Starting server in ${config.NODE_ENV} mode`);
 
@@ -52,7 +53,7 @@ app.use(cors({
   },
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-csrf-token'],
   exposedHeaders: ['X-Total-Count'],
   maxAge: 86400 // 24 hours preflight cache
 }));
@@ -138,6 +139,10 @@ app.use(session({
 // Increase JSON body size limit to 50MB for image data
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// SECURITY ENHANCEMENT: CSRF protection - generate tokens for all requests
+// This sets the CSRF token cookie that the frontend can read
+app.use(setCsrfToken);
 
 app.use((req, res, next) => {
   const start = Date.now();
