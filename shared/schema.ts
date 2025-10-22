@@ -10,6 +10,7 @@ export const eventStatusEnum = pgEnum('event_status', ['upcoming', 'open', 'clos
 export const eventStageEnum = pgEnum('event_stage', ['class', 'school', 'country', 'global']);
 export const eventModeEnum = pgEnum('event_mode', ['allowAI', 'noAI']);
 export const galleryItemTypeEnum = pgEnum('gallery_item_type', ['poem', 'image']);
+export const auditSeverityEnum = pgEnum('audit_severity', ['INFO', 'WARNING', 'ERROR', 'CRITICAL']);
 
 // Users table
 export const users = pgTable("users", {
@@ -141,6 +142,27 @@ export const galleryItems = pgTable("gallery_items", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
   isActive: boolean("is_active").notNull().default(true),
+});
+
+// Audit Logs table - SECURITY ENHANCEMENT for compliance and forensics
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  userId: integer("user_id").notNull(), // User who performed the action (0 for system/anonymous)
+  username: text("username").notNull(),
+  userRole: text("user_role").notNull(),
+  action: text("action").notNull(), // AuditAction enum value
+  resource: text("resource").notNull(), // Resource type (e.g., 'user', 'school', 'event')
+  resourceId: text("resource_id"), // ID of the affected resource
+  ipAddress: text("ip_address").notNull(),
+  userAgent: text("user_agent").notNull(),
+  changesBefore: text("changes_before"), // JSON string of previous state
+  changesAfter: text("changes_after"), // JSON string of new state
+  success: boolean("success").notNull().default(true),
+  errorMessage: text("error_message"),
+  severity: auditSeverityEnum("severity").notNull().default('INFO'),
+  sessionId: text("session_id"),
+  integrityHash: text("integrity_hash").notNull(), // HMAC for tamper detection
 });
 
 // Insert schemas

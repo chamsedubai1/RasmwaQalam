@@ -34,6 +34,7 @@ import {
   COOKIE_CONFIG
 } from "./security";
 import { validateCsrfToken } from "./csrf";
+import { createAuditLog, AuditAction, AuditSeverity } from "./audit-log";
 
 // AI service selection
 const AI_SERVICE = {
@@ -97,6 +98,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         // Add a small delay to prevent timing attacks that could determine if a username exists
         await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
+        
+        // SECURITY ENHANCEMENT: Audit log failed login attempt
+        await createAuditLog(req, AuditAction.LOGIN_FAILED, 'auth', {
+          success: false,
+          errorMessage: 'User not found',
+          severity: AuditSeverity.WARNING,
+        });
+        
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
@@ -117,6 +126,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isPasswordValid) {
         // For security, log failed attempts (but not username)
         console.log(`Failed login attempt from IP: ${req.ip || 'unknown'}`);
+        
+        // SECURITY ENHANCEMENT: Audit log failed login attempt
+        await createAuditLog(req, AuditAction.LOGIN_FAILED, 'auth', {
+          resourceId: user.id.toString(),
+          success: false,
+          errorMessage: 'Invalid password',
+          severity: AuditSeverity.WARNING,
+        });
+        
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
@@ -144,6 +162,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log successful login (without sensitive data)
       console.log(`Successful login from IP: ${req.ip || 'unknown'}`);
+      
+      // SECURITY ENHANCEMENT: Audit log successful login
+      await createAuditLog(req, AuditAction.LOGIN_SUCCESS, 'auth', {
+        resourceId: user.id.toString(),
+        success: true,
+        severity: AuditSeverity.INFO,
+      });
       
       // SECURITY ENHANCEMENT: Set tokens in httpOnly cookies (XSS-safe)
       res.cookie(COOKIE_CONFIG.ACCESS_TOKEN, authTokens.accessToken, {
