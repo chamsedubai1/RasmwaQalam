@@ -5,7 +5,7 @@ import express, { Router, Request, Response, Express } from 'express';
 import { storage as dbStorage } from './storage';
 import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { authenticateToken, requireRole } from './security';
-import { config } from './config';
+import { getConfig } from './config';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -64,6 +64,7 @@ function verifyFileType(filePath: string, declaredMimeType: string): boolean {
  * Prevents direct access to uploaded files and enables access control
  */
 export function generateSignedUrl(filename: string, expiresIn: number = 3600): string {
+  const config = getConfig();
   const expires = Math.floor(Date.now() / 1000) + expiresIn;
   const payload = `${filename}:${expires}`;
   
@@ -85,6 +86,8 @@ function verifySignedUrl(filename: string, expires: string, signature: string): 
     if (isNaN(expiryTime) || Date.now() / 1000 > expiryTime) {
       return false;
     }
+    
+    const config = getConfig();
     
     // Recreate expected signature
     const payload = `${filename}:${expires}`;

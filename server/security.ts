@@ -7,7 +7,7 @@ import { storage } from './storage';
 import { db } from './db';
 import { refreshTokens } from '@shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
-import { config } from './config';
+import { getConfig } from './config';
 import { sessionManager } from './session-manager';
 
 // Convert callback-based scrypt to Promise-based
@@ -139,6 +139,11 @@ export async function storeRefreshToken(userId: number, token: string, expiresAt
  */
 export async function verifyDatabaseRefreshToken(token: string): Promise<{ userId: number; tokenId: number } | null> {
   try {
+    // Ensure secrets are initialized
+    if (!JWT_REFRESH_SECRET) {
+      initializeSecrets();
+    }
+    
     // SECURITY: First verify the JWT signature and expiration
     const decoded = jwt.verify(token, JWT_REFRESH_SECRET, {
       issuer: 'rasm-wa-qalam',
@@ -265,21 +270,48 @@ async function hashRefreshToken(token: string): Promise<string> {
 }
 
 // SECURITY ENHANCEMENT: Use centralized validated configuration
-const JWT_SECRET = config.JWT_SECRET;
-const JWT_REFRESH_SECRET = config.JWT_REFRESH_SECRET;
+// Note: These are lazy-loaded from getConfig() after initialization
+let JWT_SECRET: string;
+let JWT_REFRESH_SECRET: string;
+let IS_PRODUCTION: boolean;
 
-// Cookie Configuration for secure token storage
+// Initialize secrets from config (called after config initialization)
+function initializeSecrets() {
+  const config = getConfig();
+  JWT_SECRET = config.JWT_SECRET;
+  JWT_REFRESH_SECRET = config.JWT_REFRESH_SECRET;
+  IS_PRODUCTION = config.NODE_ENV === 'production';
+}
+
+// Cookie Configuration for secure token storage (lazy-loaded)
+let _cookieConfig: any = null;
+
+export function getCookieConfig() {
+  if (!_cookieConfig) {
+    const config = getConfig();
+    _cookieConfig = {
+      ACCESS_TOKEN: 'access_token',
+      REFRESH_TOKEN: 'refresh_token',
+      OPTIONS: {
+        httpOnly: true, // Prevents XSS attacks
+        secure: config.NODE_ENV === 'production', // HTTPS only in production
+        sameSite: 'strict' as const, // CSRF protection
+        path: '/',
+      },
+      ACCESS_MAX_AGE: 15 * 60 * 1000, // 15 minutes
+      REFRESH_MAX_AGE: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+  }
+  return _cookieConfig;
+}
+
+// Export getter for backwards compatibility
 export const COOKIE_CONFIG = {
-  ACCESS_TOKEN: 'access_token',
-  REFRESH_TOKEN: 'refresh_token',
-  OPTIONS: {
-    httpOnly: true, // Prevents XSS attacks
-    secure: config.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict' as const, // CSRF protection
-    path: '/',
-  },
-  ACCESS_MAX_AGE: 15 * 60 * 1000, // 15 minutes
-  REFRESH_MAX_AGE: 7 * 24 * 60 * 60 * 1000, // 7 days
+  get ACCESS_TOKEN() { return getCookieConfig().ACCESS_TOKEN; },
+  get REFRESH_TOKEN() { return getCookieConfig().REFRESH_TOKEN; },
+  get OPTIONS() { return getCookieConfig().OPTIONS; },
+  get ACCESS_MAX_AGE() { return getCookieConfig().ACCESS_MAX_AGE; },
+  get REFRESH_MAX_AGE() { return getCookieConfig().REFRESH_MAX_AGE; },
 };
 
 interface JWTPayload {
@@ -311,6 +343,11 @@ export async function generateAuthTokens(user: {
   schoolId?: number | null;
   classId?: number | null;
 }): Promise<AuthTokens> {
+  // Ensure secrets are initialized
+  if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+    initializeSecrets();
+  }
+
   const payload: JWTPayload = {
     userId: user.id,
     username: user.username,
@@ -363,6 +400,11 @@ export async function generateAuthTokens(user: {
  */
 export async function verifyAccessToken(token: string): Promise<JWTPayload | null> {
   try {
+    // Ensure secrets are initialized
+    if (!JWT_SECRET) {
+      initializeSecrets();
+    }
+    
     const decoded = jwt.verify(token, JWT_SECRET, {
       issuer: 'rasm-wa-qalam',
       audience: 'rasm-wa-qalam-users'
@@ -382,6 +424,11 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload | nul
  */
 export async function verifyRefreshToken(token: string): Promise<number | null> {
   try {
+    // Ensure secrets are initialized
+    if (!JWT_REFRESH_SECRET) {
+      initializeSecrets();
+    }
+    
     const decoded = jwt.verify(token, JWT_REFRESH_SECRET, {
       issuer: 'rasm-wa-qalam',
       audience: 'rasm-wa-qalam-users'

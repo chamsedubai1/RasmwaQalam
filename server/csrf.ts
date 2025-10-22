@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { config } from './config';
+import { getConfig } from './config';
 
 // CSRF token configuration
 const CSRF_TOKEN_LENGTH = 32;
@@ -56,6 +56,8 @@ export function setCsrfToken(req: Request, res: Response, next: NextFunction): v
     // Generate new token if it doesn't exist
     csrfToken = generateCsrfToken();
     
+    const config = getConfig();
+    
     // Set CSRF token in cookie
     res.cookie(CSRF_COOKIE_NAME, csrfToken, {
       httpOnly: false, // Must be readable by JavaScript for double-submit
@@ -76,7 +78,7 @@ export function setCsrfToken(req: Request, res: Response, next: NextFunction): v
  * Middleware to validate CSRF token on state-changing requests
  * Should be applied to POST, PUT, PATCH, DELETE routes
  */
-export function validateCsrfToken(req: Request, res: Response, next: NextFunction): void {
+export function validateCsrfToken(req: Request, res: Response, next: NextFunction) {
   // Skip CSRF validation for safe HTTP methods
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   if (safeMethods.includes(req.method)) {
@@ -94,10 +96,11 @@ export function validateCsrfToken(req: Request, res: Response, next: NextFunctio
   // Validate tokens match
   if (!verifyCsrfTokenMatch(cookieToken, tokenFromRequest)) {
     console.warn(`CSRF validation failed for ${req.method} ${req.path} from IP: ${req.ip}`);
-    return res.status(403).json({ 
+    res.status(403).json({ 
       message: 'Invalid or missing CSRF token',
       code: 'CSRF_VALIDATION_FAILED'
     });
+    return;
   }
   
   // CSRF token is valid, proceed

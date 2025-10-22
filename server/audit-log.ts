@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { storage } from './storage';
 import { createHash, createHmac } from 'crypto';
-import { config } from './config';
+import { getConfig } from './config';
 
 /**
  * SECURITY ENHANCEMENT: Comprehensive audit logging system
@@ -109,6 +109,7 @@ export enum AuditSeverity {
  * Uses HMAC-SHA256 to ensure logs cannot be modified without detection
  */
 function generateIntegrityHash(entry: Omit<AuditLogEntry, 'integrityHash'>): string {
+  const config = getConfig();
   const data = JSON.stringify({
     timestamp: entry.timestamp.toISOString(),
     userId: entry.userId,
