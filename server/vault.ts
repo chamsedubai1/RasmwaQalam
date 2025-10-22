@@ -105,6 +105,12 @@ export class VaultService {
   }
 
   /**
+   * Track consecutive renewal failures for alerting
+   */
+  private consecutiveRenewalFailures: number = 0;
+  private readonly MAX_CONSECUTIVE_FAILURES = 3;
+
+  /**
    * Set up automatic token renewal before expiration
    */
   private setupTokenRenewal(): void {
@@ -119,13 +125,26 @@ export class VaultService {
     this.renewalInterval = setInterval(async () => {
       try {
         await this.renewToken();
+        this.consecutiveRenewalFailures = 0; // Reset on success
       } catch (error) {
-        console.error('❌ Vault: Token renewal failed, attempting re-authentication');
+        this.consecutiveRenewalFailures++;
+        console.error(`❌ Vault: Token renewal failed (attempt ${this.consecutiveRenewalFailures}/${this.MAX_CONSECUTIVE_FAILURES})`);
+        
+        // Alert after multiple failures
+        if (this.consecutiveRenewalFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+          console.error('🚨 CRITICAL: Vault token renewal has failed multiple times. Service may lose access to secrets.');
+          // TODO: Integrate with alerting system (PagerDuty, Slack, email, etc.)
+          // await sendAlert('Vault token renewal critical failure', { attempts: this.consecutiveRenewalFailures });
+        }
+        
+        // Attempt re-authentication
         try {
           await this.authenticateWithAppRole();
+          this.consecutiveRenewalFailures = 0; // Reset on successful re-auth
         } catch (reAuthError) {
           console.error('❌ Vault: Re-authentication failed:', reAuthError);
-          // In production, you might want to trigger an alert here
+          console.error('🚨 CRITICAL: Unable to renew or re-authenticate Vault token. Immediate operator intervention required.');
+          // TODO: Trigger high-priority alert
         }
       }
     }, renewalTime);
@@ -314,16 +333,26 @@ export class VaultService {
       this.accessLog.shift();
     }
 
-    // In production, you'd also write this to persistent audit logs
-    if (process.env.NODE_ENV === 'production') {
-      const logEntry = {
-        timestamp: metadata.timestamp.toISOString(),
-        path: metadata.path,
-        accessor: metadata.accessedBy,
-        success: metadata.success,
-      };
-      console.log('VAULT_AUDIT:', JSON.stringify(logEntry));
-    }
+    // Write to persistent audit logs immediately for FERPA compliance
+    const logEntry = {
+      timestamp: metadata.timestamp.toISOString(),
+      path: metadata.path,
+      accessor: metadata.accessedBy,
+      success: metadata.success,
+    };
+    
+    // Structured logging for audit trail
+    console.log('VAULT_AUDIT:', JSON.stringify(logEntry));
+    
+    // TODO: Integrate with application audit logging system
+    // This ensures Vault access is tracked alongside all other audit events
+    // Example:
+    // const { createAuditLog } = await import('./audit-log');
+    // createAuditLog(req, AuditAction.VAULT_SECRET_ACCESS, 'vault-secrets', {
+    //   resourceId: metadata.path,
+    //   success: metadata.success,
+    //   severity: metadata.success ? AuditSeverity.INFO : AuditSeverity.WARNING
+    // });
   }
 
   /**

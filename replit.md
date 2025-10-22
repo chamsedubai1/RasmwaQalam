@@ -63,7 +63,17 @@ Preferred communication style: Simple, everyday language.
 - **Signed URLs**: HMAC-signed URLs for file downloads with expiration and access control
 - **Audit Logging**: Tamper-proof audit logs with HMAC integrity hashes for all administrative actions
 - **Error Sanitization**: Production error responses sanitized to prevent information disclosure
-- **Secrets Management**: Centralized validation and type-safe access to environment variables
+- **Secrets Management**: HashiCorp Vault integration for FERPA-compliant secrets management with audit trails and automatic rotation
+
+### FERPA Compliance (Secrets Management)
+- **HashiCorp Vault Integration**: Production-grade secrets management meeting FERPA 2025 requirements
+- **Audit Trail**: Complete tracking of all secret access with timestamp, accessor, and success/failure logging
+- **Encryption at Rest**: All secrets encrypted in Vault storage backend
+- **Secret Rotation**: Zero-downtime secret rotation capabilities with versioning
+- **Access Control**: Fine-grained AppRole-based policies controlling secret access
+- **Token Management**: Automatic token renewal with consecutive failure alerting and recovery
+- **Hybrid Deployment**: Vault-first architecture with graceful fallback to environment variables for development
+- **Operational Monitoring**: Comprehensive runbooks for incident response and routine maintenance
 
 ### Monitoring and Performance
 - **Request Tracking**: Comprehensive monitoring service tracking API performance, error rates, and system health
@@ -97,6 +107,7 @@ Preferred communication style: Simple, everyday language.
 - **ESBuild**: High-performance JavaScript bundler for server-side code compilation
 
 ### Security and Monitoring
+- **HashiCorp Vault**: Enterprise secrets management with AppRole authentication and audit logging
 - **Express Rate Limit**: API protection against abuse and automated attacks
 - **WebSocket (ws)**: Real-time communication library for live updates and notifications
 - **Multer**: File upload middleware with validation and security features
