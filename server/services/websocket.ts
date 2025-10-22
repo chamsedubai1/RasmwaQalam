@@ -140,13 +140,27 @@ export class WebSocketService {
 
   /**
    * Authenticate WebSocket connection using JWT token
-   * SECURITY: This replaces the previous anonymous connection system
+   * SECURITY ENHANCEMENT: Now reads from httpOnly cookies (XSS-safe) with query parameter fallback
    */
   private async authenticateConnection(ws: WebSocket, request: any, clientId: string): Promise<boolean> {
     try {
-      // Extract token from query parameters (e.g., ws://host/ws?token=jwt_token)
-      const url = parseUrl(request.url || '', true);
-      const token = url.query.token as string;
+      let token: string | undefined;
+      
+      // SECURITY: Try to get token from httpOnly cookie first (most secure)
+      if (request.headers.cookie) {
+        const cookies = request.headers.cookie.split(';').reduce((acc: Record<string, string>, cookie: string) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {});
+        token = cookies.access_token;
+      }
+      
+      // Fallback to query parameter for backward compatibility (less secure)
+      if (!token) {
+        const url = parseUrl(request.url || '', true);
+        token = url.query.token as string;
+      }
       
       if (!token) {
         console.log(`WebSocket connection rejected - no token provided for client ${clientId}`);

@@ -77,11 +77,11 @@ export default function LoginPage() {
         password: loginPassword
       });
       
-      // Store user data in context - NEW: Handle JWT response structure
+      // SECURITY ENHANCEMENT: Store user data (tokens now in httpOnly cookies)
       console.log("Login successful:", response);
       
-      // NEW: Handle JWT-based authentication response
-      if (response.user && response.accessToken) {
+      // Handle cookie-based authentication response
+      if (response.user) {
         const userData = {
           id: response.user.id,
           username: response.user.username,
@@ -98,51 +98,13 @@ export default function LoginPage() {
         // Set full user data in context
         setUser(userData);
         
-        // SECURITY FIX: Store proper JWT tokens instead of insecure username:timestamp
-        localStorage.setItem('authToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
+        // SECURITY: Tokens are now in httpOnly cookies (not localStorage)
+        // Only store user data, not tokens
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('userRole', response.user.role);
         
         // Redirect based on role
         switch (response.user.role) {
-          case "admin":
-            setLocation("/admin");
-            break;
-          case "schoolAdmin":
-            setLocation("/school-admin");
-            break;
-          case "teacher":
-            setLocation("/teacher");
-            break;
-          case "student":
-            setLocation("/");
-            break;
-          default:
-            setLocation("/");
-        }
-      } else if (response.role) {
-        // FALLBACK: Handle old response format for backward compatibility
-        const userData = {
-          id: response.id,
-          username: response.username,
-          fullName: response.fullName || response.username,
-          role: response.role,
-          schoolId: response.schoolId,
-          classId: response.classId,
-          gradeLevel: response.gradeLevel
-        };
-        
-        setUserRole(response.role);
-        setUser(userData);
-        
-        // Store data but warn about insecure format
-        console.warn('WARNING: Received old response format without JWT tokens');
-        localStorage.setItem('authToken', `${response.username}:${Date.now()}`);
-        localStorage.setItem('userData', JSON.stringify(userData));
-        localStorage.setItem('userRole', response.role);
-        
-        switch (response.role) {
           case "admin":
             setLocation("/admin");
             break;

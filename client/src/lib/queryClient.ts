@@ -12,8 +12,8 @@ export async function apiRequest<T = any>(
   url: string,
   data?: unknown | undefined,
 ): Promise<T> {
-  // Get auth token from localStorage if available
-  const authToken = localStorage.getItem('authToken');
+  // SECURITY ENHANCEMENT: Tokens now in httpOnly cookies, automatically sent by browser
+  // No need to read from localStorage - prevents XSS attacks
   
   // Set up headers
   const headers: Record<string, string> = {};
@@ -23,16 +23,11 @@ export async function apiRequest<T = any>(
     headers["Content-Type"] = "application/json";
   }
   
-  // Add Authorization header if token exists
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
-  }
-  
   const res = await fetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // This sends httpOnly cookies automatically
   });
 
   await throwIfResNotOk(res);
@@ -51,20 +46,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Get auth token from localStorage if available
-    const authToken = localStorage.getItem('authToken');
-    
-    // Set up headers
-    const headers: Record<string, string> = {};
-    
-    // Add Authorization header if token exists
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`;
-    }
+    // SECURITY ENHANCEMENT: Tokens now in httpOnly cookies, automatically sent by browser
+    // No need to add Authorization header - prevents XSS attacks
     
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-      headers
+      credentials: "include", // This sends httpOnly cookies automatically
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

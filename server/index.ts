@@ -2,11 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
-import crypto from "crypto";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import { config } from "./config";
 
-// Set NODE_ENV to development if not set
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-console.log(`Starting server in ${process.env.NODE_ENV} mode`);
+console.log(`Starting server in ${config.NODE_ENV} mode`);
 
 const app = express();
 
@@ -14,13 +14,97 @@ const app = express();
 // This is necessary for X-Forwarded-For headers to be properly read
 app.set('trust proxy', 1);
 
+// SECURITY ENHANCEMENT: Strict CORS policy with allowlist
+const allowedOrigins = config.ALLOWED_ORIGINS 
+  ? config.ALLOWED_ORIGINS.split(',')
+  : [
+      'https://*.replit.dev',
+      'https://*.repl.co',
+      config.NODE_ENV === 'development' ? 'http://localhost:5000' : ''
+    ].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // In development, allow requests with no origin (same-origin requests, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        // Handle wildcard patterns like https://*.replit.dev
+        const pattern = allowed.replace(/\*/g, '[^.]+');
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else if (config.NODE_ENV === 'development') {
+      // In development, allow all origins for local testing
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy violation: Origin not allowed'));
+    }
+  },
+  credentials: true, // Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['X-Total-Count'],
+  maxAge: 86400 // 24 hours preflight cache
+}));
+
+// SECURITY: Cookie parser middleware for reading httpOnly cookies
+app.use(cookieParser());
+
+// SECURITY ENHANCEMENT: Comprehensive security headers middleware
+app.use((req, res, next) => {
+  // HSTS: Force HTTPS for 1 year (including subdomains)
+  if (config.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
+  // CSP: Content Security Policy to prevent XSS and injection attacks
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self' ws: wss:; " +
+    "frame-ancestors 'none'"
+  );
+  
+  // X-Frame-Options: Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // X-Content-Type-Options: Prevent MIME sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // X-XSS-Protection: Enable XSS filter (legacy browsers)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Referrer-Policy: Control referrer information
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Permissions-Policy: Disable unnecessary browser features
+  res.setHeader('Permissions-Policy', 
+    'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()'
+  );
+  
+  next();
+});
+
 // Set up session middleware for CAPTCHA
 app.use(session({
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: config.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: config.NODE_ENV === 'production',
     maxAge: 30 * 60 * 1000 // 30 minutes
   }
 }));
@@ -62,12 +146,43 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  // SECURITY ENHANCEMENT: Sanitized error handling middleware
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    
+    // Log full error details server-side for debugging (never expose to client)
+    console.error('Error occurred:', {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: req.path,
+      status,
+      message: err.message,
+      stack: config.NODE_ENV === 'development' ? err.stack : undefined,
+      // Don't log request body as it may contain sensitive data
+    });
+    
+    // SECURITY: Sanitize error message for client (prevent information disclosure)
+    let clientMessage: string;
+    
+    if (status >= 400 && status < 500) {
+      // Client errors: safe to expose message
+      clientMessage = err.message || 'Bad Request';
+    } else {
+      // Server errors: use generic message to prevent information leakage
+      clientMessage = config.NODE_ENV === 'production' 
+        ? 'An unexpected error occurred. Please try again later.'
+        : err.message || 'Internal Server Error';
+    }
+    
+    // Send sanitized error response
+    res.status(status).json({ 
+      message: clientMessage,
+      // Only include error code in production (no stack traces)
+      ...(config.NODE_ENV === 'development' && { 
+        stack: err.stack,
+        details: err.details 
+      })
+    });
   });
 
   // importantly only setup vite in development and after

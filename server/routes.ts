@@ -30,7 +30,8 @@ import {
   requireRole,
   verifyDatabaseRefreshToken,
   revokeRefreshTokenById,
-  revokeAllUserRefreshTokensDb
+  revokeAllUserRefreshTokensDb,
+  COOKIE_CONFIG
 } from "./security";
 
 // AI service selection
@@ -139,12 +140,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log successful login (without sensitive data)
       console.log(`Successful login from IP: ${req.ip || 'unknown'}`);
       
-      // Return user data without password plus JWT tokens
+      // SECURITY ENHANCEMENT: Set tokens in httpOnly cookies (XSS-safe)
+      res.cookie(COOKIE_CONFIG.ACCESS_TOKEN, authTokens.accessToken, {
+        ...COOKIE_CONFIG.OPTIONS,
+        maxAge: COOKIE_CONFIG.ACCESS_MAX_AGE,
+      });
+      
+      res.cookie(COOKIE_CONFIG.REFRESH_TOKEN, authTokens.refreshToken, {
+        ...COOKIE_CONFIG.OPTIONS,
+        maxAge: COOKIE_CONFIG.REFRESH_MAX_AGE,
+      });
+      
+      // Return user data without password (tokens now in cookies)
       const { password: _, ...userWithoutPassword } = updatedUser || user;
       res.json({
         user: userWithoutPassword,
-        accessToken: authTokens.accessToken,
-        refreshToken: authTokens.refreshToken,
         expiresIn: authTokens.expiresIn
       });
     } catch (error) {
@@ -169,7 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SECURE Token refresh endpoint with rotation and database validation
   apiRouter.post('/auth/refresh', async (req, res) => {
     try {
-      const { refreshToken } = req.body;
+      // SECURITY ENHANCEMENT: Read refresh token from httpOnly cookie (or body fallback)
+      const refreshToken = req.cookies?.[COOKIE_CONFIG.REFRESH_TOKEN] || req.body.refreshToken;
       
       if (!refreshToken) {
         return res.status(400).json({ 
@@ -210,9 +221,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Token rotation successful for user ${user.id}: old token revoked, new token issued`);
       
+      // SECURITY ENHANCEMENT: Set new tokens in httpOnly cookies
+      res.cookie(COOKIE_CONFIG.ACCESS_TOKEN, authTokens.accessToken, {
+        ...COOKIE_CONFIG.OPTIONS,
+        maxAge: COOKIE_CONFIG.ACCESS_MAX_AGE,
+      });
+      
+      res.cookie(COOKIE_CONFIG.REFRESH_TOKEN, authTokens.refreshToken, {
+        ...COOKIE_CONFIG.OPTIONS,
+        maxAge: COOKIE_CONFIG.REFRESH_MAX_AGE,
+      });
+      
       res.json({
-        accessToken: authTokens.accessToken,
-        refreshToken: authTokens.refreshToken,
         expiresIn: authTokens.expiresIn
       });
     } catch (error) {
@@ -369,14 +389,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Registration endpoint with CAPTCHA verification
-  // Logout endpoint
-  apiRouter.post('/auth/logout', async (req, res) => {
+  // Logout endpoint with token revocation and cookie clearing
+  apiRouter.post('/auth/logout', authenticateToken, async (req, res) => {
     try {
-      // In a token-based authentication system without sessions, 
-      // we don't need to do anything on the server side
-      // The client should remove the token from storage
-      res.status(200).send();
+      const user = (req as any).user;
+      
+      // SECURITY ENHANCEMENT: Revoke all user's refresh tokens in database
+      const revokedCount = await revokeAllUserRefreshTokensDb(user.id, 'user_logout');
+      console.log(`Logout: Revoked ${revokedCount} refresh tokens for user ${user.id}`);
+      
+      // SECURITY ENHANCEMENT: Clear httpOnly cookies
+      res.clearCookie(COOKIE_CONFIG.ACCESS_TOKEN, COOKIE_CONFIG.OPTIONS);
+      res.clearCookie(COOKIE_CONFIG.REFRESH_TOKEN, COOKIE_CONFIG.OPTIONS);
+      
+      res.status(200).json({ message: 'Logged out successfully' });
     } catch (error) {
+      console.error('Logout error:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });

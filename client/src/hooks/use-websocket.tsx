@@ -41,30 +41,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
     
     try {
-      // SECURITY: Get JWT token for authentication
-      const authToken = localStorage.getItem('authToken');
+      // SECURITY ENHANCEMENT: JWT token now automatically sent via httpOnly cookies
+      // No need to manually add token to URL - prevents XSS attacks
       
-      if (!authToken) {
-        console.log('WebSocket connection skipped - no authentication token available');
-        setStatus('closed');
-        return null;
-      }
-      
-      // Skip connection if using old insecure token format
-      if (authToken.includes(':') && !authToken.startsWith('eyJ')) {
-        console.log('WebSocket connection skipped - old insecure token format detected');
-        setStatus('closed');
-        return null;
-      }
-      
-      // Determine the WebSocket URL based on current protocol with JWT token
+      // Determine the WebSocket URL based on current protocol
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(authToken)}`;
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
       
-      console.log(`Connecting to WebSocket server at ${protocol}//${window.location.host}/ws`);
+      console.log(`Connecting to WebSocket server at ${wsUrl} (auth via httpOnly cookies)`);
       setStatus('connecting');
       
-      // Create new WebSocket connection with JWT authentication
+      // Create new WebSocket connection - token sent automatically via cookies
       const socket = new WebSocket(wsUrl);
       globalSocket = socket;
       

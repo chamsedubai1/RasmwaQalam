@@ -7,6 +7,8 @@ import { storage } from './storage';
 import { db } from './db';
 import { refreshTokens } from '@shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
+import { config } from './config';
+import { sessionManager } from './session-manager';
 
 // Convert callback-based scrypt to Promise-based
 const scryptAsync = promisify(scrypt);
@@ -262,14 +264,23 @@ async function hashRefreshToken(token: string): Promise<string> {
   return (hash as Buffer).toString('hex');
 }
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || randomBytes(32).toString('hex');
+// SECURITY ENHANCEMENT: Use centralized validated configuration
+const JWT_SECRET = config.JWT_SECRET;
+const JWT_REFRESH_SECRET = config.JWT_REFRESH_SECRET;
 
-// Warn if using default secrets in production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.warn('WARNING: Using default JWT_SECRET in production. Set JWT_SECRET environment variable.');
-}
+// Cookie Configuration for secure token storage
+export const COOKIE_CONFIG = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  OPTIONS: {
+    httpOnly: true, // Prevents XSS attacks
+    secure: config.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: 'strict' as const, // CSRF protection
+    path: '/',
+  },
+  ACCESS_MAX_AGE: 15 * 60 * 1000, // 15 minutes
+  REFRESH_MAX_AGE: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
 
 interface JWTPayload {
   userId: number;
@@ -389,20 +400,28 @@ export async function verifyRefreshToken(token: string): Promise<number | null> 
 
 /**
  * Middleware to authenticate requests using JWT tokens
- * Replaces the insecure username:timestamp system
+ * SECURITY ENHANCEMENT: Now reads from httpOnly cookies (XSS-safe) with Bearer token fallback
  */
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   try {
-    const authHeader = req.headers.authorization;
+    // Try to get token from httpOnly cookie first (most secure)
+    let token = req.cookies?.[COOKIE_CONFIG.ACCESS_TOKEN];
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Fallback to Authorization header for API clients
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
+    }
+    
+    if (!token) {
       return res.status(401).json({ 
         message: 'Access token required',
         code: 'MISSING_TOKEN'
       });
     }
     
-    const token = authHeader.split(' ')[1];
     const decoded = await verifyAccessToken(token);
     
     if (!decoded) {
@@ -420,6 +439,17 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
         code: 'USER_INACTIVE'
       });
     }
+    
+    // SECURITY ENHANCEMENT: Check session timeout
+    if (!sessionManager.isSessionActive(user.id)) {
+      return res.status(401).json({ 
+        message: 'Session expired due to inactivity. Please log in again.',
+        code: 'SESSION_TIMEOUT'
+      });
+    }
+    
+    // SECURITY ENHANCEMENT: Track user activity
+    sessionManager.trackActivity(user.id, user.username);
     
     // Attach user info to request for use in route handlers
     (req as any).user = {

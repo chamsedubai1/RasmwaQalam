@@ -50,7 +50,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const clearUser = () => {
     setUser(null);
-    localStorage.removeItem('authToken');
+    // SECURITY ENHANCEMENT: No need to remove authToken from localStorage
+    // Tokens are now in httpOnly cookies and cleared by server on logout
     localStorage.removeItem('userData');
     localStorage.removeItem('userRole');
   };
