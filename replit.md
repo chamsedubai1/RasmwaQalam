@@ -31,6 +31,8 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage Solutions
 - **Primary Database**: PostgreSQL hosted on Neon for scalability and reliability
 - **ORM**: Drizzle with code-first schema definition ensuring type safety
+- **Storage Implementation**: DatabaseStorage class using Drizzle ORM for all CRUD operations (replaced MemStorage for persistent data)
+- **Audit Logs**: Persisted to PostgreSQL with tamper-proof HMAC integrity hashes in audit_logs table
 - **File Storage**: Local file system for uploaded images with plans for cloud storage integration
 - **Session Storage**: Express sessions for user authentication state
 - **Caching**: Redis integration prepared for performance optimization
@@ -59,7 +61,7 @@ Preferred communication style: Simple, everyday language.
 - **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
 - **CORS Lockdown**: Strict origin allowlist with credentials and custom header support
 - **Input Validation**: Global Zod validation middleware preventing injection attacks
-- **File Upload Security**: Magic byte verification, MIME type validation, strict allowlists
+- **File Upload Security**: Magic byte verification with strict WebP validation (checks both RIFF and WEBP chunks), MIME type validation, strict allowlists
 - **Signed URLs**: HMAC-signed URLs for file downloads with expiration and access control
 - **Audit Logging**: Tamper-proof audit logs with HMAC integrity hashes for all administrative actions
 - **Error Sanitization**: Production error responses sanitized to prevent information disclosure
