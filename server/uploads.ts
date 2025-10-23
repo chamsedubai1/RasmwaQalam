@@ -29,12 +29,14 @@ const MAGIC_BYTES = {
     Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]), // GIF89a
   ],
   'image/webp': [
-    Buffer.from([0x52, 0x49, 0x46, 0x46]), // RIFF
+    // WebP files must have RIFF at bytes 0-3 AND WEBP at bytes 8-11
+    Buffer.from([0x52, 0x49, 0x46, 0x46]), // RIFF (checked first 4 bytes)
   ],
 };
 
 /**
  * Verify file content matches the declared MIME type using magic bytes
+ * SECURITY ENHANCEMENT: Stricter WebP validation checks both RIFF and WEBP chunks
  */
 function verifyFileType(filePath: string, declaredMimeType: string): boolean {
   try {
@@ -44,6 +46,24 @@ function verifyFileType(filePath: string, declaredMimeType: string): boolean {
     if (!magicBytes) {
       console.warn(`No magic bytes defined for MIME type: ${declaredMimeType}`);
       return false;
+    }
+    
+    // SECURITY FIX: Stricter WebP validation
+    if (declaredMimeType === 'image/webp') {
+      // WebP files must have:
+      // - RIFF at bytes 0-3
+      // - WEBP at bytes 8-11
+      if (fileBuffer.length < 12) {
+        return false;
+      }
+      
+      const riffSignature = Buffer.from([0x52, 0x49, 0x46, 0x46]); // RIFF
+      const webpSignature = Buffer.from([0x57, 0x45, 0x42, 0x50]); // WEBP
+      
+      const hasRIFF = fileBuffer.subarray(0, 4).equals(riffSignature);
+      const hasWEBP = fileBuffer.subarray(8, 12).equals(webpSignature);
+      
+      return hasRIFF && hasWEBP;
     }
     
     // Check if file starts with any of the valid magic byte sequences

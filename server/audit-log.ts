@@ -221,9 +221,9 @@ export async function createAuditLog(
       ip: fullEntry.ipAddress,
     });
     
-    // Store in database for long-term retention and forensics
-    // TODO: Implement database storage for audit logs
-    // await storage.createAuditLog(fullEntry);
+    // CRITICAL FIX: Store in database for long-term retention and forensics
+    // Persist audit logs with tamper-proof integrity hashes
+    await storage.createAuditLog(fullEntry);
     
     // For critical events, also log to a separate security event stream
     if (fullEntry.severity === AuditSeverity.CRITICAL || fullEntry.severity === AuditSeverity.ERROR) {

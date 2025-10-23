@@ -1159,4 +1159,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// CRITICAL FIX: Switch from in-memory to database-backed storage
+// This ensures data persists across server restarts
+import { DatabaseStorage } from './db-storage';
+export const storage = new DatabaseStorage();
+
+// Keep MemStorage available for testing purposes
+export const memStorage = new MemStorage();
