@@ -1,20 +1,8 @@
 import { randomBytes } from 'crypto';
-import { initializeVault, getSecretOrEnv, getVault } from './vault.js';
 
 /**
- * SECURITY ENHANCEMENT: HashiCorp Vault Integration for FERPA-Compliant Secrets Management
- * 
- * This module provides centralized configuration and secrets management with:
- * - Primary: HashiCorp Vault for production secrets (with audit trails)
- * - Fallback: Environment variables for development
- * - Validation at startup with clear error messages
- * - Type-safe access to configuration
- * 
- * FERPA Compliance Features:
- * - Audit trail of secret access (who, what, when)
- * - Encryption at rest (Vault handles this)
- * - Secret rotation support
- * - Access control via Vault policies
+ * SECURITY ENHANCEMENT: Centralized environment variable validation and secrets management
+ * Validates required secrets at startup and provides type-safe access
  */
 
 interface AppConfig {
@@ -38,33 +26,18 @@ interface AppConfig {
   
   // CORS Configuration
   ALLOWED_ORIGINS?: string;
-  
-  // Vault Status
-  VAULT_ENABLED: boolean;
 }
 
 class ConfigValidator {
-  private config: AppConfig | null = null;
+  private config: AppConfig;
   private warnings: string[] = [];
   private errors: string[] = [];
-  private vaultEnabled: boolean = false;
 
-  async initialize(): Promise<void> {
-    // Initialize Vault if configured
-    const vault = await initializeVault();
-    this.vaultEnabled = vault !== null;
-
-    if (this.vaultEnabled) {
-      console.log('✅ Config: Using HashiCorp Vault for secrets management');
-    } else {
-      console.log('ℹ️  Config: Using environment variables for secrets');
-    }
-
-    // Load and validate configuration
-    this.config = await this.loadAndValidate();
+  constructor() {
+    this.config = this.loadAndValidate();
   }
 
-  private async loadAndValidate(): Promise<AppConfig> {
+  private loadAndValidate(): AppConfig {
     const env = process.env;
     
     // Validate NODE_ENV
@@ -79,75 +52,59 @@ class ConfigValidator {
       this.warnings.push('PORT should be between 1024 and 65535, using default 5000');
     }
 
-    // SECURITY: Load critical secrets from Vault or environment
-    let jwtSecret: string;
-    let jwtRefreshSecret: string;
-    let sessionSecret: string;
-    let databaseUrl: string;
-
-    try {
-      // Try loading from Vault with environment variable fallback
-      jwtSecret = await this.getSecretWithValidation(
-        'app/jwt-secret',
-        'JWT_SECRET',
-        nodeEnv === 'production'
-      );
-
-      jwtRefreshSecret = await this.getSecretWithValidation(
-        'app/jwt-refresh-secret',
-        'JWT_REFRESH_SECRET',
-        nodeEnv === 'production'
-      );
-
-      sessionSecret = await this.getSecretWithValidation(
-        'app/session-secret',
-        'SESSION_SECRET',
-        nodeEnv === 'production'
-      );
-
-      databaseUrl = await this.getSecretWithValidation(
-        'app/database-url',
-        'DATABASE_URL',
-        true // Always required
-      );
-
-      // Validate secret lengths
-      if (jwtSecret && jwtSecret.length < 32) {
-        this.warnings.push('JWT_SECRET should be at least 32 characters for security');
+    // SECURITY: Validate critical secrets
+    let jwtSecret = env.JWT_SECRET;
+    if (!jwtSecret) {
+      if (nodeEnv === 'production') {
+        this.errors.push('JWT_SECRET is required in production environment');
+      } else {
+        jwtSecret = randomBytes(32).toString('hex');
+        this.warnings.push('JWT_SECRET not set, using random value (NOT suitable for production)');
       }
-      if (jwtRefreshSecret && jwtRefreshSecret.length < 32) {
-        this.warnings.push('JWT_REFRESH_SECRET should be at least 32 characters for security');
-      }
-      if (sessionSecret && sessionSecret.length < 32) {
-        this.warnings.push('SESSION_SECRET should be at least 32 characters for security');
-      }
-
-      // Validate DATABASE_URL format
-      if (databaseUrl && !databaseUrl.startsWith('postgres://') && !databaseUrl.startsWith('postgresql://')) {
-        this.warnings.push('DATABASE_URL should use postgres:// or postgresql:// protocol');
-      }
-
-    } catch (error) {
-      this.errors.push(`Failed to load required secrets: ${error}`);
-      throw error;
+    } else if (jwtSecret.length < 32) {
+      this.warnings.push('JWT_SECRET should be at least 32 characters for security');
     }
 
-    // Load optional AI service keys
-    let anthropicApiKey: string | undefined;
-    let openaiApiKey: string | undefined;
-    let huggingFaceApiKey: string | undefined;
-    let stabilityApiKey: string | undefined;
-
-    try {
-      anthropicApiKey = await getSecretOrEnv('app/anthropic-api-key', 'ANTHROPIC_API_KEY', '');
-      openaiApiKey = await getSecretOrEnv('app/openai-api-key', 'OPENAI_API_KEY', '');
-      huggingFaceApiKey = await getSecretOrEnv('app/huggingface-api-key', 'HUGGING_FACE_API_KEY', '');
-      stabilityApiKey = await getSecretOrEnv('app/stability-api-key', 'STABILITY_API_KEY', '');
-    } catch (error) {
-      console.warn('⚠️  Failed to load AI service keys:', error);
+    let jwtRefreshSecret = env.JWT_REFRESH_SECRET;
+    if (!jwtRefreshSecret) {
+      if (nodeEnv === 'production') {
+        this.errors.push('JWT_REFRESH_SECRET is required in production environment');
+      } else {
+        jwtRefreshSecret = randomBytes(32).toString('hex');
+        this.warnings.push('JWT_REFRESH_SECRET not set, using random value (NOT suitable for production)');
+      }
+    } else if (jwtRefreshSecret.length < 32) {
+      this.warnings.push('JWT_REFRESH_SECRET should be at least 32 characters for security');
     }
 
-    const hasAnyAIKey = !!(anthropicApiKey || openaiApiKey || huggingFaceApiKey || stabilityApiKey);
+    let sessionSecret = env.SESSION_SECRET;
+    if (!sessionSecret) {
+      if (nodeEnv === 'production') {
+        this.errors.push('SESSION_SECRET is required in production environment');
+      } else {
+        sessionSecret = randomBytes(32).toString('hex');
+        this.warnings.push('SESSION_SECRET not set, using random value (NOT suitable for production)');
+      }
+    } else if (sessionSecret.length < 32) {
+      this.warnings.push('SESSION_SECRET should be at least 32 characters for security');
+    }
+
+    // Validate DATABASE_URL
+    const databaseUrl = env.DATABASE_URL;
+    if (!databaseUrl) {
+      this.errors.push('DATABASE_URL is required');
+    } else if (!databaseUrl.startsWith('postgres://') && !databaseUrl.startsWith('postgresql://')) {
+      this.warnings.push('DATABASE_URL should use postgres:// or postgresql:// protocol');
+    }
+
+    // AI Service Keys (optional but warn if none are set)
+    const hasAnyAIKey = !!(
+      env.ANTHROPIC_API_KEY ||
+      env.OPENAI_API_KEY ||
+      env.HUGGING_FACE_API_KEY ||
+      env.STABILITY_API_KEY
+    );
+
     if (!hasAnyAIKey) {
       this.warnings.push('No AI service API keys configured (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)');
     }
@@ -155,55 +112,19 @@ class ConfigValidator {
     return {
       NODE_ENV: nodeEnv,
       PORT: port || 5000,
-      JWT_SECRET: jwtSecret,
-      JWT_REFRESH_SECRET: jwtRefreshSecret,
-      SESSION_SECRET: sessionSecret,
-      DATABASE_URL: databaseUrl,
-      ANTHROPIC_API_KEY: anthropicApiKey || undefined,
-      OPENAI_API_KEY: openaiApiKey || undefined,
-      HUGGING_FACE_API_KEY: huggingFaceApiKey || undefined,
-      STABILITY_API_KEY: stabilityApiKey || undefined,
+      JWT_SECRET: jwtSecret!,
+      JWT_REFRESH_SECRET: jwtRefreshSecret!,
+      SESSION_SECRET: sessionSecret!,
+      DATABASE_URL: databaseUrl!,
+      ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
+      OPENAI_API_KEY: env.OPENAI_API_KEY,
+      HUGGING_FACE_API_KEY: env.HUGGING_FACE_API_KEY,
+      STABILITY_API_KEY: env.STABILITY_API_KEY,
       ALLOWED_ORIGINS: env.ALLOWED_ORIGINS,
-      VAULT_ENABLED: this.vaultEnabled,
     };
   }
 
-  /**
-   * Get a secret from Vault or environment with validation
-   */
-  private async getSecretWithValidation(
-    vaultPath: string,
-    envVarName: string,
-    required: boolean
-  ): Promise<string> {
-    try {
-      const value = await getSecretOrEnv(vaultPath, envVarName, '');
-      
-      if (!value && required) {
-        const nodeEnv = process.env.NODE_ENV || 'development';
-        if (nodeEnv === 'production') {
-          throw new Error(`${envVarName} is required in production environment`);
-        } else {
-          // Generate random value for development
-          const randomValue = randomBytes(32).toString('hex');
-          this.warnings.push(`${envVarName} not set, using random value (NOT suitable for production)`);
-          return randomValue;
-        }
-      }
-
-      return value;
-    } catch (error) {
-      if (required) {
-        throw error;
-      }
-      return '';
-    }
-  }
-
   public getConfig(): AppConfig {
-    if (!this.config) {
-      throw new Error('Configuration not initialized. Call initialize() first.');
-    }
     return this.config;
   }
 
@@ -247,53 +168,13 @@ class ConfigValidator {
 // Create singleton instance
 const validator = new ConfigValidator();
 
-// Export async initialization function
-export async function initializeConfig(): Promise<AppConfig> {
-  await validator.initialize();
+// Export validated configuration
+export const config = validator.getConfig();
+
+// Export validation function
+export function validateConfig(): void {
   validator.validateOrThrow();
-  return validator.getConfig();
 }
 
-// Export synchronous getter (only works after initialization)
-export function getConfig(): AppConfig {
-  return validator.getConfig();
-}
-
-/**
- * Utility function to refresh a secret from Vault
- * Useful for secret rotation
- */
-export async function refreshSecret(vaultPath: string, envVarName: string): Promise<string> {
-  const vault = getVault();
-  if (!vault) {
-    console.warn('⚠️  Vault not available, cannot refresh secret');
-    return process.env[envVarName] || '';
-  }
-
-  try {
-    const secret = await vault.getSecret(vaultPath, 'config-refresh');
-    const value = secret[envVarName] || secret.value;
-    if (value) {
-      console.log(`✅ Secret refreshed from Vault: ${vaultPath}`);
-      return value;
-    }
-    throw new Error('Secret value not found in Vault response');
-  } catch (error) {
-    console.error(`❌ Failed to refresh secret ${vaultPath}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Get Vault audit log for compliance reporting
- */
-export function getVaultAuditLog() {
-  const vault = getVault();
-  if (!vault) {
-    return [];
-  }
-  return vault.getAuditLog();
-}
-
-// Note: config is now initialized asynchronously in server/index.ts
-// Do not use config directly on import - use getConfig() after initialization
+// Auto-validate on import
+validateConfig();
