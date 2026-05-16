@@ -45,9 +45,9 @@ export async function generateImage(prompt: string): Promise<string> {
     if (!response.ok) {
       let errorMessage;
       try {
-        const errorJson = await response.json() as any;
+        const errorJson = await response.json() as { message?: string };
         errorMessage = errorJson?.message || `Status: ${response.status} ${response.statusText}`;
-      } catch (e) {
+      } catch {
         errorMessage = await response.text();
       }
       
@@ -66,8 +66,15 @@ export async function generateImage(prompt: string): Promise<string> {
     }
     
     // Parse the successful response
-    const result = await response.json() as any;
-    
+    interface StabilityArtifact {
+      base64?: string;
+      seed?: number;
+    }
+    interface StabilityResponse {
+      artifacts?: StabilityArtifact[];
+    }
+    const result = await response.json() as StabilityResponse;
+
     if (!result || !result.artifacts || !Array.isArray(result.artifacts) || result.artifacts.length === 0) {
       console.error('No artifacts found in stability.ai response');
       return generatePlaceholderImage(
@@ -89,7 +96,7 @@ export async function generateImage(prompt: string): Promise<string> {
       prompt + "\n\nNote: Image generation completed but no valid image data was found."
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating image with Stability.ai:', error);
     return generatePlaceholderImage(
       prompt + "\n\nNote: Error during image generation: " + (error instanceof Error ? error.message : String(error))

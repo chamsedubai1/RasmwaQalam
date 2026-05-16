@@ -59,7 +59,7 @@ function Router() {
           </Route>
           
           <Route path="/teacher">
-            <ProtectedRoute allowedRoles={['teacher']}>
+            <ProtectedRoute allowedRoles={['teacher', 'secondaryTeacher']}>
               <TeacherDashboard />
             </ProtectedRoute>
           </Route>

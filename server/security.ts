@@ -9,9 +9,18 @@ import { refreshTokens } from '@shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import { config } from './config';
 import { sessionManager } from './session-manager';
+import { createAuditLog, AuditAction, AuditSeverity } from './audit-log';
 
 // Convert callback-based scrypt to Promise-based
 const scryptAsync = promisify(scrypt);
+
+/**
+ * SECURITY: Maximum allowed plaintext password length on hash and verify.
+ * scrypt's cost is roughly linear in input size; without an upper bound a
+ * single 50 MB password (within the previous body limit) could pin a CPU
+ * for seconds. 128 chars matches the password Zod schema in validation.ts.
+ */
+const MAX_PASSWORD_LENGTH = 128;
 
 /**
  * Hashes a password using scrypt with a random salt
@@ -19,9 +28,38 @@ const scryptAsync = promisify(scrypt);
  * @returns A string in the format "hash.salt"
  */
 export async function hashPassword(password: string): Promise<string> {
+  if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error('Password exceeds maximum allowed length');
+  }
   const salt = randomBytes(16).toString('hex');
   const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${derivedKey.toString('hex')}.${salt}`;
+}
+
+// SECURITY: Precomputed dummy hash for constant-time login on unknown users.
+// Generated at module load against a fixed dummy password so verify calls
+// during user-not-found paths spend the same scrypt time as real verifications.
+let DUMMY_PASSWORD_HASH = '';
+(async () => {
+  try {
+    DUMMY_PASSWORD_HASH = await hashPassword('dummy-password-for-timing-equalization');
+  } catch (error) {
+    console.error('Failed to precompute dummy password hash:', error);
+  }
+})();
+
+/**
+ * SECURITY: Constant-time stand-in for verifyPassword when the user lookup
+ * failed. Runs the same scrypt work so that the unknown-user code path is
+ * indistinguishable from the known-user-bad-password path by response timing.
+ */
+export async function runDummyPasswordCheck(plainPassword: string): Promise<void> {
+  if (!DUMMY_PASSWORD_HASH) {
+    // Module-init hash not ready yet; fall back to a fresh scrypt to still
+    // do the work. This branch is only hit in the first ~100ms after start.
+    DUMMY_PASSWORD_HASH = await hashPassword('dummy-password-for-timing-equalization');
+  }
+  await verifyPassword(plainPassword, DUMMY_PASSWORD_HASH);
 }
 
 /**
@@ -32,23 +70,57 @@ export async function hashPassword(password: string): Promise<string> {
  */
 export async function verifyPassword(plainPassword: string, storedHash: string): Promise<boolean> {
   try {
+    // SECURITY: Cap plaintext length to defend against scrypt DoS via oversized
+    // password bodies. The login route also enforces this earlier with Zod.
+    if (typeof plainPassword !== 'string' || plainPassword.length > MAX_PASSWORD_LENGTH) {
+      return false;
+    }
+
     const [hashedPassword, salt] = storedHash.split('.');
-    
+
     if (!hashedPassword || !salt) {
       // If the hash is not in the expected format, return false
       console.error('Invalid password hash format');
       return false;
     }
-    
+
     const hashedPasswordBuf = Buffer.from(hashedPassword, 'hex');
     const derivedKey = (await scryptAsync(plainPassword, salt, 64)) as Buffer;
-    
+
     return timingSafeEqual(hashedPasswordBuf, derivedKey);
   } catch (error) {
     console.error('Error verifying password:', error);
     // In case of any error, fail closed (return false)
     return false;
   }
+}
+
+/**
+ * SECURITY WARNING: Rate limiters use in-memory storage by default.
+ *
+ * Consequences with in-memory storage:
+ *   - Multi-instance deploys: each instance keeps its own counters, so the
+ *     effective rate scales with replica count (5 logins/min × N instances).
+ *   - Process restart: all counters reset, briefly allowing a fresh burst.
+ *
+ * To enable a Redis-backed shared store (already a dependency):
+ *   1. npm install rate-limit-redis ioredis
+ *   2. Construct a Redis client and a RedisStore here, then pass `store:`
+ *      to each rate-limit config below. Example:
+ *
+ *        import RedisStore from 'rate-limit-redis';
+ *        import Redis from 'ioredis';
+ *        const redis = new Redis(process.env.REDIS_URL!);
+ *        const store = new RedisStore({ sendCommand: (...args) => redis.call(...args) });
+ *        // then: rateLimit({ ..., store })
+ *
+ *   3. Set REDIS_URL in env for production.
+ *
+ * Until that is wired, the warning below tells operators when they are
+ * running with the soft limit.
+ */
+if (config.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  console.warn('[SECURITY WARNING] Rate limiters are using in-memory storage (REDIS_URL not set). Multi-instance or post-restart bypass is possible. See server/security.ts for the Redis store wiring.');
 }
 
 /**
@@ -63,9 +135,6 @@ export const loginRateLimiter = rateLimit({
   message: {
     message: 'Too many login attempts from this IP, please try again after a minute'
   },
-  // Store to count requests during the 1 minute window
-  // Default: Memory store (not designed for production use)
-  // For production, use a more robust store like Redis
 });
 
 /**
@@ -191,9 +260,24 @@ export async function verifyDatabaseRefreshToken(token: string): Promise<{ userI
 }
 
 /**
+ * Reasons a refresh token can be revoked. Kept as a string-valued enum so
+ * audit queries can group by reason without typo risk.
+ */
+export const RevokeReason = {
+  Rotation: 'rotation',
+  UserLogout: 'user_logout',
+  LogoutAll: 'logout_all',
+  PasswordReset: 'password_reset',
+  Security: 'security',
+  SessionTimeout: 'session_timeout',
+  Admin: 'admin_revoked',
+} as const;
+export type RevokeReason = typeof RevokeReason[keyof typeof RevokeReason];
+
+/**
  * Revokes a refresh token by ID with reason
  */
-export async function revokeRefreshTokenById(tokenId: number, reason: string = 'rotation'): Promise<boolean> {
+export async function revokeRefreshTokenById(tokenId: number, reason: RevokeReason | string = RevokeReason.Rotation): Promise<boolean> {
   try {
     const [updated] = await db
       .update(refreshTokens)
@@ -257,11 +341,16 @@ export async function cleanupExpiredRefreshTokensDb(): Promise<number> {
 }
 
 /**
- * Hash refresh token for secure storage
+ * Hash refresh token for secure storage using SHA-256
+ * SECURITY: Uses cryptographic hash for token lookup (not password storage)
+ * This approach is acceptable because:
+ * 1. Refresh tokens are high-entropy random values (not low-entropy passwords)
+ * 2. We need deterministic hashing for database lookup
+ * 3. The JWT signature provides the primary security layer
  */
-async function hashRefreshToken(token: string): Promise<string> {
-  const hash = await scryptAsync(token, 'refresh_token_salt_rasm_qalam', 32);
-  return (hash as Buffer).toString('hex');
+function hashRefreshToken(token: string): string {
+  const { createHash } = require('crypto');
+  return createHash('sha256').update(token).digest('hex');
 }
 
 // SECURITY ENHANCEMENT: Use centralized validated configuration
@@ -288,6 +377,11 @@ interface JWTPayload {
   role: string;
   schoolId?: number;
   classId?: number;
+  // SECURITY: Epoch seconds of the user's most recent password change at
+  // the time this token was issued. authenticateToken rejects tokens whose
+  // pwdAt is older than the current users.passwordChangedAt, so a password
+  // reset invalidates all outstanding access tokens (not just refresh).
+  pwdAt?: number;
   iat?: number;
   exp?: number;
 }
@@ -310,6 +404,7 @@ export async function generateAuthTokens(user: {
   role: string;
   schoolId?: number | null;
   classId?: number | null;
+  passwordChangedAt?: Date | null;
 }): Promise<AuthTokens> {
   const payload: JWTPayload = {
     userId: user.id,
@@ -317,6 +412,9 @@ export async function generateAuthTokens(user: {
     role: user.role,
     schoolId: user.schoolId || undefined,
     classId: user.classId || undefined,
+    pwdAt: user.passwordChangedAt
+      ? Math.floor(user.passwordChangedAt.getTime() / 1000)
+      : 0,
   };
 
   // Access token expires in 15 minutes
@@ -434,22 +532,65 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     // Verify user still exists and is active
     const user = await storage.getUser(decoded.userId);
     if (!user || !user.isActive) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'User account not found or inactive',
         code: 'USER_INACTIVE'
       });
     }
-    
+
+    // SECURITY: Reject access tokens issued before the user's most recent
+    // password change. Without this, an attacker holding a stolen access
+    // token could continue to use it for up to 15 minutes after the victim
+    // resets their password — refresh-token revocation alone is insufficient.
+    const userPwdAt = (user as { passwordChangedAt?: Date | null }).passwordChangedAt;
+    const userPwdAtSec = userPwdAt ? Math.floor(userPwdAt.getTime() / 1000) : 0;
+    const tokenPwdAt = decoded.pwdAt ?? 0;
+    if (userPwdAtSec > tokenPwdAt) {
+      return res.status(401).json({
+        message: 'Session invalidated due to credential change. Please log in again.',
+        code: 'CREDENTIALS_CHANGED'
+      });
+    }
+
     // SECURITY ENHANCEMENT: Check session timeout
     if (!sessionManager.isSessionActive(user.id)) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Session expired due to inactivity. Please log in again.',
         code: 'SESSION_TIMEOUT'
       });
     }
-    
-    // SECURITY ENHANCEMENT: Track user activity
-    sessionManager.trackActivity(user.id, user.username);
+
+    // SECURITY ENHANCEMENT: Get client IP and User-Agent for session binding.
+    // Take only the first XFF entry when falling back — `trust proxy` should
+    // already have populated req.ip, so this fallback is mostly defensive.
+    let clientIp = req.ip;
+    if (!clientIp) {
+      const xff = req.headers['x-forwarded-for'];
+      if (typeof xff === 'string' && xff.length > 0) clientIp = xff.split(',')[0].trim();
+      else if (Array.isArray(xff) && xff.length > 0) clientIp = xff[0].split(',')[0].trim();
+    }
+    clientIp = clientIp || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // SECURITY ENHANCEMENT: Validate session binding (detect potential token theft)
+    const bindingValidation = sessionManager.validateSessionBinding(user.id, clientIp, userAgent);
+    if (!bindingValidation.valid) {
+      console.warn(`[SECURITY] Session binding validation failed for user ${user.id}: ${bindingValidation.reason}`);
+      // SECURITY: Force re-authentication on suspicious session activity (potential token theft)
+      await createAuditLog(req, AuditAction.LOGIN_FAILED, 'session', {
+        resourceId: String(user.id),
+        success: false,
+        errorMessage: `Session binding violation: ${bindingValidation.reason}`,
+        severity: AuditSeverity.WARNING,
+      });
+      return res.status(401).json({
+        message: 'Your session has been invalidated for security reasons. Please log in again.',
+        code: 'SESSION_BINDING_INVALID'
+      });
+    }
+
+    // SECURITY ENHANCEMENT: Track user activity with IP and User-Agent
+    sessionManager.trackActivity(user.id, user.username, clientIp, userAgent);
     
     // Attach user info to request for use in route handlers
     (req as any).user = {

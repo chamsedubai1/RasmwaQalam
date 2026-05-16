@@ -1,0 +1,56 @@
+# Speeds up `docker build` by NOT shipping these into the build context.
+# Anything listed here is invisible to the Dockerfile's COPY commands.
+
+# Local-only / OS junk
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+*.log
+*.tsbuildinfo
+
+# Node artifacts that get rebuilt inside the container
+node_modules
+dist
+build
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+
+# Replit-specific (we want host-agnostic builds)
+.replit
+replit.nix
+.replit.*
+.config/
+.upm/
+
+# Local environment files — NEVER ship secrets into an image
+.env
+.env.*
+!.env.production.example
+
+# Tests + dev-only directories
+tests
+coverage
+.nyc_output
+
+# Other dev tooling
+.eslintcache
+.cache
+
+# Local uploads directory (Render mounts a Disk at /app/uploads, that's where
+# real uploads live; bundled local files would just shadow the mount)
+uploads/*
+!uploads/.gitkeep
+
+# Local temp folders we saw in your tree
+temp/
+deploy/build/
+deploy/*.tar.gz
+
+# Docs not needed at runtime
+docs/
+*.md
+!README.md

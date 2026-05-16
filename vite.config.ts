@@ -8,13 +8,19 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// The Replit-only plugins are useful in dev (in-IDE error overlay, repl
+// inspector) but add no value in a generic production build (Hostinger,
+// Render, Fly, etc.). Skip them when not running on Replit so the bundle
+// is the same regardless of host.
+const isReplit = process.env.REPL_ID !== undefined;
+const isProd = process.env.NODE_ENV === "production";
+
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
+    ...(isReplit && !isProd ? [runtimeErrorOverlay()] : []),
     themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
+    ...(isReplit && !isProd
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
             m.cartographer(),

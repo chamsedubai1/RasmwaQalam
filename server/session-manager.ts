@@ -1,6 +1,17 @@
 /**
- * SECURITY ENHANCEMENT: Session timeout and automatic cleanup for inactive users
- * Tracks user sessions and automatically revokes tokens for inactive users
+ * SECURITY ENHANCEMENT: Session timeout and automatic cleanup for inactive users.
+ * Tracks user sessions and automatically revokes tokens for inactive users.
+ *
+ * KNOWN LIMITATION (in-memory only):
+ *   The session map is local to this Node process. Consequences:
+ *     - Server restart wipes all bindings. A stolen access token presented
+ *       as the first request after a restart will be re-bound to the
+ *       attacker's IP/User-Agent, defeating the purpose of the binding.
+ *     - Multi-instance deployments have separate maps and cannot enforce
+ *       binding across instances.
+ *   For a strict deployment, back this with Redis (a `redis` client is
+ *   already a dependency) keyed by userId, with a TTL matching
+ *   SESSION_TIMEOUT_MS.
  */
 
 import { revokeAllUserRefreshTokensDb } from './security';
@@ -9,7 +20,10 @@ interface UserSession {
   userId: number;
   username: string;
   lastActivity: Date;
-  refreshTokenIds: Set<number>;
+  // SECURITY: Session binding to detect token theft (best-effort while
+  // the map is in-memory; see file header).
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 class SessionManager {
@@ -27,17 +41,60 @@ class SessionManager {
   
   /**
    * Track user activity (login, API calls, etc.)
+   * SECURITY ENHANCEMENT: Now tracks IP address and User-Agent for session binding
    */
-  public trackActivity(userId: number, username: string): void {
-    const session = this.sessions.get(userId) || {
+  public trackActivity(userId: number, username: string, ipAddress?: string, userAgent?: string): void {
+    const existingSession = this.sessions.get(userId);
+
+    const session: UserSession = existingSession || {
       userId,
       username,
       lastActivity: new Date(),
-      refreshTokenIds: new Set()
+      ipAddress: undefined,
+      userAgent: undefined,
     };
-    
+
     session.lastActivity = new Date();
+
+    // SECURITY: Bind session to initial IP/User-Agent on first activity
+    if (!session.ipAddress && ipAddress) {
+      session.ipAddress = ipAddress;
+    }
+    if (!session.userAgent && userAgent) {
+      session.userAgent = userAgent;
+    }
+
     this.sessions.set(userId, session);
+  }
+
+  /**
+   * SECURITY: Validate that request matches the session binding
+   * Returns true if session is valid, false if there's a potential session hijacking attempt
+   */
+  public validateSessionBinding(userId: number, ipAddress?: string, userAgent?: string): { valid: boolean; reason?: string } {
+    const session = this.sessions.get(userId);
+
+    if (!session) {
+      return { valid: true }; // No session to validate against
+    }
+
+    // SECURITY: Check if IP address has changed significantly
+    // Note: We allow some flexibility for users behind dynamic IPs or corporate proxies
+    if (session.ipAddress && ipAddress && session.ipAddress !== ipAddress) {
+      console.warn(`[SECURITY] IP address change detected for user ${userId}: ${session.ipAddress} -> ${ipAddress}`);
+      // Log the change but don't block - could be legitimate (mobile networks, VPN changes)
+      // In strict mode, you could return { valid: false, reason: 'ip_changed' }
+    }
+
+    // SECURITY: Check if User-Agent has changed completely
+    // This is more suspicious than IP changes and could indicate token theft
+    if (session.userAgent && userAgent && session.userAgent !== userAgent) {
+      console.warn(`[SECURITY] User-Agent change detected for user ${userId}`);
+      // SECURITY: User-Agent change is highly suspicious - likely token theft
+      return { valid: false, reason: 'user_agent_changed' };
+    }
+
+    return { valid: true };
   }
   
   /**

@@ -32,9 +32,10 @@ export async function generatePoem(prompt: string, style?: string): Promise<stri
     // Claude's response is in the content field
     // Claude 3 type checking workaround
     return response.content[0]?.type === 'text' ? response.content[0].text : String(response.content[0]);
-  } catch (error: any) {
-    console.error("Claude AI poem generation error:", error.message);
-    
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Claude AI poem generation error:", errorMessage);
+
     // Generate a simple fallback poem if Claude fails
     return generateFallbackPoem(prompt, style);
   }
@@ -108,8 +109,9 @@ export async function enhanceImagePrompt(prompt: string): Promise<string> {
 
     // Claude 3 type checking workaround
     return response.content[0]?.type === 'text' ? response.content[0].text.trim() : String(response.content[0]).trim();
-  } catch (error: any) {
-    console.error("Claude AI prompt enhancement error:", error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Claude AI prompt enhancement error:", errorMessage);
     // If enhancement fails, return the original prompt
     return prompt;
   }
@@ -151,8 +153,9 @@ export async function moderateContent(text: string): Promise<{
     
     // Fallback if JSON parsing fails
     return { isSafe: true };
-  } catch (error: any) {
-    console.error("Content moderation error:", error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Content moderation error:", errorMessage);
     // Default to safe if moderation fails
     return { isSafe: true };
   }

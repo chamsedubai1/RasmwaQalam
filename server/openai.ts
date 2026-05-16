@@ -32,14 +32,18 @@ export async function generatePoem(prompt: string, style?: string): Promise<stri
     });
     
     return response.choices[0].message.content || "Sorry, I couldn't generate a poem at this time.";
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating poem:", error);
-    
+
     // Check for quota/rate limit errors to provide specific error for front-end handling
-    if (error?.code === 'insufficient_quota' || error?.code === 'rate_limit_exceeded') {
+    interface OpenAIError {
+      code?: string;
+    }
+    const openaiError = error as OpenAIError;
+    if (openaiError?.code === 'insufficient_quota' || openaiError?.code === 'rate_limit_exceeded') {
       throw new Error("QUOTA_EXCEEDED");
     }
-    
+
     throw new Error("Failed to generate poem. Please try again later.");
   }
 }
@@ -99,14 +103,18 @@ export async function generateImage(prompt: string): Promise<string> {
     });
     
     return response.data[0].url || "";
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating image:", error);
-    
+
     // Check for quota/rate limit errors to provide specific error for front-end handling
-    if (error?.code === 'insufficient_quota' || error?.code === 'rate_limit_exceeded') {
+    interface OpenAIError {
+      code?: string;
+    }
+    const openaiError = error as OpenAIError;
+    if (openaiError?.code === 'insufficient_quota' || openaiError?.code === 'rate_limit_exceeded') {
       throw new Error("QUOTA_EXCEEDED");
     }
-    
+
     throw new Error("Failed to generate image. Please try again later.");
   }
 }

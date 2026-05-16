@@ -37,13 +37,16 @@ export const commonSchemas = {
   // URL validation
   url: z.string().url().max(2048),
   
-  // Safe text input - prevents common injection patterns
+  // Safe text input — strips HTML tags. We deliberately do NOT blocklist
+  // substrings like `data:`, `url(`, `javascript:`, etc. after stripping:
+  // those tokens appear in legitimate prose ("the data: was incomplete",
+  // "url(s) listed below") and blocklisting causes false-positive rejections.
+  // XSS defense for stored content is output encoding (see
+  // sanitizeSubmissionContent below) plus the strict CSP in server/index.ts,
+  // not input blocklisting.
   safeText: z.string()
     .max(1000)
-    .refine(
-      (val) => !/<script|javascript:|onerror=|onclick=/i.test(val),
-      'Input contains potentially unsafe content'
-    ),
+    .transform((val) => val.replace(/<[^>]*>/g, '')),
   
   // Pagination parameters
   pagination: z.object({
@@ -155,42 +158,18 @@ export function validateMultiple(schemas: {
   };
 }
 
-/**
- * SQL injection prevention - validates and sanitizes SQL-like inputs
- */
-export const sqlInjectionFilter = z.string().refine(
-  (val) => {
-    // Block common SQL injection patterns
-    const sqlPatterns = [
-      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|DECLARE)\b)/i,
-      /(--|;|\/\*|\*\/|xp_|sp_)/i,
-      /('|(\\')|(")|(\\")|(;))/,
-    ];
-    
-    return !sqlPatterns.some(pattern => pattern.test(val));
-  },
-  'Input contains potentially unsafe SQL characters'
-);
-
-/**
- * XSS prevention - validates and sanitizes HTML/script inputs
- */
-export const xssFilter = z.string().refine(
-  (val) => {
-    // Block common XSS patterns
-    const xssPatterns = [
-      /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
-      /<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi, // onclick, onerror, etc.
-      /<embed[\s\S]*?>/gi,
-      /<object[\s\S]*?>/gi,
-    ];
-    
-    return !xssPatterns.some(pattern => pattern.test(val));
-  },
-  'Input contains potentially unsafe HTML/JavaScript'
-);
+// REMOVED: `sqlInjectionFilter` was a dead-code blocklist. Drizzle uses
+// parameterized queries throughout, so user input never reaches SQL as a
+// literal. The filter also rejected ordinary text (any apostrophe, words
+// like SELECT/DROP), so applying it would have broken normal content
+// without adding any real protection. See submissions/auth routes — none
+// of them import it.
+//
+// REMOVED: `xssFilter` was a regex blocklist trivially evadable by malformed
+// HTML (e.g. `<scr<script>ipt>` collapses after one pass). The defensive
+// stance for this app is parameterized DB queries + output encoding (see
+// sanitizeSubmissionContent below) + strict CSP (server/index.ts). Both
+// removed filters were exported but never used.
 
 /**
  * Path traversal prevention - validates file paths
@@ -242,6 +221,69 @@ export const rateLimitKeySchema = z.string()
   .min(1)
   .max(100)
   .regex(/^[a-zA-Z0-9:_-]+$/, 'Invalid rate limit key format');
+
+/**
+ * SECURITY: Comprehensive content sanitization for student submissions
+ * Removes all potentially dangerous HTML/JS while preserving safe text content
+ */
+export function sanitizeSubmissionContent(content: string): string {
+  if (!content) return '';
+
+  // First, decode any HTML entities that might hide malicious content
+  let sanitized = content
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+
+  // Remove all HTML tags completely
+  sanitized = sanitized.replace(/<[^>]*>/g, '');
+
+  // Remove dangerous JavaScript patterns
+  const dangerousPatterns = [
+    /javascript\s*:/gi,
+    /vbscript\s*:/gi,
+    /data\s*:/gi,
+    /on\w+\s*=\s*["']?[^"'>]*/gi,  // onclick=, onerror=, etc.
+    /expression\s*\([^)]*\)/gi,     // CSS expression()
+    /url\s*\([^)]*\)/gi,            // CSS url()
+    /&\{[^}]*\}/gi,                 // Old IE expression
+    /<!--[\s\S]*?-->/g,             // HTML comments (can hide scripts)
+    /<!\[CDATA\[[\s\S]*?\]\]>/gi,   // CDATA sections
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    sanitized = sanitized.replace(pattern, '');
+  }
+
+  // Encode remaining special characters for safe display
+  sanitized = sanitized
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return sanitized.trim();
+}
+
+/**
+ * Schema for safe submission content - used for validating poem text
+ */
+export const safeSubmissionContent = z.string()
+  .max(50000, 'Content must be less than 50000 characters')
+  .transform(sanitizeSubmissionContent)
+  .refine(
+    (val) => {
+      // Final check for any remaining dangerous patterns
+      const stillDangerous = [
+        /javascript:/gi,
+        /vbscript:/gi,
+        /on\w+=/gi,
+      ];
+      return !stillDangerous.some(pattern => pattern.test(val));
+    },
+    'Content contains unsafe patterns'
+  );
 
 /**
  * File upload validation schema

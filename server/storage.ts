@@ -379,64 +379,70 @@ export class MemStorage implements IStorage {
       partnerType: "Funding Partner"
     });
     
-    // Add sample users
+    // SECURITY: Sample users for development/testing only
+    // In production, use the database seeding script with hashed passwords
+    // These passwords are only used in the in-memory MemStorage (not DatabaseStorage)
+    const devPassword = process.env.NODE_ENV === 'production'
+      ? 'DISABLED_IN_PRODUCTION'
+      : 'DevPass123!@#';
+
     const admin = this.createUser({
-      username: "Nedjma",
-      password: "Aboudi@2802!",
+      username: process.env.ADMIN_USERNAME || "admin",
+      password: process.env.ADMIN_PASSWORD || devPassword,
       fullName: "Admin User",
-      email: "admin@artchallenge.com",
+      email: process.env.ADMIN_EMAIL || "admin@artchallenge.local",
       role: "admin",
       isActive: true
     });
-    
+
     const teacher1 = this.createUser({
       username: "teacher1",
-      password: "teacher123",
+      password: devPassword,
       fullName: "Michael Brown",
-      email: "m.brown@school.edu",
+      email: "teacher1@artchallenge.local",
       role: "teacher",
       schoolId: school1.id,
       isActive: true
     });
-    
+
     const secondaryTeacher1 = this.createUser({
       username: "secondary1",
-      password: "secondary123",
+      password: devPassword,
       fullName: "Sarah Johnson",
-      email: "s.johnson@school.edu",
+      email: "secondary1@artchallenge.local",
       role: "secondaryTeacher",
       schoolId: school1.id,
       isActive: true
     });
-    
+
     const student1 = this.createUser({
       username: "student1",
-      password: "student123",
+      password: devPassword,
       fullName: "Emma Smith",
-      email: "emma.s@school.edu",
+      email: "student1@artchallenge.local",
       role: "student",
       schoolId: school1.id,
       gradeLevel: "9th Grade",
       isActive: true
     });
-    
+
     // Add two student users in the same class for voting testing
     const studa1 = this.createUser({
       username: "studa1",
-      password: "password123",
+      password: devPassword,
       fullName: "Studa One",
-      email: "testa1@gmail.com",
+      email: "studa1@artchallenge.local",
       role: "student",
       schoolId: school1.id,
       gradeLevel: "Grade 2",
       isActive: true
     });
-    
+
     const studa2 = this.createUser({
       username: "studa2",
-      password: "password123",
+      password: devPassword,
       fullName: "Studa Two",
-      email: "testa2@gmail.com",
+      email: "studa2@artchallenge.local",
       role: "student",
       schoolId: school1.id,
       gradeLevel: "Grade 2",

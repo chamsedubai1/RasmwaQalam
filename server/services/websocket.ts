@@ -4,6 +4,7 @@ import { monitoring } from '../monitoring';
 import { verifyAccessToken } from '../security';
 import { storage } from '../storage';
 import { parse as parseUrl } from 'url';
+import { config } from '../config';
 
 interface WebSocketClient extends WebSocket {
   id: string;
@@ -13,7 +14,94 @@ interface WebSocketClient extends WebSocket {
   userId: number;
   userRole: string;
   username: string;
+  classId: number | null;
+  schoolId: number | null;
   isAuthenticated: boolean;
+}
+
+/**
+ * SECURITY: Parse a single cookie value from a Cookie header without an external dep.
+ * Returns undefined if the cookie is not present. Accepts only the standard format
+ * `key=value; key2=value2`. Does not URL-decode values, which is fine for JWTs
+ * (base64url has no special chars).
+ */
+function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
+  if (!cookieHeader) return undefined;
+  const pairs = cookieHeader.split(';');
+  for (const pair of pairs) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) continue;
+    const key = pair.slice(0, eq).trim();
+    if (key === name) {
+      return pair.slice(eq + 1).trim();
+    }
+  }
+  return undefined;
+}
+
+/**
+ * SECURITY: Authorize a channel subscription against the authenticated client.
+ *
+ * Channels in this app are namespaced by purpose:
+ *   - `admin`            → admin role only
+ *   - `user_<id>` / `user:<id>`   → only that user
+ *   - `class_<id>` / `class:<id>` → members of that class, teachers, admins
+ *   - `school_<id>` / `school:<id>` → members of that school, admins
+ *   - `event_<id>` / `event:<id>` → any authenticated user (public event feed)
+ *
+ * Unknown channels are rejected by default. Returns { ok: true } or
+ * { ok: false, reason } describing why authorization failed.
+ */
+export function authorizeChannel(
+  channel: string,
+  client: Pick<WebSocketClient, 'userId' | 'userRole' | 'classId' | 'schoolId'>,
+): { ok: true } | { ok: false; reason: string } {
+  if (!channel || typeof channel !== 'string' || channel.length > 100) {
+    return { ok: false, reason: 'invalid_channel_name' };
+  }
+
+  if (channel === 'admin') {
+    return client.userRole === 'admin'
+      ? { ok: true }
+      : { ok: false, reason: 'admin_role_required' };
+  }
+
+  const match = channel.match(/^(user|class|school|event)[:_](\d+)$/);
+  if (!match) {
+    return { ok: false, reason: 'unknown_channel' };
+  }
+
+  const kind = match[1];
+  const id = Number(match[2]);
+  if (!Number.isFinite(id) || id <= 0) {
+    return { ok: false, reason: 'invalid_channel_id' };
+  }
+
+  switch (kind) {
+    case 'user':
+      return id === client.userId
+        ? { ok: true }
+        : { ok: false, reason: 'not_owner' };
+
+    case 'class':
+      if (client.userRole === 'admin') return { ok: true };
+      if (client.userRole === 'teacher' || client.userRole === 'secondaryTeacher') return { ok: true };
+      if (client.classId === id) return { ok: true };
+      return { ok: false, reason: 'not_class_member' };
+
+    case 'school':
+      if (client.userRole === 'admin') return { ok: true };
+      if (client.schoolId === id) return { ok: true };
+      return { ok: false, reason: 'not_school_member' };
+
+    case 'event':
+      // Event channels carry only public event-state updates; any
+      // authenticated user may listen.
+      return { ok: true };
+
+    default:
+      return { ok: false, reason: 'unknown_channel' };
+  }
 }
 
 interface WebSocketMessage {
@@ -27,20 +115,24 @@ export class WebSocketService {
   private clients: Map<string, WebSocketClient> = new Map();
   private channels: Map<string, Set<string>> = new Map(); // Map of channel name to set of client IDs
   private pingInterval: NodeJS.Timeout | null = null;
-  
+  private tokenValidationInterval: NodeJS.Timeout | null = null;
+
   constructor(server: HttpServer, options: ServerOptions = { path: '/ws' }) {
     // Initialize WebSocket server
-    this.wss = new WebSocketServer({ 
-      server, 
-      ...options 
+    this.wss = new WebSocketServer({
+      server,
+      ...options
     });
-    
+
     // Set up WebSocket event handlers
     this.setupEventHandlers();
-    
+
     // Start ping interval for connection health check
     this.startPingInterval();
-    
+
+    // Start periodic token validation for security
+    this.startTokenValidationInterval();
+
     console.log('WebSocket service initialized');
   }
   
@@ -139,64 +231,61 @@ export class WebSocketService {
   }
 
   /**
-   * Authenticate WebSocket connection using JWT token
-   * SECURITY ENHANCEMENT: Now reads from httpOnly cookies (XSS-safe) with query parameter fallback
+   * Authenticate WebSocket connection using JWT token from the httpOnly access_token cookie.
+   *
+   * SECURITY: The previous `?token=` query-string fallback wrote JWTs to access logs,
+   * proxy logs, and browser history. It is permitted only in non-production for
+   * developer convenience (curl/wscat). In production the token MUST come from the
+   * httpOnly cookie, which is the same surface the HTTP API uses.
    */
   private async authenticateConnection(ws: WebSocket, request: any, clientId: string): Promise<boolean> {
     try {
-      let token: string | undefined;
-      
-      // SECURITY: Try to get token from httpOnly cookie first (most secure)
-      if (request.headers.cookie) {
-        const cookies = request.headers.cookie.split(';').reduce((acc: Record<string, string>, cookie: string) => {
-          const [key, value] = cookie.trim().split('=');
-          acc[key] = value;
-          return acc;
-        }, {});
-        token = cookies.access_token;
-      }
-      
-      // Fallback to query parameter for backward compatibility (less secure)
-      if (!token) {
+      let token = readCookie(request.headers.cookie, 'access_token');
+
+      if (!token && config.NODE_ENV !== 'production') {
         const url = parseUrl(request.url || '', true);
-        token = url.query.token as string;
+        if (typeof url.query.token === 'string') {
+          token = url.query.token;
+        }
       }
-      
+
       if (!token) {
         console.log(`WebSocket connection rejected - no token provided for client ${clientId}`);
         return false;
       }
-      
+
       // Verify JWT token
       const decoded = await verifyAccessToken(token);
       if (!decoded) {
         console.log(`WebSocket connection rejected - invalid token for client ${clientId}`);
         return false;
       }
-      
+
       // Get user data from storage
       const user = await storage.getUser(decoded.userId);
       if (!user) {
         console.log(`WebSocket connection rejected - user not found for client ${clientId}`);
         return false;
       }
-      
+
       // Check if user is active
       if (!user.isActive) {
         console.log(`WebSocket connection rejected - user inactive for client ${clientId}`);
         return false;
       }
-      
+
       // Set authentication data on WebSocket client
       const client = ws as WebSocketClient;
       client.userId = user.id;
       client.userRole = user.role;
       client.username = user.username;
+      client.classId = user.classId ?? null;
+      client.schoolId = user.schoolId ?? null;
       client.isAuthenticated = true;
-      
+
       console.log(`WebSocket authentication successful for user: ${user.username} (${user.role})`);
       return true;
-      
+
     } catch (error) {
       console.error(`WebSocket authentication error for client ${clientId}:`, error);
       return false;
@@ -221,17 +310,40 @@ export class WebSocketService {
         });
         break;
         
-      case 'SUBSCRIBE':
-        // Handle channel subscription
-        if (message.data && message.data.channel) {
-          this.subscribeClientToChannel(clientId, message.data.channel);
-          
+      case 'SUBSCRIBE': {
+        // SECURITY: Authorize each subscription against the authenticated client.
+        // Without this check, any authenticated user could SUBSCRIBE to channels
+        // like `admin`, `user:<other-id>`, or `class:<other-class>` and receive
+        // private broadcasts intended for those scopes.
+        const channel = message.data && typeof message.data.channel === 'string'
+          ? message.data.channel
+          : undefined;
+
+        if (!channel) {
           this.sendToClient(clientId, {
-            type: 'SUBSCRIBED',
-            data: { channel: message.data.channel }
+            type: 'SUBSCRIBE_REJECTED',
+            data: { reason: 'missing_channel' },
           });
+          break;
         }
+
+        const decision = authorizeChannel(channel, client);
+        if (!decision.ok) {
+          console.warn(`[SECURITY] WebSocket SUBSCRIBE rejected: client=${clientId} user=${client.userId} role=${client.userRole} channel=${channel} reason=${decision.reason}`);
+          this.sendToClient(clientId, {
+            type: 'SUBSCRIBE_REJECTED',
+            data: { channel, reason: decision.reason },
+          });
+          break;
+        }
+
+        this.subscribeClientToChannel(clientId, channel);
+        this.sendToClient(clientId, {
+          type: 'SUBSCRIBED',
+          data: { channel },
+        });
         break;
+      }
         
       case 'UNSUBSCRIBE':
         // Handle channel unsubscription
@@ -396,7 +508,75 @@ export class WebSocketService {
       });
     }, 30000);
   }
-  
+
+  /**
+   * Start periodic token validation to check for revoked tokens and inactive users
+   * SECURITY ENHANCEMENT: Ensures connections are terminated if tokens become invalid
+   */
+  private startTokenValidationInterval(): void {
+    // Check every 60 seconds for revoked tokens or deactivated users
+    this.tokenValidationInterval = setInterval(async () => {
+      const clientsToDisconnect: string[] = [];
+
+      for (const [clientId, client] of this.clients.entries()) {
+        if (!client.isAuthenticated || !client.userId) {
+          continue;
+        }
+
+        try {
+          // Check if user is still active
+          const user = await storage.getUser(client.userId);
+
+          if (!user) {
+            console.log(`Token validation: User not found for client ${clientId}, disconnecting`);
+            clientsToDisconnect.push(clientId);
+            continue;
+          }
+
+          if (!user.isActive) {
+            console.log(`Token validation: User ${client.username} is no longer active, disconnecting client ${clientId}`);
+            clientsToDisconnect.push(clientId);
+            continue;
+          }
+
+          // Check if user's role has changed (security measure)
+          if (user.role !== client.userRole) {
+            console.log(`Token validation: User ${client.username} role changed from ${client.userRole} to ${user.role}, disconnecting client ${clientId}`);
+            clientsToDisconnect.push(clientId);
+            continue;
+          }
+
+        } catch (error) {
+          console.error(`Token validation error for client ${clientId}:`, error);
+          // On error, continue checking other clients - don't disconnect on transient errors
+        }
+      }
+
+      // Disconnect invalid clients
+      for (const clientId of clientsToDisconnect) {
+        const client = this.clients.get(clientId);
+        if (client) {
+          // Send notification before closing
+          this.sendToClient(clientId, {
+            type: 'SESSION_EXPIRED',
+            data: {
+              message: 'Your session has been invalidated. Please log in again.',
+              reason: 'token_revoked'
+            }
+          });
+
+          // Close connection with appropriate code
+          client.close(1008, 'Session invalidated');
+          this.handleClientDisconnection(clientId);
+        }
+      }
+
+      if (clientsToDisconnect.length > 0) {
+        console.log(`Token validation: Disconnected ${clientsToDisconnect.length} clients with invalid sessions`);
+      }
+    }, 60000); // Check every 60 seconds
+  }
+
   /**
    * Stop the WebSocket service
    */
@@ -405,10 +585,15 @@ export class WebSocketService {
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
     }
-    
+
+    // Clear token validation interval
+    if (this.tokenValidationInterval) {
+      clearInterval(this.tokenValidationInterval);
+    }
+
     // Close all connections
     this.wss.close();
-    
+
     console.log('WebSocket service stopped');
   }
   

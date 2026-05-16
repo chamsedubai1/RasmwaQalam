@@ -120,6 +120,27 @@ export function getCsrfToken(req: Request): string | undefined {
 }
 
 /**
+ * SECURITY: Force-rotate the CSRF cookie. Call this on login and logout so
+ * that a token captured before authentication state changes cannot be reused
+ * across the boundary (e.g. a pre-login token surviving into an authenticated
+ * session, or vice versa).
+ */
+export function rotateCsrfToken(req: Request, res: Response): string {
+  const token = generateCsrfToken();
+  res.cookie(CSRF_COOKIE_NAME, token, {
+    httpOnly: false,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+  if (req.cookies) {
+    req.cookies[CSRF_COOKIE_NAME] = token;
+  }
+  return token;
+}
+
+/**
  * Export constants for use in other modules
  */
 export const CSRF_CONFIG = {

@@ -4,3 +4,25 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Temp files and build artifacts
+temp/
+
+# Upload files (user content)
+uploads/
+
+# Local IDE and tool directories
+.local/
+.claude/
+
+# Secrets and credentials — NEVER commit these
+.env
+.env.*
+!.env.production.example
+cookies.txt
+*.pem
+*.key
+
+# Local Docker/build artifacts
+deploy/build/
+deploy/*.tar.gz

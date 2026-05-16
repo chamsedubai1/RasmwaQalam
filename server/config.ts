@@ -9,12 +9,15 @@ interface AppConfig {
   // Server Configuration
   NODE_ENV: 'development' | 'production' | 'test';
   PORT: number;
-  
-  // Security Secrets
-  JWT_SECRET: string;
-  JWT_REFRESH_SECRET: string;
-  SESSION_SECRET: string;
-  
+
+  // Security Secrets (each cryptographic purpose has its own key so a leak
+  // of one does not compromise the others)
+  JWT_SECRET: string;            // signing access tokens
+  JWT_REFRESH_SECRET: string;    // signing refresh tokens
+  SESSION_SECRET: string;        // express-session signing
+  AUDIT_LOG_HMAC_SECRET: string; // HMAC for tamper-evident audit log integrity
+  DOWNLOAD_SIGNING_SECRET: string; // HMAC for signed file download URLs
+
   // Database Configuration
   DATABASE_URL: string;
   
@@ -23,7 +26,12 @@ interface AppConfig {
   OPENAI_API_KEY?: string;
   HUGGING_FACE_API_KEY?: string;
   STABILITY_API_KEY?: string;
-  
+
+  // Qwen AI Configuration (Apache-2.0)
+  QWEN_API_KEY?: string;       // API key for Qwen service
+  QWEN_API_BASE?: string;      // Custom Qwen API endpoint (for self-hosted deployments)
+  QWEN_IMAGE_ENDPOINT?: string; // Optional: Separate image generation endpoint
+
   // CORS Configuration
   ALLOWED_ORIGINS?: string;
 }
@@ -89,6 +97,32 @@ class ConfigValidator {
       this.warnings.push('SESSION_SECRET should be at least 32 characters for security');
     }
 
+    // SECURITY: Per-purpose secrets. Falling back to JWT_SECRET keeps existing
+    // deployments working but is logged as a warning so operators upgrade.
+    let auditHmacSecret = env.AUDIT_LOG_HMAC_SECRET;
+    if (!auditHmacSecret) {
+      if (nodeEnv === 'production') {
+        auditHmacSecret = jwtSecret;
+        this.warnings.push('AUDIT_LOG_HMAC_SECRET not set; reusing JWT_SECRET (set a dedicated secret to isolate audit-log integrity)');
+      } else {
+        auditHmacSecret = jwtSecret;
+      }
+    } else if (auditHmacSecret.length < 32) {
+      this.warnings.push('AUDIT_LOG_HMAC_SECRET should be at least 32 characters for security');
+    }
+
+    let downloadSigningSecret = env.DOWNLOAD_SIGNING_SECRET;
+    if (!downloadSigningSecret) {
+      if (nodeEnv === 'production') {
+        downloadSigningSecret = jwtSecret;
+        this.warnings.push('DOWNLOAD_SIGNING_SECRET not set; reusing JWT_SECRET (set a dedicated secret to isolate signed-URL keys)');
+      } else {
+        downloadSigningSecret = jwtSecret;
+      }
+    } else if (downloadSigningSecret.length < 32) {
+      this.warnings.push('DOWNLOAD_SIGNING_SECRET should be at least 32 characters for security');
+    }
+
     // Validate DATABASE_URL
     const databaseUrl = env.DATABASE_URL;
     if (!databaseUrl) {
@@ -102,7 +136,8 @@ class ConfigValidator {
       env.ANTHROPIC_API_KEY ||
       env.OPENAI_API_KEY ||
       env.HUGGING_FACE_API_KEY ||
-      env.STABILITY_API_KEY
+      env.STABILITY_API_KEY ||
+      env.QWEN_API_KEY
     );
 
     if (!hasAnyAIKey) {
@@ -115,11 +150,16 @@ class ConfigValidator {
       JWT_SECRET: jwtSecret!,
       JWT_REFRESH_SECRET: jwtRefreshSecret!,
       SESSION_SECRET: sessionSecret!,
+      AUDIT_LOG_HMAC_SECRET: auditHmacSecret!,
+      DOWNLOAD_SIGNING_SECRET: downloadSigningSecret!,
       DATABASE_URL: databaseUrl!,
       ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
       OPENAI_API_KEY: env.OPENAI_API_KEY,
       HUGGING_FACE_API_KEY: env.HUGGING_FACE_API_KEY,
       STABILITY_API_KEY: env.STABILITY_API_KEY,
+      QWEN_API_KEY: env.QWEN_API_KEY,
+      QWEN_API_BASE: env.QWEN_API_BASE,
+      QWEN_IMAGE_ENDPOINT: env.QWEN_IMAGE_ENDPOINT,
       ALLOWED_ORIGINS: env.ALLOWED_ORIGINS,
     };
   }

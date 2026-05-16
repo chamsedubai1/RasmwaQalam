@@ -1,11 +1,13 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import express, { Router, Request, Response, Express } from 'express';
 import { storage as dbStorage } from './storage';
 import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { authenticateToken, requireRole } from './security';
 import { config } from './config';
+import { createAuditLog, AuditAction, AuditSeverity } from './audit-log';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -37,17 +39,18 @@ const MAGIC_BYTES = {
 /**
  * Verify file content matches the declared MIME type using magic bytes
  * SECURITY ENHANCEMENT: Stricter WebP validation checks both RIFF and WEBP chunks
+ * Uses async file reading to avoid blocking the event loop
  */
-function verifyFileType(filePath: string, declaredMimeType: string): boolean {
+async function verifyFileType(filePath: string, declaredMimeType: string): Promise<boolean> {
   try {
-    const fileBuffer = fs.readFileSync(filePath);
+    const fileBuffer = await fsPromises.readFile(filePath);
     const magicBytes = MAGIC_BYTES[declaredMimeType as keyof typeof MAGIC_BYTES];
-    
+
     if (!magicBytes) {
       console.warn(`No magic bytes defined for MIME type: ${declaredMimeType}`);
       return false;
     }
-    
+
     // SECURITY FIX: Stricter WebP validation
     if (declaredMimeType === 'image/webp') {
       // WebP files must have:
@@ -56,16 +59,16 @@ function verifyFileType(filePath: string, declaredMimeType: string): boolean {
       if (fileBuffer.length < 12) {
         return false;
       }
-      
+
       const riffSignature = Buffer.from([0x52, 0x49, 0x46, 0x46]); // RIFF
       const webpSignature = Buffer.from([0x57, 0x45, 0x42, 0x50]); // WEBP
-      
+
       const hasRIFF = fileBuffer.subarray(0, 4).equals(riffSignature);
       const hasWEBP = fileBuffer.subarray(8, 12).equals(webpSignature);
-      
+
       return hasRIFF && hasWEBP;
     }
-    
+
     // Check if file starts with any of the valid magic byte sequences
     return magicBytes.some(signature => {
       if (fileBuffer.length < signature.length) {
@@ -87,11 +90,12 @@ export function generateSignedUrl(filename: string, expiresIn: number = 3600): s
   const expires = Math.floor(Date.now() / 1000) + expiresIn;
   const payload = `${filename}:${expires}`;
   
-  // Create HMAC signature using JWT secret
-  const signature = createHmac('sha256', config.JWT_SECRET)
+  // SECURITY: HMAC signed with a dedicated key (not JWT_SECRET) so a compromise
+  // of one key does not extend to the others.
+  const signature = createHmac('sha256', config.DOWNLOAD_SIGNING_SECRET)
     .update(payload)
     .digest('base64url');
-  
+
   return `/api/download/${filename}?expires=${expires}&signature=${signature}`;
 }
 
@@ -108,7 +112,7 @@ function verifySignedUrl(filename: string, expires: string, signature: string): 
     
     // Recreate expected signature
     const payload = `${filename}:${expires}`;
-    const expectedSignature = createHmac('sha256', config.JWT_SECRET)
+    const expectedSignature = createHmac('sha256', config.DOWNLOAD_SIGNING_SECRET)
       .update(payload)
       .digest('base64url');
     
@@ -197,36 +201,39 @@ export function setupUploadRoutes(apiRouter: Router) {
         }
         
         // User data is already validated and attached by authenticateToken middleware
-        const user = (req as any).user;
+        interface AuthenticatedRequest extends Request {
+          user: { id: number; username: string; role: string };
+        }
+        const user = (req as AuthenticatedRequest).user;
         
         // SECURITY ENHANCEMENT: Verify file content using magic bytes
         // This prevents malicious files disguised as images
-        const isValidFileType = verifyFileType(req.file.path, req.file.mimetype);
+        const isValidFileType = await verifyFileType(req.file.path, req.file.mimetype);
         
         if (!isValidFileType) {
           // Delete the uploaded file if content doesn't match MIME type
-          fs.unlinkSync(req.file.path);
+          await fsPromises.unlink(req.file.path);
           console.warn(`File upload rejected: Magic byte verification failed for ${req.file.originalname} (${req.file.mimetype})`);
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: 'File content does not match the declared file type. Upload rejected for security.',
             code: 'INVALID_FILE_CONTENT'
           });
         }
-        
+
         // Additional extension validation (double-check)
         const fileExtension = path.extname(req.file.originalname).toLowerCase();
         if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
-          fs.unlinkSync(req.file.path);
-          return res.status(400).json({ 
+          await fsPromises.unlink(req.file.path);
+          return res.status(400).json({
             message: 'File type not allowed. Only JPG, PNG, GIF, and WebP images are permitted.',
             allowedTypes: ALLOWED_EXTENSIONS
           });
         }
-        
+
         // Check file size (additional validation)
         if (req.file.size > 10 * 1024 * 1024) { // 10MB
-          fs.unlinkSync(req.file.path);
-          return res.status(400).json({ 
+          await fsPromises.unlink(req.file.path);
+          return res.status(400).json({
             message: 'File size too large. Maximum size is 10MB.'
           });
         }
@@ -254,11 +261,15 @@ export function setupUploadRoutes(apiRouter: Router) {
         console.error('Error uploading file:', error);
         
         // Clean up file if there was an error
-        if (req.file?.path && fs.existsSync(req.file.path)) {
+        if (req.file?.path) {
           try {
-            fs.unlinkSync(req.file.path);
+            await fsPromises.access(req.file.path);
+            await fsPromises.unlink(req.file.path);
           } catch (cleanupError) {
-            console.error('Error cleaning up uploaded file:', cleanupError);
+            // File may not exist, which is fine
+            if ((cleanupError as NodeJS.ErrnoException).code !== 'ENOENT') {
+              console.error('Error cleaning up uploaded file:', cleanupError);
+            }
           }
         }
         
@@ -304,31 +315,40 @@ export function setupUploadRoutes(apiRouter: Router) {
       
       // Build file path
       const filePath = path.join(uploadDir, filename);
-      
-      // Check if file exists
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ 
+
+      // Check if file exists (async)
+      try {
+        await fsPromises.access(filePath);
+      } catch {
+        return res.status(404).json({
           message: 'File not found',
           code: 'FILE_NOT_FOUND'
         });
       }
-      
+
       // Security check: Ensure file is within uploads directory (prevent directory traversal)
-      const realPath = fs.realpathSync(filePath);
-      const realUploadDir = fs.realpathSync(uploadDir);
-      
+      const realPath = await fsPromises.realpath(filePath);
+      const realUploadDir = await fsPromises.realpath(uploadDir);
+
       if (!realPath.startsWith(realUploadDir)) {
         console.error(`Security violation: Attempted access outside uploads directory: ${realPath}`);
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: 'Access denied',
           code: 'ACCESS_DENIED'
         });
       }
-      
+
       // Set security headers for file download
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Content-Disposition', 'inline');
-      
+
+      // Audit log the download for security monitoring
+      await createAuditLog(req, AuditAction.FILE_DOWNLOADED, 'file', {
+        resourceId: filename,
+        success: true,
+        severity: AuditSeverity.INFO,
+      });
+
       // Send file
       res.sendFile(realPath);
       
@@ -340,13 +360,18 @@ export function setupUploadRoutes(apiRouter: Router) {
 }
 
 /**
- * SECURITY NOTE: Public uploads directory is deprecated
- * Use signed URLs via /api/download/:filename instead for access control
- * This function is kept for backwards compatibility but should be removed in production
+ * SECURITY: Public uploads directory - DISABLED outside development.
+ * Use signed URLs via /api/download/:filename instead for access control.
+ * Uses the validated config.NODE_ENV (not raw process.env.NODE_ENV) so that
+ * case variations or unset values can never accidentally expose /uploads.
  */
 export function setupStaticUploads(app: Express) {
-  // DEPRECATED: Public file access - use signed URLs instead
-  // Keeping for backwards compatibility with existing uploaded files
-  console.warn('⚠️  Public uploads directory is enabled - consider using signed URLs for better security');
+  if (config.NODE_ENV !== 'development') {
+    console.log('✅ Public uploads directory DISABLED - using signed URLs for security');
+    return;
+  }
+
+  // DEVELOPMENT ONLY: Public file access for convenience
+  console.warn('⚠️  [DEV MODE] Public uploads directory enabled - will be disabled outside development');
   app.use('/uploads', express.static(uploadDir));
 }

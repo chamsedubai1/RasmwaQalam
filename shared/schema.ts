@@ -25,6 +25,11 @@ export const users = pgTable("users", {
   gradeLevel: text("grade_level"),
   isActive: boolean("is_active").notNull().default(true),
   lastLoginDate: timestamp("last_login_date"),
+  // SECURITY: Bumped on every password change. JWT access tokens carry the
+  // value at the time of issue; tokens whose pwdAt is older than the user's
+  // current passwordChangedAt are rejected, so a password reset invalidates
+  // outstanding access tokens (not just refresh tokens).
+  passwordChangedAt: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -112,12 +117,20 @@ export const submissions = pgTable("submissions", {
 });
 
 // Votes table
+// SECURITY: uniqueIndex prevents race condition allowing duplicate votes
 export const votes = pgTable("votes", {
   id: serial("id").primaryKey(),
   submissionId: integer("submission_id").notNull(),
   voterId: integer("voter_id").notNull(),
   votedAt: timestamp("voted_at").defaultNow(),
-});
+}, (table) => ({
+  // Unique constraint to prevent duplicate votes (same voter on same submission)
+  uniqueVote: {
+    name: "unique_voter_submission",
+    columns: [table.submissionId, table.voterId],
+    unique: true,
+  },
+}));
 
 // Secondary Teacher Assignments table
 export const secondaryTeacherAssignments = pgTable("secondary_teacher_assignments", {
@@ -192,16 +205,43 @@ export const insertUserSchema = createInsertSchema(users, {
   password: passwordValidator,
 });
 
-export const insertCitySchema = createInsertSchema(cities);
-export const insertSchoolSchema = createInsertSchema(schools);
-export const insertClassSchema = createInsertSchema(classes);
-export const insertPartnerSchema = createInsertSchema(partners);
+export const insertCitySchema = createInsertSchema(cities, {
+  name: z.string().min(1, "City name is required").max(100, "City name must be less than 100 characters"),
+  country: z.string().min(1, "Country is required").max(100, "Country must be less than 100 characters"),
+});
+
+export const insertSchoolSchema = createInsertSchema(schools, {
+  name: z.string().min(2, "School name must be at least 2 characters").max(200, "School name must be less than 200 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
+  websiteUrl: z.string().url("Please enter a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
+});
+
+export const insertClassSchema = createInsertSchema(classes, {
+  name: z.string().min(1, "Class name is required").max(100, "Class name must be less than 100 characters"),
+  gradeLevel: z.string().min(1, "Grade level is required").max(50, "Grade level must be less than 50 characters"),
+});
+
+export const insertPartnerSchema = createInsertSchema(partners, {
+  name: z.string().min(2, "Partner name must be at least 2 characters").max(200, "Partner name must be less than 200 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
+  websiteUrl: z.string().url("Please enter a valid URL").max(500, "URL must be less than 500 characters").optional().or(z.literal("")),
+  partnerType: z.string().max(100, "Partner type must be less than 100 characters").optional(),
+});
+
 export const insertEventSchema = createInsertSchema(events, {
+  name: z.string().min(3, "Event name must be at least 3 characters").max(200, "Event name must be less than 200 characters"),
+  description: z.string().max(5000, "Description must be less than 5000 characters").optional(),
   startDate: z.string().transform((str) => new Date(str)),
   endDate: z.string().transform((str) => new Date(str))
 });
+
 export const insertRegistrationSchema = createInsertSchema(registrations);
-export const insertSubmissionSchema = createInsertSchema(submissions);
+
+export const insertSubmissionSchema = createInsertSchema(submissions, {
+  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
+  content: z.string().max(50000, "Content must be less than 50000 characters"), // Allow for poems/descriptions
+});
 export const insertVoteSchema = createInsertSchema(votes);
 export const insertSecondaryTeacherAssignmentSchema = createInsertSchema(secondaryTeacherAssignments);
 export const insertGalleryItemSchema = createInsertSchema(galleryItems)
@@ -247,8 +287,26 @@ export const refreshTokens = pgTable("refresh_tokens", {
   revokedReason: text("revoked_reason"), // 'logout', 'security', 'rotation', etc.
 });
 
+// Password Reset Tokens table - SECURITY: For secure password reset flow
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(), // Hashed version of the token (never store plaintext)
+  userId: integer("user_id").notNull(), // Foreign key to users table
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+  ipAddress: text("ip_address"), // Track IP for security monitoring
+});
+
 // Create insert schema for refresh tokens
 export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Create insert schema for password reset tokens
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
   id: true,
   createdAt: true,
 });
@@ -289,3 +347,6 @@ export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
 
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;

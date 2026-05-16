@@ -1,7 +1,10 @@
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { createHash, createHmac } from 'crypto';
 import { config } from './config';
+import { db } from './db';
+import { auditLogs } from '@shared/schema';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 
 /**
  * SECURITY ENHANCEMENT: Comprehensive audit logging system
@@ -21,8 +24,8 @@ export interface AuditLogEntry {
   ipAddress: string;
   userAgent: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
   };
   success: boolean;
   errorMessage?: string;
@@ -41,6 +44,7 @@ export enum AuditAction {
   PASSWORD_CHANGED = 'PASSWORD_CHANGED',
   PASSWORD_RESET_REQUESTED = 'PASSWORD_RESET_REQUESTED',
   PASSWORD_RESET_COMPLETED = 'PASSWORD_RESET_COMPLETED',
+  PASSWORD_RESET_FAILED = 'PASSWORD_RESET_FAILED',
   
   // Authentication
   LOGIN_SUCCESS = 'LOGIN_SUCCESS',
@@ -91,10 +95,17 @@ export enum AuditAction {
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   UNAUTHORIZED_ACCESS_ATTEMPT = 'UNAUTHORIZED_ACCESS_ATTEMPT',
   FILE_UPLOAD_REJECTED = 'FILE_UPLOAD_REJECTED',
-  
+  FILE_UPLOADED = 'FILE_UPLOADED',
+  FILE_DOWNLOADED = 'FILE_DOWNLOADED',
+
   // Data exports
   DATA_EXPORTED = 'DATA_EXPORTED',
   BULK_OPERATION = 'BULK_OPERATION',
+
+  // Generic resource operations
+  RESOURCE_CREATED = 'RESOURCE_CREATED',
+  RESOURCE_UPDATED = 'RESOURCE_UPDATED',
+  RESOURCE_DELETED = 'RESOURCE_DELETED',
 }
 
 export enum AuditSeverity {
@@ -120,7 +131,7 @@ function generateIntegrityHash(entry: Omit<AuditLogEntry, 'integrityHash'>): str
     success: entry.success,
   });
   
-  return createHmac('sha256', config.JWT_SECRET)
+  return createHmac('sha256', config.AUDIT_LOG_HMAC_SECRET)
     .update(data)
     .digest('hex');
 }
@@ -160,12 +171,30 @@ function getUserFromRequest(req: Request): { userId: number; username: string; u
 
 /**
  * Extract request metadata
+ *
+ * SECURITY: Prefer req.ip (Express resolves the trusted proxy chain when
+ * `app.set('trust proxy', ...)` is configured). Only fall back to a parsed
+ * X-Forwarded-For if req.ip is genuinely empty, and take only the first
+ * (leftmost) entry — a raw header would otherwise be the entire comma-
+ * separated chain.
  */
 function getRequestMetadata(req: Request): { ipAddress: string; userAgent: string; sessionId?: string } {
+  let ipAddress = req.ip;
+  if (!ipAddress) {
+    const xff = req.headers['x-forwarded-for'];
+    if (typeof xff === 'string' && xff.length > 0) {
+      ipAddress = xff.split(',')[0].trim();
+    } else if (Array.isArray(xff) && xff.length > 0) {
+      ipAddress = xff[0].split(',')[0].trim();
+    }
+  }
   return {
-    ipAddress: (req.ip || req.headers['x-forwarded-for'] || 'unknown') as string,
+    ipAddress: ipAddress || 'unknown',
     userAgent: req.headers['user-agent'] || 'unknown',
-    sessionId: (req.session as any)?.id,
+    // Note: we intentionally do not persist a session-id surrogate in the
+    // audit log; sessionID lifetimes leak into long-term storage and offer
+    // no forensic value beyond what the JWT-tracked user id already gives.
+    sessionId: undefined,
   };
 }
 
@@ -179,7 +208,7 @@ export async function createAuditLog(
   resource: string,
   options: {
     resourceId?: string | number;
-    changes?: { before?: any; after?: any };
+    changes?: { before?: Record<string, unknown>; after?: Record<string, unknown> };
     success?: boolean;
     errorMessage?: string;
     severity?: AuditSeverity;
@@ -298,7 +327,7 @@ function isDestructiveAction(action: AuditAction): boolean {
  * Middleware to automatically log all administrative API calls
  */
 export function auditLogMiddleware(resource: string, action: AuditAction) {
-  return async (req: Request, _res: any, next: any) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       // Log the action before it executes
       await createAuditLog(req, action, resource, {
@@ -307,13 +336,14 @@ export function auditLogMiddleware(resource: string, action: AuditAction) {
     } catch (error) {
       console.error('Audit logging middleware error:', error);
     }
-    
+
     next();
   };
 }
 
 /**
  * Query audit logs (for admin dashboard)
+ * Implements database query with filtering and pagination
  */
 export async function queryAuditLogs(filters: {
   userId?: number;
@@ -323,11 +353,99 @@ export async function queryAuditLogs(filters: {
   endDate?: Date;
   severity?: AuditSeverity;
   limit?: number;
+  offset?: number;
 }): Promise<AuditLogEntry[]> {
-  // TODO: Implement database query for audit logs
-  // This would query the audit_logs table with the given filters
-  // For now, return empty array
-  return [];
+  try {
+    const conditions = [];
+
+    // Build dynamic WHERE conditions
+    if (filters.userId !== undefined) {
+      conditions.push(eq(auditLogs.userId, filters.userId));
+    }
+
+    if (filters.action) {
+      conditions.push(eq(auditLogs.action, filters.action));
+    }
+
+    if (filters.resource) {
+      conditions.push(eq(auditLogs.resource, filters.resource));
+    }
+
+    if (filters.severity) {
+      conditions.push(eq(auditLogs.severity, filters.severity));
+    }
+
+    if (filters.startDate) {
+      conditions.push(gte(auditLogs.timestamp, filters.startDate));
+    }
+
+    if (filters.endDate) {
+      conditions.push(lte(auditLogs.timestamp, filters.endDate));
+    }
+
+    // Build the query
+    let query = db
+      .select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.timestamp));
+
+    // Apply conditions if any exist
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+
+    // Apply limit
+    if (filters.limit) {
+      query = query.limit(filters.limit) as typeof query;
+    } else {
+      query = query.limit(100) as typeof query; // Default limit
+    }
+
+    // Apply offset for pagination
+    if (filters.offset) {
+      query = query.offset(filters.offset) as typeof query;
+    }
+
+    const results = await query;
+
+    // Map database results to AuditLogEntry interface, then verify each
+    // entry's integrity hash. Tampered or unverifiable rows are still
+    // returned but flagged for the caller via a `verified: false` field
+    // that admin UIs can render distinctly. We never silently drop rows
+    // (so a tamperer cannot hide an event by also breaking its hash).
+    return results.map(row => {
+      const entry: AuditLogEntry = {
+        id: row.id,
+        timestamp: new Date(row.timestamp),
+        userId: row.userId,
+        username: row.username,
+        userRole: row.userRole,
+        action: row.action as AuditAction,
+        resource: row.resource,
+        resourceId: row.resourceId || undefined,
+        ipAddress: row.ipAddress,
+        userAgent: row.userAgent,
+        changes: row.changesBefore || row.changesAfter ? {
+          before: row.changesBefore ? JSON.parse(row.changesBefore) : undefined,
+          after: row.changesAfter ? JSON.parse(row.changesAfter) : undefined,
+        } : undefined,
+        success: row.success,
+        errorMessage: row.errorMessage || undefined,
+        severity: row.severity as AuditSeverity,
+        sessionId: row.sessionId || undefined,
+        integrityHash: row.integrityHash,
+      };
+
+      const verified = verifyAuditLogIntegrity(entry);
+      if (!verified) {
+        console.error(`[SECURITY] Audit log integrity check FAILED for entry id=${row.id}`);
+      }
+      return Object.assign(entry, { verified });
+    });
+  } catch (error) {
+    console.error('Failed to query audit logs:', error);
+    return [];
+  }
 }
 
 /**

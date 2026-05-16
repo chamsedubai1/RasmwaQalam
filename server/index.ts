@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes/index";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import cookieParser from "cookie-parser";
@@ -73,19 +73,26 @@ app.use((req, res, next) => {
   let cspDirectives: string;
   
   if (config.NODE_ENV === 'production') {
-    // Production: Strict CSP - no unsafe directives
+    // Production: Strict CSP - no unsafe directives.
+    // `img-src` allows `data:` so the gallery can render base64 thumbnails
+    // produced by AI providers; we deliberately drop the wildcard `https:`
+    // that was previously here so a script-injection in a JSON field cannot
+    // exfiltrate via <img src="https://attacker/...">.
     cspDirectives = [
       "default-src 'self'",
-      "script-src 'self'", // No unsafe-inline, no unsafe-eval
+      "script-src 'self'",
       "style-src 'self'",
-      "img-src 'self' data: https:",
+      "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' wss:", // Production uses WSS
+      "connect-src 'self' wss:",
+      "frame-src 'none'",
       "frame-ancestors 'none'",
+      "worker-src 'self'",
+      "media-src 'self'",
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
-      "upgrade-insecure-requests"
+      "upgrade-insecure-requests",
     ].join('; ');
   } else {
     // Development: Relaxed for Vite HMR, but still avoid eval
@@ -125,29 +132,77 @@ app.use((req, res, next) => {
   next();
 });
 
-// Set up session middleware for CAPTCHA
+// SECURITY: Session middleware is used only for CAPTCHA state, not for auth
+// (auth is JWT-cookie-based). Don't create sessions for anonymous browsers
+// (`saveUninitialized: false`) and lock the cookie down explicitly.
 app.use(session({
   secret: config.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
-  cookie: { 
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
     secure: config.NODE_ENV === 'production',
-    maxAge: 30 * 60 * 1000 // 30 minutes
-  }
+    sameSite: 'lax',
+    maxAge: 30 * 60 * 1000, // 30 minutes
+  },
 }));
 
-// Increase JSON body size limit to 50MB for image data
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// SECURITY: Cap JSON/urlencoded bodies. 2 MB covers all current API payloads
+// (the largest legitimate ones are submissions capped at 50 KB content).
+// Multipart file uploads do NOT go through express.json, so this does not
+// affect the 10 MB image upload limit configured in multer.
+//
+// The previous 50 MB limit allowed login passwords up to 50 MB to be fed
+// straight into scrypt — a viable single-request DoS vector.
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 
 // SECURITY ENHANCEMENT: CSRF protection - generate tokens for all requests
 // This sets the CSRF token cookie that the frontend can read
 app.use(setCsrfToken);
 
+/**
+ * SECURITY: Redact sensitive keys before they reach the request log.
+ * Even with the 80-char truncation downstream, the leading edge of tokens
+ * and hashes can leak. We rebuild the JSON without those keys.
+ */
+const SENSITIVE_KEYS = new Set([
+  'password',
+  'newPassword',
+  'oldPassword',
+  'currentPassword',
+  'accessToken',
+  'refreshToken',
+  'token',
+  'integrityHash',
+  'tokenHash',
+  'signature',
+  'csrfToken',
+  'captchaText',
+]);
+
+function redactForLog(value: unknown, depth = 0): unknown {
+  if (depth > 4) return '[truncated]';
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map((v) => redactForLog(v, depth + 1));
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (SENSITIVE_KEYS.has(k)) {
+        out[k] = '[REDACTED]';
+      } else {
+        out[k] = redactForLog(v, depth + 1);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: unknown = undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -159,8 +214,12 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse !== undefined) {
+        try {
+          logLine += ` :: ${JSON.stringify(redactForLog(capturedJsonResponse))}`;
+        } catch {
+          logLine += ` :: [unserializable]`;
+        }
       }
 
       if (logLine.length > 80) {
@@ -178,7 +237,13 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   // SECURITY ENHANCEMENT: Sanitized error handling middleware
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  interface HttpError extends Error {
+    status?: number;
+    statusCode?: number;
+    details?: unknown;
+  }
+
+  app.use((err: HttpError, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     
     // Log full error details server-side for debugging (never expose to client)
@@ -225,14 +290,16 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Bind to the host-provided port. Hostinger Cloud's Passenger and most
+  // PaaS runtimes inject PORT; Replit also sets it. Fall back to 5000 for
+  // local development.
+  const port = Number(process.env.PORT) || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
+    // Passenger / shared hosts don't allow reusePort; only set it where the
+    // user explicitly opts in (e.g. PM2 cluster).
+    ...(process.env.REUSE_PORT === '1' ? { reusePort: true } : {}),
   }, () => {
     log(`serving on port ${port}`);
   });
