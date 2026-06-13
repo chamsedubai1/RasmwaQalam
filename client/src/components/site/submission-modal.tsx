@@ -42,7 +42,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [aiPrompt, setAiPrompt] = useState("");
   const [poetryStyle, setPoetryStyle] = useState<string>("free");
   const [aiImageService, setAiImageService] = useState<string>("huggingface");
-  const [aiTextService, setAiTextService] = useState<string>("claude");
+  const [aiTextService, setAiTextService] = useState<string>("ollama");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
@@ -103,15 +103,15 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     },
     onSuccess: (data: PoemResponse) => {
       setContent(data.content);
-      const serviceName = data.service === 'openai' ? 'OpenAI' : 
-                         data.service === 'huggingface' ? 'Hugging Face' : 
-                         data.service === 'claude' ? 'Claude (Anthropic)' : 
+      const serviceName = data.service === 'openai' ? 'OpenAI' :
+                         data.service === 'huggingface' ? 'Hugging Face' :
+                         data.service === 'ollama' ? 'Local AI (Qwen)' :
                          'AI';
-      
+
       if (data.usedFallback) {
         toast({
           title: "Poetry Generated with Fallback",
-          description: `Claude (Anthropic) quota exceeded - your poem was generated using ${serviceName} instead`,
+          description: `Local AI unavailable — your poem was generated using ${serviceName} instead`,
           variant: "destructive"
         });
       } else {
@@ -267,7 +267,7 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
     setAiPrompt("");
     setPoetryStyle("free");
     setAiImageService("huggingface");
-    setAiTextService("claude");
+    setAiTextService("ollama");
     onClose();
   };
 
@@ -391,8 +391,8 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                             <SelectValue placeholder="Select AI service" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="ollama">Local AI (Qwen 2.5, self-hosted)</SelectItem>
                             <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
-                            <SelectItem value="claude">Claude (Anthropic)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

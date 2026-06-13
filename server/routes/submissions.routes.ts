@@ -5,7 +5,7 @@ import { sendToChannel, broadcast } from "../services/websocket";
 import { insertSubmissionSchema, insertVoteSchema, insertGalleryItemSchema } from "@shared/schema";
 import { authenticateToken, requireRole, apiRateLimiter } from "../security";
 import { createAuditLog, AuditAction, AuditSeverity } from "../audit-log";
-import * as anthropic from "../anthropic";
+import * as ollama from "../ollama";
 import { sanitizeSubmissionContent } from "../validation";
 
 const router = Router();
@@ -425,33 +425,36 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       submissionData.description = sanitizeSubmissionContent(submissionData.description);
     }
 
-    // SECURITY: Content moderation for student safety
-    // Moderate text content (titles and poem content)
-    if (process.env.ANTHROPIC_API_KEY) {
+    // SECURITY: Content moderation for student safety (Llama Guard 3 via Ollama).
+    // If Ollama is unavailable we still ALLOW the submission to be created
+    // (so students aren't blocked from submitting their own typed work when the
+    // local LLM is down), but the submission is flagged for manual teacher
+    // review by leaving `validated` null. If Ollama IS available and flags the
+    // content as unsafe, the submission is rejected.
+    if (await ollama.isOllamaAvailable()) {
       try {
-        // Moderate the title
         if (submissionData.title) {
-          const titleModeration = await anthropic.moderateContent(submissionData.title);
+          const titleModeration = await ollama.moderateContent(submissionData.title);
           if (!titleModeration.isSafe) {
             console.warn(`[SECURITY] Submission title blocked for user ${currentUser.id}: ${titleModeration.category}`);
             return res.status(400).json({
               message: 'Your submission title contains inappropriate content. Please revise and try again.',
               code: 'CONTENT_BLOCKED',
-              field: 'title'
+              field: 'title',
+              category: titleModeration.category,
             });
           }
         }
 
-        // Moderate text content (poetry submissions)
         if (submissionData.contentType === 'text' && submissionData.content) {
-          const contentModeration = await anthropic.moderateContent(submissionData.content);
+          const contentModeration = await ollama.moderateContent(submissionData.content);
           if (!contentModeration.isSafe) {
             console.warn(`[SECURITY] Submission content blocked for user ${currentUser.id}: ${contentModeration.category}`);
             return res.status(400).json({
               message: 'Your submission contains inappropriate content. Please revise and try again.',
               code: 'CONTENT_BLOCKED',
               field: 'content',
-              category: contentModeration.category
+              category: contentModeration.category,
             });
           }
         }
@@ -459,11 +462,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
         console.log(`[MODERATION] Submission content approved for user ${currentUser.id}`);
       } catch (moderationError) {
         console.error('[MODERATION] Content moderation failed:', moderationError);
-        // In strict mode, you could block submission if moderation fails
-        // For now, we log and allow (teacher will manually review)
+        // Failure during moderation: allow but log for teacher review.
       }
     } else {
-      console.warn('[SECURITY] Content moderation unavailable - submission will require manual review');
+      console.warn('[SECURITY] Ollama unavailable - submission will require manual teacher review');
     }
 
     const submission = await storage.createSubmission(submissionData);

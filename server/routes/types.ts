@@ -28,16 +28,16 @@ export interface PaginatedResponse<T> {
 // AI Service constants
 export const AI_SERVICE = {
   OPENAI: 'openai',
-  CLAUDE: 'claude',
+  OLLAMA: 'ollama',           // Self-hosted via Ollama (Qwen 2.5 + Llama Guard 3)
   HUGGING_FACE: 'huggingface',
   STABILITY: 'stability',
-  QWEN: 'qwen'  // Qwen2.5-VL Vision-Language Model (Apache-2.0)
+  QWEN: 'qwen',               // Qwen2.5-VL Vision-Language Model (Apache-2.0)
 } as const;
 
 export type AIServiceType = typeof AI_SERVICE[keyof typeof AI_SERVICE];
 
 // Default AI services
-export const DEFAULT_TEXT_SERVICE = AI_SERVICE.CLAUDE;
+export const DEFAULT_TEXT_SERVICE = AI_SERVICE.OLLAMA;
 export const DEFAULT_IMAGE_SERVICE = AI_SERVICE.STABILITY;
 
 // Qwen-specific capabilities

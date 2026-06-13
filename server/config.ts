@@ -21,8 +21,12 @@ interface AppConfig {
   // Database Configuration
   DATABASE_URL: string;
   
-  // Optional AI Service Keys
-  ANTHROPIC_API_KEY?: string;
+  // Self-hosted LLM (Ollama) — primary path. No paid API keys required.
+  OLLAMA_URL?: string;                  // default http://localhost:11434
+  OLLAMA_GENERATION_MODEL?: string;     // default qwen2.5:3b
+  OLLAMA_MODERATION_MODEL?: string;     // default llama-guard3:1b
+
+  // Optional remote AI service keys (fallbacks / image generation)
   OPENAI_API_KEY?: string;
   HUGGING_FACE_API_KEY?: string;
   STABILITY_API_KEY?: string;
@@ -131,17 +135,18 @@ class ConfigValidator {
       this.warnings.push('DATABASE_URL should use postgres:// or postgresql:// protocol');
     }
 
-    // AI Service Keys (optional but warn if none are set)
-    const hasAnyAIKey = !!(
-      env.ANTHROPIC_API_KEY ||
+    // AI configuration check. We expect EITHER Ollama (self-hosted) OR at
+    // least one remote provider key. Warn only if nothing is configured at all.
+    const ollamaConfigured = !!env.OLLAMA_URL || nodeEnv !== 'production';
+    const hasRemoteAIKey = !!(
       env.OPENAI_API_KEY ||
       env.HUGGING_FACE_API_KEY ||
       env.STABILITY_API_KEY ||
       env.QWEN_API_KEY
     );
 
-    if (!hasAnyAIKey) {
-      this.warnings.push('No AI service API keys configured (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)');
+    if (!ollamaConfigured && !hasRemoteAIKey) {
+      this.warnings.push('No AI service configured (set OLLAMA_URL for self-hosted, or a provider API key)');
     }
 
     return {
@@ -153,7 +158,9 @@ class ConfigValidator {
       AUDIT_LOG_HMAC_SECRET: auditHmacSecret!,
       DOWNLOAD_SIGNING_SECRET: downloadSigningSecret!,
       DATABASE_URL: databaseUrl!,
-      ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
+      OLLAMA_URL: env.OLLAMA_URL,
+      OLLAMA_GENERATION_MODEL: env.OLLAMA_GENERATION_MODEL,
+      OLLAMA_MODERATION_MODEL: env.OLLAMA_MODERATION_MODEL,
       OPENAI_API_KEY: env.OPENAI_API_KEY,
       HUGGING_FACE_API_KEY: env.HUGGING_FACE_API_KEY,
       STABILITY_API_KEY: env.STABILITY_API_KEY,

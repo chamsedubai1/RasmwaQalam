@@ -11,7 +11,7 @@
  * is identical so callers don't care which mode is active.
  */
 
-import { generatePoem as generateAnthropicPoem } from '../anthropic';
+import { generatePoem as generateOllamaPoem } from '../ollama';
 // NOTE: server/huggingface.ts exports `generateText`, not `generatePoem`.
 // Original code imported `generatePoem` which silently resolved to undefined
 // at runtime, so the HF fallback never worked. Use the actual export.
@@ -32,12 +32,12 @@ async function runJob({ prompt, style, userId, service }: JobData): Promise<unkn
   try {
     let result;
 
-    if (service === 'anthropic' || !service) {
+    if (service === 'ollama' || !service) {
       try {
-        result = await generateAnthropicPoem(prompt, style);
+        result = await generateOllamaPoem(prompt, style);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.log(`Claude AI failed for user ${userId}, falling back to Hugging Face: ${msg}`);
+        console.log(`Ollama failed for user ${userId}, falling back to Hugging Face: ${msg}`);
         result = await generateHuggingFacePoem(prompt, style);
       }
     } else if (service === 'huggingface') {
@@ -89,7 +89,7 @@ if (process.env.REDIS_URL) {
 
   generatePoem = async (prompt, style, userId, service) => {
     const job = await aiQueue.add(
-      { prompt, style, userId: userId || 0, service: service || 'anthropic' },
+      { prompt, style, userId: userId || 0, service: service || 'ollama' },
       {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },

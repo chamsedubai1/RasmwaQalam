@@ -7,6 +7,7 @@ import { storage } from "../storage";
 import { monitoring } from "../monitoring";
 import { hashPassword, authenticateToken, requireRole, apiRateLimiter } from "../security";
 import { createAuditLog, AuditAction, AuditSeverity } from "../audit-log";
+import * as ollama from "../ollama";
 
 const router = Router();
 
@@ -136,7 +137,7 @@ router.get('/monitoring/system', authenticateToken, requireRole(['admin']), asyn
     }
 
     const apiServices = [
-      { name: 'Anthropic Claude', type: 'AI', status: process.env.ANTHROPIC_API_KEY ? 'configured' : 'not configured' },
+      { name: 'Ollama (self-hosted)', type: 'AI', status: await ollama.isOllamaAvailable() ? 'configured' : 'not configured' },
       { name: 'OpenAI', type: 'AI', status: process.env.OPENAI_API_KEY ? 'configured' : 'not configured' },
       { name: 'Stability.ai', type: 'AI', status: process.env.STABILITY_API_KEY ? 'configured' : 'not configured' },
       { name: 'Hugging Face', type: 'AI', status: process.env.HUGGING_FACE_API_KEY ? 'configured' : 'not configured' },
