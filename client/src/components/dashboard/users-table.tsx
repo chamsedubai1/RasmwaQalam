@@ -53,33 +53,31 @@ export default function UsersTable({
   } = useQuery({
     queryKey: ['/api/users', buildQueryString()],
     queryFn: async () => {
+      // apiRequest already throws on non-OK responses and returns parsed JSON.
+      // The previous code treated the result as a fetch Response and called
+      // .json() on it, which broke with TypeError ".json is not a function"
+      // after the queryClient migration to HttpOnly cookies.
       try {
         const queryString = buildQueryString();
         const endpoint = queryString ? `/api/users?${queryString}` : '/api/users';
-        const response = await apiRequest('GET', endpoint);
-        
-        // Safe parsing of response
-        try {
-          return await response.json();
-        } catch (jsonError) {
-          // If there's an error parsing JSON, try to get the response text
-          console.error("Error parsing JSON response:", jsonError);
-          
-          // If schoolFilter is provided, fall back to manual filtering
-          if (schoolFilter) {
-            console.log("Fetching teachers manually...");
-            // Get all users and filter in the client
-            const allUsersResponse = await apiRequest('GET', '/api/users');
-            const allUsers = await allUsersResponse.json();
-            console.log("Fetched teachers manually:", allUsers);
-            return allUsers.filter((user: any) => user.schoolId === schoolFilter);
-          }
-          
-          // Return empty array if all else fails
-          return [];
-        }
+        const users = await apiRequest('GET', endpoint);
+        return Array.isArray(users) ? users : [];
       } catch (error) {
         console.error("Error fetching users:", error);
+
+        // Fallback: load all users and filter client-side if a schoolFilter
+        // was requested and the server-side filter failed.
+        if (schoolFilter) {
+          try {
+            const allUsers = await apiRequest('GET', '/api/users');
+            return Array.isArray(allUsers)
+              ? allUsers.filter((user: any) => user.schoolId === schoolFilter)
+              : [];
+          } catch (fallbackError) {
+            console.error("Fallback users fetch failed:", fallbackError);
+            return [];
+          }
+        }
         throw new Error("Failed to fetch users. Please try again.");
       }
     }
@@ -90,8 +88,8 @@ export default function UsersTable({
     queryKey: ['/api/schools'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', '/api/schools');
-        return await response.json();
+        const result = await apiRequest('GET', '/api/schools');
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error("Error fetching schools:", error);
         return [];
@@ -104,8 +102,8 @@ export default function UsersTable({
     queryKey: ['/api/classes'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', '/api/classes');
-        return await response.json();
+        const result = await apiRequest('GET', '/api/classes');
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error("Error fetching classes:", error);
         return [];
@@ -185,15 +183,11 @@ export default function UsersTable({
     return () => subscription.unsubscribe();
   }, [editForm, classes]);
 
-  // Mutation to add a new user
+  // Mutation to add a new user. apiRequest throws on non-2xx and returns
+  // the parsed JSON body on success — no need to call .json() on it.
   const addUserMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userFormSchema>) => {
-      const response = await apiRequest('POST', '/api/users', data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create user');
-      }
-      return response.json();
+      return await apiRequest('POST', '/api/users', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
@@ -214,16 +208,12 @@ export default function UsersTable({
     }
   });
 
-  // Mutation to update an existing user
+  // Mutation to update an existing user. apiRequest throws on non-2xx and
+  // returns the parsed JSON body on success.
   const updateUserMutation = useMutation({
     mutationFn: async (data: any) => {
       const { id, ...updateData } = data;
-      const response = await apiRequest('PATCH', `/api/users/${id}`, updateData);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-      return response.json();
+      return await apiRequest('PATCH', `/api/users/${id}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });

@@ -27,23 +27,23 @@ export default function SchoolAdminDashboard() {
   });
 
   // Get the school data for this school admin
+  // apiRequest already returns parsed JSON — no `.json()` calls here.
   const { data: schoolData, isLoading: isLoadingSchool } = useQuery({
     queryKey: ['/api/schools', currentUser?.schoolId],
     queryFn: async () => {
       if (!currentUser?.schoolId) return null;
-      const response = await apiRequest('GET', `/api/schools/${currentUser.schoolId}`);
-      return response.json();
+      return await apiRequest('GET', `/api/schools/${currentUser.schoolId}`);
     },
     enabled: !!currentUser?.schoolId,
   });
-  
+
   // Get school classes data
   const { data: schoolClasses, isLoading: isLoadingClasses } = useQuery({
     queryKey: ['/api/classes', activeSchoolId ? `school=${activeSchoolId}` : ''],
     queryFn: async () => {
       if (!activeSchoolId) return [];
-      const response = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
-      return response.json();
+      const result = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!activeSchoolId,
   });
@@ -66,38 +66,34 @@ export default function SchoolAdminDashboard() {
     queryKey: ['/api/users', activeSchoolId ? `school=${activeSchoolId}` : ''],
     queryFn: async () => {
       if (!activeSchoolId) return [];
-      const response = await apiRequest('GET', `/api/users`);
-      const allUsers = await response.json();
-      // Filter users by school ID in the client
-      return allUsers.filter((user: any) => user.schoolId === activeSchoolId);
+      const allUsers = await apiRequest('GET', `/api/users`);
+      return Array.isArray(allUsers)
+        ? allUsers.filter((user: any) => user.schoolId === activeSchoolId)
+        : [];
     },
     enabled: !!activeSchoolId,
   });
-  
-  // Calculate statistics
+
   // Get submission data
   const { data: submissions, isLoading: isLoadingSubmissions } = useQuery({
     queryKey: ['/api/submissions', activeSchoolId ? `school=${activeSchoolId}` : ''],
     queryFn: async () => {
       try {
         if (!activeSchoolId) return [];
-        // Get users from this school first
         const schoolUserIds = schoolUsers?.map((user: any) => user.id) || [];
         if (schoolUserIds.length === 0) return [];
-        
-        // Get first event to use as parameter
-        const eventsResponse = await apiRequest('GET', `/api/events`);
-        const events = await eventsResponse.json();
-        if (!events || events.length === 0) return [];
-        
-        // Get first class to use as parameter
-        const classesResponse = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
-        const classes = await classesResponse.json();
-        if (!classes || classes.length === 0) return [];
-        
-        // Now get submissions with proper parameters
-        const response = await apiRequest('GET', `/api/submissions?eventId=${events[0].id}&classId=${classes[0].id}`);
-        return response.json();
+
+        const events = await apiRequest('GET', `/api/events`);
+        if (!Array.isArray(events) || events.length === 0) return [];
+
+        const classes = await apiRequest('GET', `/api/classes?schoolId=${activeSchoolId}`);
+        if (!Array.isArray(classes) || classes.length === 0) return [];
+
+        const result = await apiRequest(
+          'GET',
+          `/api/submissions?eventId=${events[0].id}&classId=${classes[0].id}`,
+        );
+        return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error("Error fetching submissions:", error);
         return [];
