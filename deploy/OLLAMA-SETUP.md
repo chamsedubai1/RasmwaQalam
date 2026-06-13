@@ -2,12 +2,14 @@
 
 The platform's AI features (poem generation, prompt enhancement, content moderation) now run through **Ollama** — a local LLM runner. Anthropic Claude is gone. Two models are needed:
 
-| Model | Size | Role |
-|---|---|---|
-| `qwen2.5:3b` | ~2 GB | Content generation (poems, prompt enhancement) |
-| `llama-guard3:1b` | ~800 MB | Content moderation (Meta's safety classifier) |
+| Model | Size | Role | Required? |
+|---|---|---|---|
+| `qwen2.5:3b` | ~2 GB | Default content generation (poems) | **Required** |
+| `llama-guard3:1b` | ~800 MB | Content moderation (Meta's safety classifier) | **Required** |
+| `deepseek-r1:7b` | ~4.7 GB | Higher-quality reasoning, slower | Optional |
+| `qwen2.5vl:3b` | ~3.2 GB | Vision model — used for artwork analysis | Optional |
 
-Without both models present, every AI feature returns 503 `MODERATION_UNAVAILABLE`. This is intentional — student safety.
+The first two are mandatory — without them, every AI feature returns 503 `MODERATION_UNAVAILABLE` (intentional, for student safety). The other two appear in the UI model picker only after they're installed.
 
 ---
 
@@ -26,14 +28,21 @@ On Windows, native Ollama is much faster than Docker (no virtualization overhead
    ```
    Should print something like `ollama version 0.3.x`.
 
-### A.2 Pull the two models (one-time, ~15 minutes total)
+### A.2 Pull the models (one-time, ~15-30 minutes total)
 
+**Required:**
 ```
 ollama pull qwen2.5:3b
 ollama pull llama-guard3:1b
 ```
 
-The first one is ~2 GB, the second ~800 MB. Network speed dependent.
+**Optional, but enables the model picker in the UI:**
+```
+ollama pull deepseek-r1:7b
+ollama pull qwen2.5vl:3b
+```
+
+Disk usage after all four: ~11 GB. Skip the optional ones if you're tight on disk.
 
 Verify both are installed:
 ```
@@ -200,14 +209,27 @@ This takes ~5 minutes.
 
 The Ollama image starts with no models. Pull them:
 
+**Required:**
 ```
 docker exec -it platform-ollama-1 ollama pull qwen2.5:3b
 docker exec -it platform-ollama-1 ollama pull llama-guard3:1b
 ```
 
-The container name might be different — check with `docker compose ps`. Each pull takes 5-15 minutes depending on network.
+**Optional, for the model picker:**
+```
+docker exec -it platform-ollama-1 ollama pull deepseek-r1:7b
+docker exec -it platform-ollama-1 ollama pull qwen2.5vl:3b
+```
+
+The container name might be different — check with `docker compose ps`. Each pull takes 5-30 minutes depending on network and model size.
 
 After pulling, the models persist in the `ollama_models` volume — they survive container rebuilds.
+
+Verify what got installed:
+```
+docker exec platform-ollama-1 ollama list
+```
+The platform's model picker reads this list dynamically and only shows users the models that are actually installed.
 
 ### B.5 Verify
 

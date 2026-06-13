@@ -1,50 +1,96 @@
 /**
- * Ollama provider — self-hosted LLM for content generation and moderation.
+ * Ollama provider — self-hosted LLM for content generation, moderation,
+ * and image understanding.
  *
- * Two models are used:
- *   - GENERATION_MODEL (default qwen2.5:3b)  — poems, prompt enhancement
- *   - MODERATION_MODEL (default llama-guard3:1b) — Meta's purpose-built
- *     safety classifier. Returns "safe" or "unsafe\n<category>".
+ * Supports multiple models that the client can pick per request, via a
+ * curated catalog. The moderation model is fixed (Llama Guard 3) and not
+ * user-selectable.
  *
  * Configuration via env:
- *   OLLAMA_URL            base URL (default http://localhost:11434)
- *   OLLAMA_GENERATION_MODEL  (default qwen2.5:3b)
- *   OLLAMA_MODERATION_MODEL  (default llama-guard3:1b)
- *
- * This module replaces server/anthropic.ts. The public API surface is
- * compatible (generatePoem / enhanceImagePrompt / moderateContent) so
- * callers don't need provider-specific branches.
+ *   OLLAMA_URL                base URL (default http://localhost:11434)
+ *   OLLAMA_GENERATION_MODEL   default generation model id (default qwen2.5:3b)
+ *   OLLAMA_MODERATION_MODEL   moderation model id        (default llama-guard3:1b)
  */
 
 import fetch from 'node-fetch';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const GENERATION_MODEL = process.env.OLLAMA_GENERATION_MODEL || 'qwen2.5:3b';
+const DEFAULT_GENERATION_MODEL = process.env.OLLAMA_GENERATION_MODEL || 'qwen2.5:3b';
 const MODERATION_MODEL = process.env.OLLAMA_MODERATION_MODEL || 'llama-guard3:1b';
 
-const FETCH_TIMEOUT_MS = 60_000;
-const MODERATION_TIMEOUT_MS = 15_000;
+const FETCH_TIMEOUT_MS = 120_000; // generation can be slow on CPU
+const MODERATION_TIMEOUT_MS = 20_000;
+
+// ---------------------------------------------------------------------------
+// Model catalog
+//
+// What clients can pick from. We only advertise models we actually understand
+// how to talk to. Anything else can still be reached by setting
+// OLLAMA_GENERATION_MODEL directly, but won't appear in the UI dropdown.
+// ---------------------------------------------------------------------------
+
+export interface ModelInfo {
+  /** Ollama model identifier as accepted by `ollama pull <id>` and `ollama list`. */
+  id: string;
+  /** Human-readable name shown in the UI. */
+  displayName: string;
+  /** Short hint for tooltips / help text. */
+  description: string;
+  /** What this model can do. */
+  capabilities: Array<'text' | 'vision' | 'reasoning'>;
+  /** Approximate on-disk size in MB. Used for catalog display. */
+  sizeMB: number;
+  /** Approximate latency hint for the UI. */
+  speedHint: 'fast' | 'medium' | 'slow';
+}
+
+export const MODEL_CATALOG: readonly ModelInfo[] = [
+  {
+    id: 'qwen2.5:3b',
+    displayName: 'Qwen 2.5 (3B) — Fast',
+    description: 'Default. Fast and good for poems.',
+    capabilities: ['text'],
+    sizeMB: 2_000,
+    speedHint: 'fast',
+  },
+  {
+    id: 'deepseek-r1:7b',
+    displayName: 'DeepSeek-R1 (7B) — Thoughtful',
+    description: 'Better reasoning. Slower (15-45s per response).',
+    capabilities: ['text', 'reasoning'],
+    sizeMB: 4_700,
+    speedHint: 'slow',
+  },
+  {
+    id: 'qwen2.5vl:3b',
+    displayName: 'Qwen 2.5 VL (3B) — Vision',
+    description: 'Can see and describe images. Used for artwork analysis.',
+    capabilities: ['text', 'vision'],
+    sizeMB: 3_200,
+    speedHint: 'medium',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Low-level Ollama HTTP client
+// ---------------------------------------------------------------------------
 
 interface OllamaChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  /** base64-encoded images, for vision-capable models */
+  images?: string[];
 }
 
 interface OllamaChatResponse {
   message: { role: string; content: string };
   done: boolean;
-  total_duration?: number;
-  eval_count?: number;
-  // ...other fields we don't use
 }
 
 interface OllamaTagsResponse {
   models: Array<{ name: string; size: number; modified_at: string }>;
 }
 
-/**
- * POST to /api/chat with timeout. Throws on non-2xx or timeout.
- */
 async function ollamaChat(
   model: string,
   messages: OllamaChatMessage[],
@@ -81,52 +127,107 @@ async function ollamaChat(
   }
 }
 
-/**
- * Returns true if Ollama is reachable AND both required models are present.
- * Cached for 30 seconds so we don't hammer the daemon.
- */
-let availabilityCache: { value: boolean; expiresAt: number } | null = null;
+// ---------------------------------------------------------------------------
+// Availability / installed-models discovery
+// ---------------------------------------------------------------------------
 
-export async function isOllamaAvailable(): Promise<boolean> {
-  if (availabilityCache && Date.now() < availabilityCache.expiresAt) {
-    return availabilityCache.value;
+let tagsCache: { models: Set<string>; expiresAt: number } | null = null;
+
+async function listInstalledModelIds(): Promise<Set<string>> {
+  if (tagsCache && Date.now() < tagsCache.expiresAt) {
+    return tagsCache.models;
   }
 
-  const value = await checkOllamaAvailability();
-  availabilityCache = { value, expiresAt: Date.now() + 30_000 };
-  return value;
-}
-
-async function checkOllamaAvailability(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3_000);
     const response = await fetch(`${OLLAMA_URL}/api/tags`, { signal: controller.signal });
     clearTimeout(timeout);
 
-    if (!response.ok) return false;
+    if (!response.ok) return new Set();
 
     const data = (await response.json()) as OllamaTagsResponse;
-    const names = data.models?.map((m) => m.name) ?? [];
-
-    const haveGen = names.some((n) => n === GENERATION_MODEL || n.startsWith(GENERATION_MODEL + ':'));
-    const haveMod = names.some((n) => n === MODERATION_MODEL || n.startsWith(MODERATION_MODEL + ':'));
-
-    if (!haveGen) console.warn(`[OLLAMA] Generation model not installed: ${GENERATION_MODEL}`);
-    if (!haveMod) console.warn(`[OLLAMA] Moderation model not installed: ${MODERATION_MODEL}`);
-
-    return haveGen && haveMod;
+    const ids = new Set<string>(data.models?.map((m) => m.name) ?? []);
+    tagsCache = { models: ids, expiresAt: Date.now() + 30_000 };
+    return ids;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.warn(`[OLLAMA] Unreachable at ${OLLAMA_URL}: ${msg}`);
-    return false;
+    return new Set();
   }
 }
 
+function modelInstalled(installed: Set<string>, modelId: string): boolean {
+  if (installed.has(modelId)) return true;
+  // Allow loose-tag match — e.g. "qwen2.5" matches "qwen2.5:3b" if user typed
+  // the short name in env. Required so OLLAMA_GENERATION_MODEL=qwen2.5
+  // still works even though `ollama list` returns "qwen2.5:3b".
+  return Array.from(installed).some(
+    (id) => id === modelId || id.startsWith(modelId + ':') || modelId.startsWith(id + ':'),
+  );
+}
+
 /**
- * Generate a poem from a user prompt using the local generation model.
+ * True iff Ollama is reachable AND the default generation + moderation
+ * models are both installed. The moderation gate uses this.
  */
-export async function generatePoem(prompt: string, style?: string): Promise<string> {
+export async function isOllamaAvailable(): Promise<boolean> {
+  const installed = await listInstalledModelIds();
+  if (installed.size === 0) return false;
+
+  const haveGen = modelInstalled(installed, DEFAULT_GENERATION_MODEL);
+  const haveMod = modelInstalled(installed, MODERATION_MODEL);
+
+  if (!haveGen) console.warn(`[OLLAMA] Generation model not installed: ${DEFAULT_GENERATION_MODEL}`);
+  if (!haveMod) console.warn(`[OLLAMA] Moderation model not installed: ${MODERATION_MODEL}`);
+
+  return haveGen && haveMod;
+}
+
+/**
+ * Catalog entries filtered to models that are actually installed and reachable.
+ * Used by the UI to populate the model picker.
+ */
+export async function listAvailableModels(): Promise<ModelInfo[]> {
+  const installed = await listInstalledModelIds();
+  return MODEL_CATALOG.filter((m) => modelInstalled(installed, m.id));
+}
+
+/**
+ * Resolve a user-supplied model id to a safe choice. Returns the requested
+ * model if it's in the catalog and installed; otherwise falls back to the
+ * default. This is a security/UX boundary — never pass an arbitrary string
+ * straight through to Ollama.
+ */
+export async function resolveModel(requested?: string): Promise<string> {
+  if (!requested) return DEFAULT_GENERATION_MODEL;
+
+  const inCatalog = MODEL_CATALOG.some((m) => m.id === requested);
+  if (!inCatalog) {
+    console.warn(`[OLLAMA] Rejected unknown model "${requested}", using default`);
+    return DEFAULT_GENERATION_MODEL;
+  }
+
+  const installed = await listInstalledModelIds();
+  if (!modelInstalled(installed, requested)) {
+    console.warn(`[OLLAMA] Model "${requested}" not installed, using default`);
+    return DEFAULT_GENERATION_MODEL;
+  }
+
+  return requested;
+}
+
+// ---------------------------------------------------------------------------
+// High-level helpers used by routes
+// ---------------------------------------------------------------------------
+
+export async function generatePoem(
+  prompt: string,
+  style?: string,
+  modelId?: string,
+): Promise<string> {
+  const model = await resolveModel(modelId);
+
   const systemPrompt =
     'You are a creative poetry AI assistant for children aged 6-18. Write beautiful, ' +
     'thoughtful, age-appropriate poems. Use simple vocabulary. Never include violence, ' +
@@ -136,24 +237,25 @@ export async function generatePoem(prompt: string, style?: string): Promise<stri
     ? `Write a ${style} based on this prompt: "${prompt}"`
     : `Write a poem based on this prompt: "${prompt}"`;
 
-  return ollamaChat(GENERATION_MODEL, [
+  return ollamaChat(model, [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: completePrompt },
   ]);
 }
 
-/**
- * Enhance a short image prompt into a more vivid description, while keeping
- * it strictly child-safe.
- */
-export async function enhanceImagePrompt(prompt: string): Promise<string> {
+export async function enhanceImagePrompt(
+  prompt: string,
+  modelId?: string,
+): Promise<string> {
+  const model = await resolveModel(modelId);
+
   const systemPrompt =
     'You enhance short image prompts written by children (ages 6-18) for an AI image ' +
     'generator. Output ONLY the enhanced prompt (no preamble, no explanation). Keep ' +
-    'vocabulary simple. Strictly avoid violence, weapons, blood, fire, weapons, hate, ' +
-    'romance, mature themes. 80 words max. The result must be safe for a school art project.';
+    'vocabulary simple. Strictly avoid violence, weapons, blood, fire, hate, romance, ' +
+    'mature themes. 80 words max. The result must be safe for a school art project.';
 
-  const result = await ollamaChat(GENERATION_MODEL, [
+  const result = await ollamaChat(model, [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: `Enhance this image prompt: "${prompt}"` },
   ], { temperature: 0.5 });
@@ -162,22 +264,77 @@ export async function enhanceImagePrompt(prompt: string): Promise<string> {
 }
 
 /**
- * Moderate text using Llama Guard 3.
+ * Image analysis using a vision-capable model (e.g. qwen2.5vl:3b).
  *
- * Llama Guard outputs:
- *   "safe"          → all clear
- *   "unsafe\nS1"    → unsafe, with category code (S1..S14)
- *
- * Categories (Llama Guard 3 taxonomy):
- *   S1 Violent Crimes      S8 Intellectual Property
- *   S2 Non-Violent Crimes  S9 Indiscriminate Weapons
- *   S3 Sex-Related Crimes  S10 Hate
- *   S4 Child Sexual Exploitation
- *   S5 Defamation          S11 Suicide & Self-Harm
- *   S6 Specialized Advice  S12 Sexual Content
- *   S7 Privacy             S13 Elections
- *                          S14 Code Interpreter Abuse
+ * `imageInput` accepts either:
+ *   - A bare base64 string ("iVBORw0...")
+ *   - A data URL ("data:image/png;base64,iVBORw0...")
+ *   - An http(s) URL (we'll fetch and base64-encode it)
  */
+export async function analyzeImage(
+  imageInput: string,
+  prompt?: string,
+  modelId?: string,
+): Promise<{
+  description: string;
+  isSafe: boolean;
+  model: string;
+}> {
+  const requested = modelId || 'qwen2.5vl:3b';
+  const catalog = MODEL_CATALOG.find((m) => m.id === requested);
+  if (!catalog?.capabilities.includes('vision')) {
+    throw new Error(`Model "${requested}" does not support vision`);
+  }
+
+  const installed = await listInstalledModelIds();
+  if (!modelInstalled(installed, requested)) {
+    throw new Error(`Vision model "${requested}" is not installed on this Ollama instance`);
+  }
+
+  const base64 = await normalizeToBase64(imageInput);
+  const userPrompt = prompt || 'Describe this image clearly and concisely.';
+
+  const description = await ollamaChat(requested, [
+    {
+      role: 'system',
+      content:
+        'You are an art teacher who analyzes student artwork. Be encouraging, specific, ' +
+        'and constructive. Keep descriptions appropriate for ages 6-18.',
+    },
+    { role: 'user', content: userPrompt, images: [base64] },
+  ]);
+
+  // Quick safety pass on the user's prompt (not the image itself — image
+  // moderation is harder and we leave it to teachers).
+  const safetyCheck = await moderateContent(userPrompt);
+
+  return {
+    description,
+    isSafe: safetyCheck.isSafe,
+    model: requested,
+  };
+}
+
+async function normalizeToBase64(input: string): Promise<string> {
+  if (input.startsWith('data:')) {
+    // data:image/png;base64,iVBOR...
+    const comma = input.indexOf(',');
+    return comma >= 0 ? input.slice(comma + 1) : input;
+  }
+  if (input.startsWith('http://') || input.startsWith('https://')) {
+    const response = await fetch(input);
+    if (!response.ok) throw new Error(`Failed to fetch image: HTTP ${response.status}`);
+    const buf = Buffer.from(await response.arrayBuffer());
+    return buf.toString('base64');
+  }
+  // Assume already base64
+  return input;
+}
+
+// ---------------------------------------------------------------------------
+// Moderation — Llama Guard 3
+// ---------------------------------------------------------------------------
+
 const CATEGORY_NAMES: Record<string, string> = {
   S1: 'violent_crimes',
   S2: 'non_violent_crimes',
@@ -200,15 +357,12 @@ export async function moderateContent(text: string): Promise<{
   category?: string;
   reason?: string;
 }> {
-  // Llama Guard's chat template handles the safety prompt internally; we just
-  // pass the message-to-evaluate as the user turn.
   const raw = await ollamaChat(
     MODERATION_MODEL,
     [{ role: 'user', content: text }],
     { temperature: 0, timeoutMs: MODERATION_TIMEOUT_MS },
   );
 
-  // Normalize: strip whitespace and trailing punctuation.
   const lines = raw.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const verdict = (lines[0] ?? '').toLowerCase();
 
@@ -217,8 +371,7 @@ export async function moderateContent(text: string): Promise<{
   }
 
   // Anything other than the literal token "safe" is treated as unsafe.
-  // This is intentional: an unparseable response from a safety classifier
-  // should fail closed, not be silently allowed.
+  // Unparseable safety responses fail closed, not open.
   const categoryCode = (lines[1] ?? '').toUpperCase().split(/[,\s]/)[0] || '';
   const categoryName = CATEGORY_NAMES[categoryCode] || categoryCode || 'unknown';
 

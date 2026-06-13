@@ -56,7 +56,7 @@ async function checkContentSafety(
 // SECURITY: Content moderation is MANDATORY for student safety
 router.post('/generate-poem', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { prompt, style, service } = req.body;
+    const { prompt, style, service, model } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
@@ -69,6 +69,7 @@ router.post('/generate-poem', authenticateToken, async (req: Request, res: Respo
     let aiService = service || DEFAULT_TEXT_SERVICE;
     let poem;
     let usedFallback = false;
+    let modelUsed: string | undefined;
 
     try {
       switch (aiService) {
@@ -76,14 +77,17 @@ router.post('/generate-poem', authenticateToken, async (req: Request, res: Respo
           poem = await generateHuggingFaceText(prompt, style);
           break;
         case AI_SERVICE.OLLAMA:
-          poem = await ollama.generatePoem(prompt, style);
+          modelUsed = await ollama.resolveModel(model);
+          console.log(`[OLLAMA] Generating poem with ${modelUsed}`);
+          poem = await ollama.generatePoem(prompt, style, modelUsed);
           break;
         case AI_SERVICE.QWEN:
-          console.log('[QWEN] Using Qwen2.5 for poem generation');
+          console.log('[QWEN] Using external Qwen2.5 for poem generation');
           poem = await qwen.generatePoem(prompt, style);
           break;
         default:
-          poem = await ollama.generatePoem(prompt, style);
+          modelUsed = await ollama.resolveModel(model);
+          poem = await ollama.generatePoem(prompt, style, modelUsed);
       }
     } catch (serviceError: unknown) {
       const error = serviceError as Error;
@@ -97,7 +101,7 @@ router.post('/generate-poem', authenticateToken, async (req: Request, res: Respo
       }
     }
 
-    res.json({ content: poem, service: aiService, usedFallback });
+    res.json({ content: poem, service: aiService, model: modelUsed, usedFallback });
   } catch (error) {
     console.error('Error generating poem:', error);
     res.status(500).json({ message: 'Failed to generate poem' });
@@ -182,39 +186,39 @@ router.post('/generate-image', authenticateToken, async (req: Request, res: Resp
 // ============================================================================
 
 /**
- * Analyze an image using Qwen2.5-VL vision capabilities
- * Useful for understanding student artwork submissions
+ * Analyze an image using a local vision-language model (default: qwen2.5vl:3b).
+ * The model is selectable as long as it's in the catalog and installed.
+ *
+ * Accepts:
+ *   imageUrl   — http(s) URL, data: URL, or bare base64
+ *   prompt     — optional natural-language question (e.g. "describe the colors")
+ *   model      — optional model id (e.g. "qwen2.5vl:3b"); defaults to qwen2.5vl:3b
  */
 router.post('/analyze-image', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { imageUrl, prompt } = req.body;
+    const { imageUrl, prompt, model } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({ message: 'Image URL is required' });
     }
 
-    if (!qwen.isQwenAvailable()) {
-      return res.status(503).json({
-        message: 'Image analysis service is not available. Please configure QWEN_API_KEY or HUGGING_FACE_API_KEY.',
-        code: 'QWEN_UNAVAILABLE',
-      });
-    }
+    if (!(await assertModerationAvailable(res))) return;
 
-    console.log('[QWEN] Analyzing image with Qwen2.5-VL vision model');
+    console.log('[OLLAMA] Analyzing image with local vision model');
 
-    const analysis = await qwen.analyzeImage(imageUrl, prompt);
+    const analysis = await ollama.analyzeImage(imageUrl, prompt, model);
 
     const currentUser = (req as any).user;
     await createAuditLog(req, AuditAction.DATA_CREATED, 'ai_image_analysis', {
-      resourceId: imageUrl.slice(0, 50),
+      resourceId: typeof imageUrl === 'string' ? imageUrl.slice(0, 50) : 'unknown',
       success: true,
       severity: AuditSeverity.INFO,
       changes: { userId: currentUser?.id, isSafe: analysis.isSafe },
     });
 
-    res.json({ ...analysis, service: AI_SERVICE.QWEN, model: 'Qwen2.5-VL' });
+    res.json({ ...analysis, service: AI_SERVICE.OLLAMA });
   } catch (error: unknown) {
-    console.error('[QWEN] Image analysis error:', error);
+    console.error('[OLLAMA] Image analysis error:', error);
     const err = error as Error;
     res.status(500).json({
       message: 'Failed to analyze image',
@@ -252,11 +256,11 @@ router.post('/creative-feedback', authenticateToken, async (req: Request, res: R
 });
 
 /**
- * Enhance a prompt using the local LLM
+ * Enhance a prompt using the local LLM. Model is selectable.
  */
 router.post('/enhance-prompt', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, model } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
@@ -265,13 +269,15 @@ router.post('/enhance-prompt', authenticateToken, async (req: Request, res: Resp
     if (!(await assertModerationAvailable(res))) return;
     if (!(await checkContentSafety(res, prompt, 'Prompt enhancement'))) return;
 
-    console.log('[OLLAMA] Enhancing prompt for better image generation');
-    const enhancedPrompt = await ollama.enhanceImagePrompt(prompt);
+    const modelUsed = await ollama.resolveModel(model);
+    console.log(`[OLLAMA] Enhancing prompt with ${modelUsed}`);
+    const enhancedPrompt = await ollama.enhanceImagePrompt(prompt, modelUsed);
 
     res.json({
       original: prompt,
       enhanced: enhancedPrompt,
       service: AI_SERVICE.OLLAMA,
+      model: modelUsed,
     });
   } catch (error: unknown) {
     console.error('[OLLAMA] Prompt enhancement error:', error);
@@ -280,6 +286,25 @@ router.post('/enhance-prompt', authenticateToken, async (req: Request, res: Resp
       message: 'Failed to enhance prompt',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined,
     });
+  }
+});
+
+/**
+ * Return the catalog of LLM models that are configured AND installed on this
+ * Ollama instance. The client uses this to populate the model picker dropdown.
+ *
+ * Each entry includes capability tags so the UI can group / filter:
+ *   - capabilities: ['text'] → poem generation, prompt enhancement
+ *   - capabilities: ['vision'] → image analysis
+ *   - capabilities: ['reasoning'] → DeepSeek-R1 style chain-of-thought
+ */
+router.get('/models', authenticateToken, async (_req: Request, res: Response) => {
+  try {
+    const available = await ollama.listAvailableModels();
+    res.json({ models: available, catalog: ollama.MODEL_CATALOG });
+  } catch (error) {
+    console.error('Error listing models:', error);
+    res.status(500).json({ message: 'Failed to list models' });
   }
 });
 

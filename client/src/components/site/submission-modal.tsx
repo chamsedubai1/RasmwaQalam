@@ -43,7 +43,33 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
   const [poetryStyle, setPoetryStyle] = useState<string>("free");
   const [aiImageService, setAiImageService] = useState<string>("huggingface");
   const [aiTextService, setAiTextService] = useState<string>("ollama");
+  const [aiTextModel, setAiTextModel] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  interface ModelInfo {
+    id: string;
+    displayName: string;
+    description: string;
+    capabilities: Array<'text' | 'vision' | 'reasoning'>;
+    sizeMB: number;
+    speedHint: 'fast' | 'medium' | 'slow';
+  }
+
+  // Fetch the model catalog (only models actually installed on the server)
+  const { data: modelsData } = useQuery<{ models: ModelInfo[] }>({
+    queryKey: ['/api/ai/models'],
+    enabled: isOpen,
+    staleTime: 60_000,
+  });
+  const installedModels = modelsData?.models ?? [];
+  const textModels = installedModels.filter((m) => m.capabilities.includes('text') && !m.capabilities.includes('vision'));
+
+  // Once models load, pick the first one as default if nothing is selected
+  useEffect(() => {
+    if (!aiTextModel && textModels.length > 0) {
+      setAiTextModel(textModels[0].id);
+    }
+  }, [textModels, aiTextModel]);
   const { toast } = useToast();
   const { user } = useUser();
   const queryClient = useQueryClient();
@@ -98,7 +124,8 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
       return apiRequest<PoemResponse>('POST', '/api/ai/generate-poem', {
         prompt: aiPrompt,
         style: poetryStyle,
-        service: aiTextService
+        service: aiTextService,
+        model: aiTextService === 'ollama' ? aiTextModel : undefined,
       });
     },
     onSuccess: (data: PoemResponse) => {
@@ -391,11 +418,46 @@ const SubmissionModal: React.FC<SubmissionModalProps> = ({
                             <SelectValue placeholder="Select AI service" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ollama">Local AI (Qwen 2.5, self-hosted)</SelectItem>
+                            <SelectItem value="ollama">Local AI (self-hosted)</SelectItem>
                             <SelectItem value="huggingface">Hugging Face (Open Source)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {aiTextService === 'ollama' && textModels.length > 0 && (
+                        <div className="w-full">
+                          <Label htmlFor="ai-model">Model</Label>
+                          <Select
+                            value={aiTextModel}
+                            onValueChange={setAiTextModel}
+                          >
+                            <SelectTrigger id="ai-model" className="w-full">
+                              <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {textModels.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                  {m.displayName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {aiTextModel && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {textModels.find((m) => m.id === aiTextModel)?.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {aiTextService === 'ollama' && textModels.length === 0 && (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            No local AI models are installed on the server. Ask an admin to pull models with `ollama pull`.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </>
                   )}
                   
