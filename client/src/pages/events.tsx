@@ -43,8 +43,13 @@ const Events: React.FC = () => {
     refetch();
   }, [refetch]);
   
+  // Defensive: server endpoints can return error bodies or null when
+  // something upstream is wrong; treat anything non-array as empty so the
+  // page renders an empty state instead of crashing.
+  const eventsArray = Array.isArray(allEvents) ? allEvents : [];
+
   // Apply filters
-  const filteredEvents = allEvents.filter((event) => {
+  const filteredEvents = eventsArray.filter((event) => {
     const matchesType = eventType === "all" || event.type === eventType;
     const matchesStatus = eventStatus === "all" || event.status === eventStatus;
     const matchesStage = eventStage === "all" || event.stage === eventStage;

@@ -25,11 +25,13 @@ const Partners: React.FC = () => {
   const [partnerTypeFilter, setPartnerTypeFilter] = useState("all");
   
   // Fetch partners (active only for public page)
-  const { data: partners = [], isLoading } = useQuery<any[]>({
+  const { data: partnersRaw = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/partners'],
     // Don't set showInactive=true here as we only want to show active partners on the public page
   });
-  
+  // Defensive: treat non-array responses (error bodies, null, etc.) as empty.
+  const partners = Array.isArray(partnersRaw) ? partnersRaw : [];
+
   // Filter partners by search query, type, and active status
   const filteredPartners = partners.filter((partner: any) => {
     // Always filter out inactive partners on public page

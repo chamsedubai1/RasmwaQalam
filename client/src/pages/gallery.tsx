@@ -52,10 +52,17 @@ const Gallery: React.FC = () => {
     queryKey: ['/api/events'],
   });
   
+  // Defensive: server endpoints can return error bodies or null when
+  // something upstream is wrong; we don't want a misbehaving API to crash
+  // the entire gallery with "x.map is not a function".
+  const submissionsArray = Array.isArray(allSubmissions) ? allSubmissions : [];
+  const galleryItemsArray = Array.isArray(galleryItems) ? galleryItems : [];
+  const eventsArray = Array.isArray(events) ? events : [];
+
   // Combined and processed items for display
   const processedItems = [
     // Process competition submissions
-    ...allSubmissions.map((submission) => ({
+    ...submissionsArray.map((submission) => ({
       id: `submission-${submission.id}`,
       title: submission.title,
       description: submission.description || "",
@@ -73,7 +80,7 @@ const Gallery: React.FC = () => {
     })),
     
     // Process admin-added gallery items
-    ...galleryItems.map((item) => ({
+    ...galleryItemsArray.map((item) => ({
       id: `gallery-${item.id}`,
       title: item.title,
       description: item.description || "",
@@ -213,7 +220,7 @@ const Gallery: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('gallery.filters.all_events')}</SelectItem>
-                {events.map((event: any) => (
+                {eventsArray.map((event: any) => (
                   <SelectItem key={event.id} value={event.id.toString()}>
                     {event.name}
                   </SelectItem>

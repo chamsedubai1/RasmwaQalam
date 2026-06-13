@@ -19,16 +19,18 @@ const Schools: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   
   // Fetch schools
-  const { data: schools = [], isLoading } = useQuery<any[]>({
+  const { data: schoolsRaw = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/schools'],
   });
-  
+  // Defensive: treat non-array responses (error bodies, null, etc.) as empty.
+  const schools = Array.isArray(schoolsRaw) ? schoolsRaw : [];
+
   // Get active student count from the school data provided by the API
   const getActiveStudentCount = (school: any) => {
     // Our backend now returns the activeStudentCount property
     return school.activeStudentCount || 0;
   };
-  
+
   // Filter schools by search query and active status
   const filteredSchools = schools.filter((school: any) => {
     // Always filter out inactive schools on public page
