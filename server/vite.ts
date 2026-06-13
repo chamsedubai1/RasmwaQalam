@@ -26,9 +26,18 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   // Dynamic imports so vite is only loaded when this function is actually
   // called (development only). In production, this code path is never hit.
-  const { createServer: createViteServer, createLogger } = await import("vite");
-  const { default: viteConfig } = await import("../vite.config");
-  const { nanoid } = await import("nanoid");
+  //
+  // The variable indirection on the import specifiers is intentional: it
+  // prevents esbuild from statically analyzing and bundling these modules
+  // into dist/index.js. If esbuild bundles vite.config.ts, it hoists its
+  // own `import { defineConfig } from "vite"` to the top of the bundle,
+  // which then crashes at module load in production (no vite installed).
+  const viteModule = "vite";
+  const viteConfigModule = "../vite.config";
+  const nanoidModule = "nanoid";
+  const { createServer: createViteServer, createLogger } = await import(viteModule);
+  const { default: viteConfig } = await import(viteConfigModule);
+  const { nanoid } = await import(nanoidModule);
 
   const viteLogger = createLogger();
 
