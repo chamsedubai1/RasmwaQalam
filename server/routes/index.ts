@@ -14,6 +14,7 @@ import usersRoutes from "./users.routes";
 import schoolsRoutes from "./schools.routes";
 import classesRoutes from "./classes.routes";
 import eventsRoutes from "./events.routes";
+import registrationsRoutes from "./registrations.routes";
 import submissionsRoutes from "./submissions.routes";
 import aiRoutes from "./ai.routes";
 import adminRoutes from "./admin.routes";
@@ -36,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/classes', classesRoutes);
   apiRouter.use('/partners', classesRoutes); // Partners are handled by classes routes
   apiRouter.use('/events', eventsRoutes);
-  apiRouter.use('/registrations', eventsRoutes); // Registrations are handled by events routes
+  apiRouter.use('/registrations', registrationsRoutes);
   apiRouter.use('/submissions', submissionsRoutes);
   apiRouter.use('/votes', submissionsRoutes); // Votes are handled by submissions routes
   apiRouter.use('/gallery-items', submissionsRoutes); // Gallery items are handled by submissions routes

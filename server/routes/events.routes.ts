@@ -577,76 +577,8 @@ router.get('/:id/voting-history', authenticateToken, async (req: Request, res: R
   }
 });
 
-// Registration routes - authenticated users only
-router.get('/registrations', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const userId = req.query.userId ? Number(req.query.userId) : undefined;
-    const eventId = req.query.eventId ? Number(req.query.eventId) : undefined;
-
-    let registrations;
-    if (userId) {
-      registrations = await storage.getRegistrationsByUser(userId);
-    } else if (eventId) {
-      registrations = await storage.getRegistrationsByEvent(eventId);
-    } else {
-      return res.status(400).json({ message: 'userId or eventId query parameter is required' });
-    }
-
-    res.json(registrations);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch registrations' });
-  }
-});
-
-// SECURITY: Authenticated users can register for events
-router.post('/registrations', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const registrationData = insertRegistrationSchema.parse(req.body);
-
-    const existingRegistrations = await storage.getRegistrationsByUser(registrationData.userId);
-    const alreadyRegistered = existingRegistrations.some(reg => reg.eventId === registrationData.eventId);
-
-    if (alreadyRegistered) {
-      return res.status(409).json({ message: 'User already registered for this event' });
-    }
-
-    const registration = await storage.createRegistration(registrationData);
-    res.status(201).json(registration);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
-    }
-    res.status(500).json({ message: 'Failed to create registration' });
-  }
-});
-
-// SECURITY: Users can delete their own registrations, admins can delete any
-router.delete('/registrations', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const userId = req.query.userId ? Number(req.query.userId) : undefined;
-    const eventId = req.query.eventId ? Number(req.query.eventId) : undefined;
-
-    if (!userId || !eventId) {
-      return res.status(400).json({ message: 'userId and eventId query parameters are required' });
-    }
-
-    const registrations = await storage.getRegistrationsByUser(userId);
-    const registration = registrations.find(reg => reg.eventId === eventId);
-
-    if (!registration) {
-      return res.status(404).json({ message: 'Registration not found' });
-    }
-
-    const deleted = await storage.deleteRegistration(registration.id);
-
-    if (!deleted) {
-      return res.status(500).json({ message: 'Failed to delete registration' });
-    }
-
-    res.status(204).end();
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to delete registration' });
-  }
-});
+// Registration routes moved to server/routes/registrations.routes.ts and
+// mounted at /api/registrations so the URL the client actually calls
+// resolves to the right handler (was hitting POST /events as admin-only).
 
 export default router;
