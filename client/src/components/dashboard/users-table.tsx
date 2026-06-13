@@ -517,8 +517,8 @@ export default function UsersTable({
                     <FormItem>
                       <FormLabel>School</FormLabel>
                       <Select
-                        value={field.value ? String(field.value) : ''}
-                        onValueChange={value => field.onChange(value ? Number(value) : null)}
+                        value={field.value ? String(field.value) : 'none'}
+                        onValueChange={value => field.onChange(value && value !== 'none' ? Number(value) : null)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -526,7 +526,7 @@ export default function UsersTable({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {schools?.map((school: any) => (
                             <SelectItem key={school.id} value={String(school.id)}>
                               {school.name}
@@ -546,8 +546,8 @@ export default function UsersTable({
                     <FormItem>
                       <FormLabel>Class</FormLabel>
                       <Select
-                        value={field.value ? String(field.value) : ''}
-                        onValueChange={value => field.onChange(value ? Number(value) : null)}
+                        value={field.value ? String(field.value) : 'none'}
+                        onValueChange={value => field.onChange(value && value !== 'none' ? Number(value) : null)}
                         disabled={!addForm.watch('schoolId')}
                       >
                         <FormControl>
@@ -556,7 +556,7 @@ export default function UsersTable({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {filteredClasses?.map((cls: any) => (
                             <SelectItem key={cls.id} value={String(cls.id)}>
                               {cls.name} ({cls.gradeLevel})
@@ -716,8 +716,8 @@ export default function UsersTable({
                     <FormItem>
                       <FormLabel>School</FormLabel>
                       <Select
-                        value={field.value ? String(field.value) : ''}
-                        onValueChange={value => field.onChange(value ? Number(value) : null)}
+                        value={field.value ? String(field.value) : 'none'}
+                        onValueChange={value => field.onChange(value && value !== 'none' ? Number(value) : null)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -725,7 +725,7 @@ export default function UsersTable({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {schools?.map((school: any) => (
                             <SelectItem key={school.id} value={String(school.id)}>
                               {school.name}
@@ -745,8 +745,8 @@ export default function UsersTable({
                     <FormItem>
                       <FormLabel>Class</FormLabel>
                       <Select
-                        value={field.value ? String(field.value) : ''}
-                        onValueChange={value => field.onChange(value ? Number(value) : null)}
+                        value={field.value ? String(field.value) : 'none'}
+                        onValueChange={value => field.onChange(value && value !== 'none' ? Number(value) : null)}
                         disabled={!editForm.watch('schoolId')}
                       >
                         <FormControl>
@@ -755,7 +755,7 @@ export default function UsersTable({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {filteredClasses?.map((cls: any) => (
                             <SelectItem key={cls.id} value={String(cls.id)}>
                               {cls.name} ({cls.gradeLevel})
