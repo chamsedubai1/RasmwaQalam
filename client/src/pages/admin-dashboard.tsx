@@ -1077,16 +1077,21 @@ const AdminDashboard: React.FC = () => {
 
 
   
-  const totalUsers = (allUsers as any[]).length;
-  const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
-  const totalTeachers = (allUsers as any[]).filter((user: any) => user.role === 'teacher').length;
-  const totalSchools = (schools as any[]).length;
   // Defensive guards: server endpoints can return error bodies or null
   // when something upstream is wrong; we don't want a misbehaving API to
   // crash the entire admin dashboard with "x.filter is not a function".
+  // These local arrays MUST be declared before any code below tries to
+  // call .filter/.map/.length on them.
+  const allUsersArray = Array.isArray(allUsers) ? allUsers : [];
+  const schoolsArray = Array.isArray(schools) ? schools : [];
   const classesArray = Array.isArray(classes) ? classes : [];
   const eventsArray = Array.isArray(events) ? events : [];
   const galleryItemsArray = Array.isArray(galleryItems) ? galleryItems : [];
+
+  const totalUsers = allUsersArray.length;
+  const totalStudents = allUsersArray.filter((user: any) => user.role === 'student').length;
+  const totalTeachers = allUsersArray.filter((user: any) => user.role === 'teacher').length;
+  const totalSchools = schoolsArray.length;
   const totalClasses = classesArray.length;
   const totalEvents = eventsArray.length;
   const activeEvents = eventsArray.filter((event: any) => event.status === 'open').length;
@@ -1116,12 +1121,10 @@ const AdminDashboard: React.FC = () => {
     });
   }, [galleryItemsArray, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
 
-  // Get school names for each user
-  const allUsersArray = Array.isArray(allUsers) ? allUsers : [];
-  const schoolsArray = Array.isArray(schools) ? schools : [];
+  // Get school names for each user (allUsersArray + schoolsArray declared above)
   const usersWithSchoolNames = allUsersArray.map((user: any) => {
     const school = schoolsArray.find((s: any) => s.id === user.schoolId);
-    const userClass = (classes as any[]).find((c: any) => c.id === user.classId);
+    const userClass = classesArray.find((c: any) => c.id === user.classId);
     return {
       ...user,
       schoolName: school ? school.name : "N/A",
@@ -2952,7 +2955,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="text-center py-8">
                   <p className="text-blue-600">Loading classes...</p>
                 </div>
-              ) : (classes as any[]).length === 0 ? (
+              ) : classesArray.length === 0 ? (
                 <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-100">
                   <p className="text-blue-700">No classes found. Create your first class!</p>
                 </div>
@@ -2970,9 +2973,9 @@ const AdminDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {(classes as any[]).map((classItem: any) => {
-                        const school = (schools as any[]).find((s: any) => s.id === classItem.schoolId);
-                        const teacher = (allUsers as any[]).find((u: any) => u.id === classItem.teacherId);
+                      {classesArray.map((classItem: any) => {
+                        const school = schoolsArray.find((s: any) => s.id === classItem.schoolId);
+                        const teacher = allUsersArray.find((u: any) => u.id === classItem.teacherId);
                         
                         return (
                           <tr key={classItem.id} className="border-b border-blue-100 hover:bg-blue-50">
@@ -3232,14 +3235,14 @@ const AdminDashboard: React.FC = () => {
                     {isLoadingUsers ? (
                       <span className="text-lg">Loading...</span>
                     ) : (
-                      (allUsers as any[]).length
+                      allUsersArray.length
                     )}
                   </p>
                   <div className="mt-2 text-xs flex items-center text-blue-600">
                     <div className="flex space-x-2">
-                      <span>{(allUsers as any[])?.filter((u: any) => u.role === 'student').length || 0} Students</span>
+                      <span>{allUsersArray.filter((u: any) => u.role === 'student').length || 0} Students</span>
                       <span>•</span>
-                      <span>{(allUsers as any[])?.filter((u: any) => u.role === 'teacher').length || 0} Teachers</span>
+                      <span>{allUsersArray.filter((u: any) => u.role === 'teacher').length || 0} Teachers</span>
                     </div>
                   </div>
                 </div>
@@ -3255,7 +3258,7 @@ const AdminDashboard: React.FC = () => {
                   </p>
                   <div className="mt-2 text-xs flex items-center text-indigo-600">
                     <div className="flex space-x-2">
-                      <span>{(classes as any[]).length} Classes</span>
+                      <span>{classesArray.length} Classes</span>
                     </div>
                   </div>
                 </div>
@@ -3271,11 +3274,11 @@ const AdminDashboard: React.FC = () => {
                   </p>
                   <div className="mt-2 text-xs flex items-center text-purple-600">
                     <div className="flex space-x-2">
-                      <span>{events?.filter((e: any) => e.status === 'open').length || 0} Open</span>
+                      <span>{eventsArray.filter((e: any) => e.status === 'open').length || 0} Open</span>
                       <span>•</span>
-                      <span>{events?.filter((e: any) => e.status === 'upcoming').length || 0} Upcoming</span>
+                      <span>{eventsArray.filter((e: any) => e.status === 'upcoming').length || 0} Upcoming</span>
                       <span>•</span>
-                      <span>{events?.filter((e: any) => e.status === 'closed').length || 0} Closed</span>
+                      <span>{eventsArray.filter((e: any) => e.status === 'closed').length || 0} Closed</span>
                     </div>
                   </div>
                 </div>
@@ -3498,9 +3501,9 @@ const AdminDashboard: React.FC = () => {
                         </tr>
                       ) : (
                         schools.map((school: any) => {
-                          const teacherCount = (allUsers as any[]).filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
-                          const studentCount = (allUsers as any[]).filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
-                          const classCount = (classes as any[]).filter((c: any) => c.schoolId === school.id).length;
+                          const teacherCount = allUsersArray.filter((u: any) => u.role === 'teacher' && u.schoolId === school.id).length;
+                          const studentCount = allUsersArray.filter((u: any) => u.role === 'student' && u.schoolId === school.id).length;
+                          const classCount = classesArray.filter((c: any) => c.schoolId === school.id).length;
                           
                           // Get school statistics from our API data
                           const schoolStat = (statistics as any)?.schoolStats?.find((stat: any) => stat.schoolId === school.id) || {
@@ -3693,10 +3696,10 @@ const AdminDashboard: React.FC = () => {
                           <tbody className="bg-white divide-y divide-gray-200">
                             {schools.map((school: any) => {
                               // Get classes for this school
-                              const schoolClasses = (classes as any[]).filter((c: any) => c.schoolId === school.id);
+                              const schoolClasses = classesArray.filter((c: any) => c.schoolId === school.id);
                               
                               // Get students for this school
-                              const schoolStudents = (allUsers as any[]).filter((u: any) => 
+                              const schoolStudents = allUsersArray.filter((u: any) => 
                                 u.role === 'student' && u.schoolId === school.id
                               );
                               
@@ -3772,12 +3775,12 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {(classes as any[]).map((classItem: any) => {
+                            {classesArray.map((classItem: any) => {
                               // Get school for this class
                               const school = schools.find((s: any) => s.id === classItem.schoolId);
                               
                               // Get students for this class
-                              const classStudents = (allUsers as any[]).filter((u: any) => 
+                              const classStudents = allUsersArray.filter((u: any) => 
                                 u.role === 'student' && u.classId === classItem.id
                               );
                               
@@ -3891,11 +3894,11 @@ const AdminDashboard: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {(allUsers as any[])
+                            {allUsersArray
                               .filter((user: any) => user.role === 'student')
                               .slice(0, 10) // Limit to first 10 for demonstration
                               .map((student: any, index: number) => {
-                                const studentClass = (classes as any[]).find((c: any) => c.id === student.classId);
+                                const studentClass = classesArray.find((c: any) => c.id === student.classId);
                                 const school = schools.find((s: any) => s.id === student.schoolId);
                                 
                                 // For demonstration, we'll assume some students have submissions
@@ -4637,7 +4640,7 @@ const AdminDashboard: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {(classes as any[])
+                    {classesArray
                       .filter((c: any) => !userSchoolId || (c.schoolId && c.schoolId.toString() === userSchoolId))
                       .map((classItem: any) => (
                         <SelectItem key={classItem.id} value={classItem.id.toString()}>
@@ -4762,7 +4765,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(allUsers as any[])
+                  {allUsersArray
                     .filter((user: any) => user.role === "teacher")
                     .map((teacher: any) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
@@ -5320,7 +5323,7 @@ const AdminDashboard: React.FC = () => {
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(allUsers as any[])
+                  {allUsersArray
                     .filter((user: any) => user.role === "teacher")
                     .map((teacher: any) => (
                       <SelectItem key={teacher.id} value={teacher.id.toString()}>
@@ -5360,7 +5363,7 @@ const AdminDashboard: React.FC = () => {
             <>
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">
-                  {(classes as any[]).find((c: any) => c.id === selectedClassId)?.name || "Class"} Students
+                  {classesArray.find((c: any) => c.id === selectedClassId)?.name || "Class"} Students
                 </h3>
                 <p className="text-sm text-gray-500 mb-4">
                   Manage students enrolled in this class
@@ -5369,7 +5372,7 @@ const AdminDashboard: React.FC = () => {
               
               {/* Students table */}
               <StudentTable
-                students={(allUsers as any[]).filter((user: any) => 
+                students={allUsersArray.filter((user: any) => 
                   user.role === "student" && user.classId === selectedClassId
                 )}
                 isLoading={isLoadingUsers}
