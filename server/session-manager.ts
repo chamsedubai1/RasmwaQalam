@@ -105,12 +105,23 @@ class SessionManager {
   }
   
   /**
-   * Check if a user's session is still active
+   * Check if a user's session is still active.
+   *
+   * IMPORTANT: "no session" is treated as ACTIVE, not expired. A fresh login
+   * or a server restart leaves the in-memory map empty for that user; if we
+   * returned false here, authenticateToken would reject the very first
+   * authenticated request (with a still-valid JWT) and force a pointless
+   * re-login loop. trackActivity() is called later in the same middleware
+   * so the session gets created on first touch.
+   *
+   * Only returns false when a session DOES exist and its last activity is
+   * older than SESSION_TIMEOUT_MS — that's the real "inactive" condition
+   * we want to enforce.
    */
   public isSessionActive(userId: number): boolean {
     const session = this.sessions.get(userId);
-    if (!session) return false;
-    
+    if (!session) return true;
+
     const inactiveTime = Date.now() - session.lastActivity.getTime();
     return inactiveTime < this.SESSION_TIMEOUT_MS;
   }

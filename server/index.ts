@@ -78,12 +78,19 @@ app.use((req, res, next) => {
     // produced by AI providers; we deliberately drop the wildcard `https:`
     // that was previously here so a script-injection in a JSON field cannot
     // exfiltrate via <img src="https://attacker/...">.
+    // Styles allow 'unsafe-inline' because Tailwind / Radix UI inject inline
+    // styles at runtime, and CSS-only injection cannot execute code in modern
+    // browsers (no expression() in any supported browser). Google Fonts is
+    // explicitly allowlisted (the client loads Tajawal/Montserrat/Poppins
+    // from fonts.googleapis.com and fonts.gstatic.com). Scripts remain
+    // strict — no unsafe-inline, no unsafe-eval — which is where real XSS
+    // risk lives.
     cspDirectives = [
       "default-src 'self'",
       "script-src 'self'",
-      "style-src 'self'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob:",
-      "font-src 'self' data:",
+      "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' wss:",
       "frame-src 'none'",
       "frame-ancestors 'none'",
