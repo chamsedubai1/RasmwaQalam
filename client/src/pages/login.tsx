@@ -98,8 +98,15 @@ export default function LoginPage() {
         // Set full user data in context
         setUser(userData);
         
-        // SECURITY: Tokens are now in httpOnly cookies (not localStorage)
-        // Only store user data, not tokens
+        // SECURITY: The real access/refresh tokens live in HttpOnly cookies
+        // (set by the server in this same response). We can't see them from
+        // JS, which is the point. The localStorage values below are NOT real
+        // tokens — they're a client-only marker that the user has logged in,
+        // used by ProtectedRoute and a handful of legacy query `enabled`
+        // checks to decide whether to even try authenticated requests.
+        // When the cookie is missing or expired, those requests will 401
+        // anyway and the user will be bounced to /login.
+        localStorage.setItem('authToken', 'cookie-based');
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('userRole', response.user.role);
         
