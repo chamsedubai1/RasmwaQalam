@@ -166,16 +166,19 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
     }
   };
 
-  // Filter participants based on current filters
+  // Filter participants based on current filters. Guard against
+  // `participants` being non-array (e.g. when a server endpoint returned
+  // an error object instead of the expected list).
   const filteredParticipants = useMemo(() => {
+    if (!Array.isArray(participants)) return [];
     return participants.filter(p => {
       const nameMatch = p.name?.toLowerCase().includes(filters.name.toLowerCase()) || !filters.name;
       const schoolMatch = p.schoolName?.toLowerCase().includes(filters.school.toLowerCase()) || !filters.school;
       const classMatch = p.className?.toLowerCase().includes(filters.class.toLowerCase()) || !filters.class;
       const gradeMatch = p.gradeLevel?.toLowerCase().includes(filters.grade.toLowerCase()) || !filters.grade;
-      const submissionMatch = 
-        filters.hasSubmitted === "all" || 
-        (filters.hasSubmitted === "yes" && p.hasSubmitted) || 
+      const submissionMatch =
+        filters.hasSubmitted === "all" ||
+        (filters.hasSubmitted === "yes" && p.hasSubmitted) ||
         (filters.hasSubmitted === "no" && !p.hasSubmitted);
 
       return nameMatch && schoolMatch && classMatch && gradeMatch && submissionMatch;
@@ -184,6 +187,7 @@ const ParticipantsTable = ({ eventId }: { eventId: number | null }) => {
 
   // Sort filtered participants
   const sortedParticipants = useMemo(() => {
+    if (!Array.isArray(filteredParticipants)) return [];
     return [...filteredParticipants].sort((a, b) => {
       let valA, valB;
       
@@ -1077,14 +1081,20 @@ const AdminDashboard: React.FC = () => {
   const totalStudents = (allUsers as any[]).filter((user: any) => user.role === 'student').length;
   const totalTeachers = (allUsers as any[]).filter((user: any) => user.role === 'teacher').length;
   const totalSchools = (schools as any[]).length;
-  const totalClasses = (classes as any[]).length;
-  const totalEvents = (events as any[]).length;
-  const activeEvents = (events as any[]).filter((event: any) => event.status === 'open').length;
-  const upcomingEvents = (events as any[]).filter((event: any) => event.status === 'upcoming').length;
-  
+  // Defensive guards: server endpoints can return error bodies or null
+  // when something upstream is wrong; we don't want a misbehaving API to
+  // crash the entire admin dashboard with "x.filter is not a function".
+  const classesArray = Array.isArray(classes) ? classes : [];
+  const eventsArray = Array.isArray(events) ? events : [];
+  const galleryItemsArray = Array.isArray(galleryItems) ? galleryItems : [];
+  const totalClasses = classesArray.length;
+  const totalEvents = eventsArray.length;
+  const activeEvents = eventsArray.filter((event: any) => event.status === 'open').length;
+  const upcomingEvents = eventsArray.filter((event: any) => event.status === 'upcoming').length;
+
   // Filter gallery items based on user search and filters
   const filteredGalleryItems = useMemo(() => {
-    return (galleryItems as any[]).filter((item: any) => {
+    return galleryItemsArray.filter((item: any) => {
       // Filter by search query (case insensitive)
       const matchesSearch = 
         gallerySearchQuery === '' || 
@@ -1104,11 +1114,13 @@ const AdminDashboard: React.FC = () => {
       
       return matchesSearch && matchesType && matchesFeatured;
     });
-  }, [galleryItems, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
-  
+  }, [galleryItemsArray, gallerySearchQuery, galleryTypeFilter, galleryFeaturedFilter]);
+
   // Get school names for each user
-  const usersWithSchoolNames = (allUsers as any[]).map((user: any) => {
-    const school = (schools as any[]).find((s: any) => s.id === user.schoolId);
+  const allUsersArray = Array.isArray(allUsers) ? allUsers : [];
+  const schoolsArray = Array.isArray(schools) ? schools : [];
+  const usersWithSchoolNames = allUsersArray.map((user: any) => {
+    const school = schoolsArray.find((s: any) => s.id === user.schoolId);
     const userClass = (classes as any[]).find((c: any) => c.id === user.classId);
     return {
       ...user,
