@@ -266,10 +266,16 @@ export async function enhanceImagePrompt(
 /**
  * Image analysis using a vision-capable model (e.g. qwen2.5vl:3b).
  *
- * `imageInput` accepts either:
- *   - A bare base64 string ("iVBORw0...")
- *   - A data URL ("data:image/png;base64,iVBORw0...")
- *   - An http(s) URL (we'll fetch and base64-encode it)
+ * SECURITY: To prevent SSRF, `imageInput` must be one of:
+ *   - A `data:image/<type>;base64,...` URL
+ *   - A bare base64 string (max ~2MB encoded)
+ *
+ * Remote URLs (http(s)) are intentionally NOT accepted here. If a caller
+ * needs to analyze a file that lives on the server's filesystem, it should
+ * read the file directly and pass the base64 contents — never hand
+ * arbitrary URLs to this function. The previous http(s) branch let any
+ * authenticated user trigger fetches to internal services (n8n, traefik
+ * dashboard, cloud metadata endpoints, etc).
  */
 export async function analyzeImage(
   imageInput: string,
@@ -291,7 +297,7 @@ export async function analyzeImage(
     throw new Error(`Vision model "${requested}" is not installed on this Ollama instance`);
   }
 
-  const base64 = await normalizeToBase64(imageInput);
+  const base64 = normalizeToBase64(imageInput);
   const userPrompt = prompt || 'Describe this image clearly and concisely.';
 
   const description = await ollamaChat(requested, [
@@ -315,20 +321,45 @@ export async function analyzeImage(
   };
 }
 
-async function normalizeToBase64(input: string): Promise<string> {
+const MAX_IMAGE_BASE64_LENGTH = 2_800_000; // ~2 MB binary after decode
+const BASE64_REGEX = /^[A-Za-z0-9+/=\s]+$/;
+
+/**
+ * SSRF-safe normalization. Accepts only data: URLs with an image MIME and
+ * base64 payload, or a bare base64 string. Anything resembling a URL is
+ * rejected — including file:, http:, https:, gopher:, etc.
+ */
+function normalizeToBase64(input: string): string {
+  if (typeof input !== 'string' || !input) {
+    throw new Error('Image input must be a non-empty string');
+  }
+
+  if (input.length > MAX_IMAGE_BASE64_LENGTH) {
+    throw new Error('Image input exceeds maximum allowed size');
+  }
+
   if (input.startsWith('data:')) {
-    // data:image/png;base64,iVBOR...
-    const comma = input.indexOf(',');
-    return comma >= 0 ? input.slice(comma + 1) : input;
+    // Require image/* MIME and base64 encoding. Reject e.g. data:text/html or
+    // data:application/x-something which a vision model might still try to
+    // interpret as text.
+    const match = input.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+    if (!match) {
+      throw new Error('data: URL must be an image MIME with base64 payload');
+    }
+    return match[2].replace(/\s+/g, '');
   }
-  if (input.startsWith('http://') || input.startsWith('https://')) {
-    const response = await fetch(input);
-    if (!response.ok) throw new Error(`Failed to fetch image: HTTP ${response.status}`);
-    const buf = Buffer.from(await response.arrayBuffer());
-    return buf.toString('base64');
+
+  // Reject anything that looks like a URL of any other scheme.
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(input)) {
+    throw new Error('Only data: URLs and bare base64 are accepted (no http/https/file/...)');
   }
-  // Assume already base64
-  return input;
+
+  // Bare base64 path. Sanity-check the alphabet.
+  const stripped = input.replace(/\s+/g, '');
+  if (!BASE64_REGEX.test(stripped) || stripped.length < 100) {
+    throw new Error('Image input is not valid base64');
+  }
+  return stripped;
 }
 
 // ---------------------------------------------------------------------------

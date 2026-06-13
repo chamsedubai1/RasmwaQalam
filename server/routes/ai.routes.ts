@@ -202,6 +202,23 @@ router.post('/analyze-image', authenticateToken, async (req: Request, res: Respo
       return res.status(400).json({ message: 'Image URL is required' });
     }
 
+    // SECURITY (SSRF): Only data: URLs and bare base64 are allowed here.
+    // We never let an authenticated user trick the server into fetching an
+    // arbitrary URL (which would reach internal services on the host such
+    // as n8n, Traefik dashboard, the Docker socket via tcp, or cloud
+    // metadata endpoints). The same check is enforced inside
+    // ollama.analyzeImage as defense in depth.
+    if (typeof imageUrl !== 'string') {
+      return res.status(400).json({ message: 'imageUrl must be a string', code: 'INVALID_IMAGE_INPUT' });
+    }
+    if (/^(?!data:)[a-zA-Z][a-zA-Z0-9+.-]*:/.test(imageUrl)) {
+      console.warn(`[SECURITY] /analyze-image rejected URL scheme from user ${(req as any).user?.id}`);
+      return res.status(400).json({
+        message: 'Only data: URLs or bare base64 image data are accepted.',
+        code: 'REMOTE_URLS_NOT_ALLOWED',
+      });
+    }
+
     if (!(await assertModerationAvailable(res))) return;
 
     console.log('[OLLAMA] Analyzing image with local vision model');
