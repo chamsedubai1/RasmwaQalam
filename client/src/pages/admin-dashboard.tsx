@@ -1078,15 +1078,20 @@ const AdminDashboard: React.FC = () => {
 
   
   // Defensive guards: server endpoints can return error bodies or null
-  // when something upstream is wrong; we don't want a misbehaving API to
-  // crash the entire admin dashboard with "x.filter is not a function".
-  // These local arrays MUST be declared before any code below tries to
-  // call .filter/.map/.length on them.
-  const allUsersArray = Array.isArray(allUsers) ? allUsers : [];
-  const schoolsArray = Array.isArray(schools) ? schools : [];
-  const classesArray = Array.isArray(classes) ? classes : [];
-  const eventsArray = Array.isArray(events) ? events : [];
-  const galleryItemsArray = Array.isArray(galleryItems) ? galleryItems : [];
+  // when something upstream is wrong, AND /api/users returns a paginated
+  // envelope { data: [...], pagination: {...} } instead of a bare array.
+  // Accept both shapes so the rest of this component can treat them
+  // uniformly as arrays.
+  const toArray = (v: any): any[] => {
+    if (Array.isArray(v)) return v;
+    if (v && Array.isArray(v.data)) return v.data;
+    return [];
+  };
+  const allUsersArray = toArray(allUsers);
+  const schoolsArray = toArray(schools);
+  const classesArray = toArray(classes);
+  const eventsArray = toArray(events);
+  const galleryItemsArray = toArray(galleryItems);
 
   const totalUsers = allUsersArray.length;
   const totalStudents = allUsersArray.filter((user: any) => user.role === 'student').length;

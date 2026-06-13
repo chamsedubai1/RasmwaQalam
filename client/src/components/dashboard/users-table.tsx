@@ -53,15 +53,18 @@ export default function UsersTable({
   } = useQuery({
     queryKey: ['/api/users', buildQueryString()],
     queryFn: async () => {
-      // apiRequest already throws on non-OK responses and returns parsed JSON.
-      // The previous code treated the result as a fetch Response and called
-      // .json() on it, which broke with TypeError ".json is not a function"
-      // after the queryClient migration to HttpOnly cookies.
+      // /api/users returns a paginated envelope: { data: [...], pagination }
+      // Older callers expected a bare array, so we unwrap once here.
+      const extract = (response: any): any[] => {
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        return [];
+      };
+
       try {
         const queryString = buildQueryString();
         const endpoint = queryString ? `/api/users?${queryString}` : '/api/users';
-        const users = await apiRequest('GET', endpoint);
-        return Array.isArray(users) ? users : [];
+        return extract(await apiRequest('GET', endpoint));
       } catch (error) {
         console.error("Error fetching users:", error);
 
@@ -69,10 +72,8 @@ export default function UsersTable({
         // was requested and the server-side filter failed.
         if (schoolFilter) {
           try {
-            const allUsers = await apiRequest('GET', '/api/users');
-            return Array.isArray(allUsers)
-              ? allUsers.filter((user: any) => user.schoolId === schoolFilter)
-              : [];
+            const allUsers = extract(await apiRequest('GET', '/api/users'));
+            return allUsers.filter((user: any) => user.schoolId === schoolFilter);
           } catch (fallbackError) {
             console.error("Fallback users fetch failed:", fallbackError);
             return [];
