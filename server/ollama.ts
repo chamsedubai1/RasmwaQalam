@@ -54,14 +54,6 @@ export const MODEL_CATALOG: readonly ModelInfo[] = [
     speedHint: 'fast',
   },
   {
-    id: 'deepseek-r1:7b',
-    displayName: 'DeepSeek-R1 (7B) — Thoughtful',
-    description: 'Better reasoning. Slower (15-45s per response).',
-    capabilities: ['text', 'reasoning'],
-    sizeMB: 4_700,
-    speedHint: 'slow',
-  },
-  {
     id: 'qwen2.5vl:3b',
     displayName: 'Qwen 2.5 VL (3B) — Vision',
     description: 'Can see and describe images. Used for artwork analysis.',
@@ -70,6 +62,11 @@ export const MODEL_CATALOG: readonly ModelInfo[] = [
     speedHint: 'medium',
   },
 ];
+
+// Models we've removed from the active catalog but might want to re-add later:
+//   - deepseek-r1:7b    too heavy for an 8 GB VPS while running alongside
+//                       n8n + Traefik + Llama Guard + the platform itself.
+//                       Revisit when on a 16+ GB host.
 
 // ---------------------------------------------------------------------------
 // Low-level Ollama HTTP client

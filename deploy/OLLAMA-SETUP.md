@@ -6,10 +6,11 @@ The platform's AI features (poem generation, prompt enhancement, content moderat
 |---|---|---|---|
 | `qwen2.5:3b` | ~2 GB | Default content generation (poems) | **Required** |
 | `llama-guard3:1b` | ~800 MB | Content moderation (Meta's safety classifier) | **Required** |
-| `deepseek-r1:7b` | ~4.7 GB | Higher-quality reasoning, slower | Optional |
 | `qwen2.5vl:3b` | ~3.2 GB | Vision model — used for artwork analysis | Optional |
 
-The first two are mandatory — without them, every AI feature returns 503 `MODERATION_UNAVAILABLE` (intentional, for student safety). The other two appear in the UI model picker only after they're installed.
+The first two are mandatory — without them, every AI feature returns 503 `MODERATION_UNAVAILABLE` (intentional, for student safety). The vision model appears in the UI model picker only after it's installed.
+
+> Heavier models like `deepseek-r1:7b` were considered and dropped for now — they don't fit comfortably in the 8 GB KVM 2 VPS alongside n8n + Traefik + the platform + Llama Guard. Revisit if you move to a 16 GB+ host.
 
 ---
 
@@ -36,13 +37,12 @@ ollama pull qwen2.5:3b
 ollama pull llama-guard3:1b
 ```
 
-**Optional, but enables the model picker in the UI:**
+**Optional, enables artwork analysis in the UI:**
 ```
-ollama pull deepseek-r1:7b
 ollama pull qwen2.5vl:3b
 ```
 
-Disk usage after all four: ~11 GB. Skip the optional ones if you're tight on disk.
+Disk usage with all three: ~6 GB.
 
 Verify both are installed:
 ```
@@ -215,9 +215,8 @@ docker exec -it platform-ollama-1 ollama pull qwen2.5:3b
 docker exec -it platform-ollama-1 ollama pull llama-guard3:1b
 ```
 
-**Optional, for the model picker:**
+**Optional, for artwork analysis:**
 ```
-docker exec -it platform-ollama-1 ollama pull deepseek-r1:7b
 docker exec -it platform-ollama-1 ollama pull qwen2.5vl:3b
 ```
 
